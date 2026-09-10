@@ -5,6 +5,10 @@ Strip.register({
   tag: "connect",
   hint: "Drag through matching-color dots to clear them",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
     const SIZE = 6;
     const COLORS = ["#FFB347","#8B7FE8","#E8637F","#6FCF97"];
@@ -42,7 +46,7 @@ Strip.register({
       chain = [];
       dragging = false;
       render();
-      document.getElementById("cl-score").textContent = 0;
+      q("#cl-score").textContent = 0;
     }
 
     function cellCenter(r,c){ return [c*CELL + CELL/2, r*CELL + CELL/2]; }
@@ -137,11 +141,11 @@ Strip.register({
         chain.forEach(([r,c]) => { grid[r][c] = null; });
         Feedback.tone("success"); Feedback.haptic("medium");
         score += chain.length * (chain.length - 1);
-        document.getElementById("cl-score").textContent = score;
+        q("#cl-score").textContent = score;
         if(score > best){
           best = score;
           api.setHighscore(best);
-          document.getElementById("cl-best").textContent = best;
+          q("#cl-best").textContent = best;
         }
         applyGravity();
       }

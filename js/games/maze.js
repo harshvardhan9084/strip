@@ -131,7 +131,10 @@ Strip.register({
 
     function onKey(e){
       const map = { ArrowLeft:[0,-1], ArrowRight:[0,1], ArrowUp:[-1,0], ArrowDown:[1,0] };
-      if(map[e.key]) move(...map[e.key]);
+      if(map[e.key]){
+        e.preventDefault(); // arrows move the dot, not the strip scroll
+        move(...map[e.key]);
+      }
     }
     window.addEventListener("keydown", onKey);
 

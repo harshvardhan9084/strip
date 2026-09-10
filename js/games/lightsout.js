@@ -6,7 +6,12 @@ Strip.register({
   hint: "Tap to toggle neighbors — clear the board",
   async mount(container, api){
     const SIZE = 5;
-    let best = await api.getHighscore(); // best = fewest moves to clear (lower is better, stored as negative for max-based store)
+    // best = fewest moves to clear (lower is better; stored inverted for the
+    // max-based highscore store). Fetch and convert exactly ONCE — the old code
+    // fetched twice (await + then) and the stat line briefly showed the raw
+    // inverted value before the second fetch corrected it.
+    let stored = await api.getHighscore();
+    let best = stored ? 100000 - stored : Infinity;
     let grid, moves, solved;
 
     const wrap = document.createElement("div");
@@ -85,7 +90,6 @@ Strip.register({
       render();
     }
 
-    api.getHighscore().then(v => { best = v ? 100000 - v : Infinity; render(); });
     newGame();
   }
 });

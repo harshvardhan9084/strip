@@ -5,6 +5,10 @@ Strip.register({
   tag: "60s",
   hint: "Pop balloons, avoid the bombs",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
     const ROUND_MS = 60000;
 
@@ -61,7 +65,7 @@ Strip.register({
           score += 1;
           Feedback.tone("pop"); Feedback.haptic("light");
         }
-        document.getElementById("bp-score").textContent = score;
+        q("#bp-score").textContent = score;
         cleanup();
       });
     }
@@ -78,7 +82,7 @@ Strip.register({
 
     function tickCountdown(){
       timeLeft--;
-      document.getElementById("bp-time").textContent = timeLeft;
+      q("#bp-time").textContent = timeLeft;
       if(timeLeft <= 0) endGame();
     }
 
@@ -93,14 +97,14 @@ Strip.register({
       startBtn.disabled = false;
       api.setHighscore(score).then(v => {
         best = v;
-        document.getElementById("bp-best").textContent = best;
+        q("#bp-best").textContent = best;
       });
     }
 
     function start(){
       score = 0; timeLeft = 60; running = true;
-      document.getElementById("bp-score").textContent = 0;
-      document.getElementById("bp-time").textContent = 60;
+      q("#bp-score").textContent = 0;
+      q("#bp-time").textContent = 60;
       startBtn.disabled = true;
       startBtn.textContent = "Popping…";
       spawnLoop();

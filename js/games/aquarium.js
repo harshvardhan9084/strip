@@ -5,6 +5,10 @@ Strip.register({
   tag: "idle",
   hint: "Tap to sprinkle food, fish grow over time",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     const DEFAULT = { fish: [mkFish()], food: 5, lastSeen: Date.now() };
     const saved = await api.load();
     let best = await api.getHighscore(); // best = most fish ever raised
@@ -14,7 +18,7 @@ Strip.register({
     }
 
     const state = saved ? Object.assign({}, DEFAULT, saved) : DEFAULT;
-    if(!state.fish || !state.fish.length) state.fish = [mkFish()];
+    if(!Array.isArray(state.fish) || !state.fish.length) state.fish = [mkFish()];
 
     // offline growth: fish age a bit, capped
     const elapsedSec = Math.min(3600*6, Math.max(0, (Date.now() - state.lastSeen)/1000));
@@ -75,7 +79,7 @@ Strip.register({
     const regenInterval = setInterval(() => {
       if(state.food < 10){
         state.food++;
-        document.getElementById("aq-food").textContent = state.food;
+        q("#aq-food").textContent = state.food;
         feedHint.textContent = "Tap the tank to feed";
       }
     }, 20000);
@@ -84,7 +88,7 @@ Strip.register({
       if(state.food <= 0) return;
       Feedback.tone("pop"); Feedback.haptic("light");
       state.food--;
-      document.getElementById("aq-food").textContent = state.food;
+      q("#aq-food").textContent = state.food;
       if(state.food === 0) feedHint.textContent = "Out of food — wait for more or check back later";
 
       // feeding grows a random fish, and has a small chance to spawn a new one
@@ -94,11 +98,11 @@ Strip.register({
       if(Math.random() < 0.12 && state.fish.length < 8){
         state.fish.push(mkFish());
         Feedback.tone("success");
-        document.getElementById("aq-fish").textContent = state.fish.length;
+        q("#aq-fish").textContent = state.fish.length;
         if(state.fish.length > best){
           best = state.fish.length;
           api.setHighscore(best);
-          document.getElementById("aq-best").textContent = best;
+          q("#aq-best").textContent = best;
         }
       }
       renderFish();
@@ -111,8 +115,8 @@ Strip.register({
     }
     const autosave = setInterval(persist, 8000);
 
-    document.getElementById("aq-fish").textContent = state.fish.length;
-    document.getElementById("aq-best").textContent = best;
+    q("#aq-fish").textContent = state.fish.length;
+    q("#aq-best").textContent = best;
 
     return () => {
       clearInterval(swimInterval);

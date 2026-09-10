@@ -5,6 +5,10 @@ Strip.register({
   tag: "🧠",
   hint: "Tap the correct answer",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
     const savedState = (await api.load()) || { bag: null };
     const Q = [
@@ -136,17 +140,17 @@ Strip.register({
       if(correct){
         Feedback.buzz("success");
         streak++;
-        document.getElementById("tv-score").textContent = streak;
+        q("#tv-score").textContent = streak;
         if(streak > best){
           best = streak;
           api.setHighscore(best);
-          document.getElementById("tv-best").textContent = best;
+          q("#tv-best").textContent = best;
         }
       } else {
         Feedback.buzz("error");
         api.setHighscore(streak);
         streak = 0;
-        document.getElementById("tv-score").textContent = 0;
+        q("#tv-score").textContent = 0;
       }
       setTimeout(pickQuestion, 900);
     }

@@ -5,6 +5,10 @@ Strip.register({
   tag: "physics",
   hint: "Tap to drop a ball through the pegs",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     const state = (await api.load()) || { drops: 0, totalScore: 0 };
     let best = await api.getHighscore();
 
@@ -81,7 +85,7 @@ Strip.register({
       for(let i=0;i<SLOTS;i++){
         ctx.fillStyle = i === Math.floor(SLOTS/2) ? "rgba(255,179,71,.15)" : "rgba(255,255,255,.03)";
         ctx.fillRect(i*slotW, ch-36, slotW-2, 34);
-        ctx.fillStyle = "var(--ink-dim)";
+        ctx.fillStyle = "rgba(237,234,227,0.6)"; // canvas can't resolve CSS vars like "var(--ink-dim)" — the old value made slot labels render in an arbitrary color
         ctx.font = "9px monospace";
         ctx.textAlign = "center";
         ctx.fillText(SLOT_SCORES[i], i*slotW + slotW/2, ch-16);
@@ -128,12 +132,12 @@ Strip.register({
           Feedback.tone(score >= 100 ? "win" : "tap"); Feedback.haptic("medium");
           state.drops++;
           state.totalScore += score;
-          document.getElementById("pk-drops").textContent = state.drops;
+          q("#pk-drops").textContent = state.drops;
           api.save(state);
           if(score > best){
             best = score;
             api.setHighscore(best);
-            document.getElementById("pk-best").textContent = best;
+            q("#pk-best").textContent = best;
           }
           setTimeout(() => { balls = balls.filter(x => x !== b); }, 600);
         }

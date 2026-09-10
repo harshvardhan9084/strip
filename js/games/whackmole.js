@@ -5,6 +5,10 @@ Strip.register({
   tag: "30s",
   hint: "Tap the moles before they duck",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
     const GRID = 3;
     const ROUND_MS = 30000;
@@ -59,7 +63,7 @@ Strip.register({
       h.addEventListener("click", () => {
         if(!running || i !== activeHole) return;
         score++;
-        document.getElementById("wm-score").textContent = score;
+        q("#wm-score").textContent = score;
         h.textContent = "";
         clearTimeout(spawnTimer);
         popRandom();
@@ -70,7 +74,7 @@ Strip.register({
 
     function tickCountdown(){
       timeLeft--;
-      document.getElementById("wm-time").textContent = timeLeft;
+      q("#wm-time").textContent = timeLeft;
       if(timeLeft <= 0) endGame();
     }
 
@@ -83,14 +87,14 @@ Strip.register({
       startBtn.disabled = false;
       api.setHighscore(score).then(v => {
         best = v;
-        document.getElementById("wm-best").textContent = best;
+        q("#wm-best").textContent = best;
       });
     }
 
     function start(){
       score = 0; timeLeft = 30; running = true;
-      document.getElementById("wm-score").textContent = 0;
-      document.getElementById("wm-time").textContent = 30;
+      q("#wm-score").textContent = 0;
+      q("#wm-time").textContent = 30;
       startBtn.disabled = true;
       startBtn.textContent = "Playing…";
       popRandom();

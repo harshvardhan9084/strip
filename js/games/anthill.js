@@ -33,6 +33,10 @@ Strip.register({
   tag: "strategy",
   hint: "Tap to gather · collect the vault often",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     const DEFAULT = {
       food: 0,
       lifetimeFood: 0,
@@ -177,14 +181,14 @@ Strip.register({
     }
 
     function refresh(){
-      document.getElementById("ah-food").textContent = fmt(state.food);
-      document.getElementById("ah-rate").textContent = ratePerSec().toFixed(1) + "/s";
-      document.getElementById("ah-best").textContent = fmt(best);
+      q("#ah-food").textContent = fmt(state.food);
+      q("#ah-rate").textContent = ratePerSec().toFixed(1) + "/s";
+      q("#ah-best").textContent = fmt(best);
 
       const c = vaultCap();
       const pct = Math.min(100, (state.vault / c) * 100);
-      document.getElementById("ah-vault-text").textContent = `${fmt(state.vault)} / ${fmt(c)}`;
-      document.getElementById("ah-vault-bar").style.width = pct + "%";
+      q("#ah-vault-text").textContent = `${fmt(state.vault)} / ${fmt(c)}`;
+      q("#ah-vault-bar").style.width = pct + "%";
       vaultBox.style.borderColor = pct >= 95 ? "var(--danger)" : "var(--amber-dim)";
 
       [["foragers", foragerRow], ["farmers", farmerRow], ["soldiers", soldierRow], ["vaultTier", vaultRow]].forEach(([role, row]) => {

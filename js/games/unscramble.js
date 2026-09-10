@@ -5,6 +5,10 @@ Strip.register({
   tag: "words",
   hint: "Tap letters in order to spell the word",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
     const WORDS = [
       "PIXEL","CIRCUIT","ROCKET","GOBLIN","PUZZLE","CASTLE","DRAGON","GALAXY",
@@ -105,10 +109,10 @@ Strip.register({
       if(guess === word){
         Feedback.buzz("success");
         solvedCount++;
-        document.getElementById("us-score").textContent = solvedCount;
+        q("#us-score").textContent = solvedCount;
         api.setHighscore(solvedCount).then(v => {
           best = v;
-          document.getElementById("us-best").textContent = best;
+          q("#us-best").textContent = best;
         });
         setTimeout(newWord, 500);
       } else {

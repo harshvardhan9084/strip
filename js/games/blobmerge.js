@@ -5,6 +5,10 @@ Strip.register({
   tag: "drag",
   hint: "Drag a blob onto a matching one to merge",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
     const COLS = 4, ROWS = 5;
     const CELL = 56;
@@ -37,7 +41,7 @@ Strip.register({
       dragging = null;
       for(let i=0;i<4;i++) addBlob();
       render();
-      document.getElementById("bm-score").textContent = 0;
+      q("#bm-score").textContent = 0;
     }
 
     function emptyCells(){
@@ -146,11 +150,11 @@ Strip.register({
         grid[tr][tc] = { stage: source.stage + 1 };
         grid[r][c] = null;
         score += Math.pow(2, source.stage + 1);
-        document.getElementById("bm-score").textContent = score;
+        q("#bm-score").textContent = score;
         if(score > best){
           best = score;
           api.setHighscore(best);
-          document.getElementById("bm-best").textContent = best;
+          q("#bm-best").textContent = best;
         }
         addBlob();
         success = true;

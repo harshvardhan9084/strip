@@ -5,6 +5,10 @@ Strip.register({
   tag: "precision",
   hint: "Tap to drop the block — stack as high as you can",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
 
     const wrap = document.createElement("div");
@@ -46,7 +50,7 @@ Strip.register({
       running = false;
       score = 0;
       camY = 0;
-      document.getElementById("st-score").textContent = 0;
+      q("#st-score").textContent = 0;
     }
 
     function spawnBlock(){
@@ -54,7 +58,12 @@ Strip.register({
       const prev = blocks[blocks.length - 1];
       const dir = Math.random() < 0.5 ? -1 : 1;
       current = {
-        x: dir > 0 ? -prev.w : w,
+        // spawn INSIDE the canvas, flush with the chosen wall. The old version
+        // spawned fully offscreen (x = -prev.w or x = w), where the wall-bounce
+        // condition (x <= 0 || x + w >= w) was already true — so vx flipped on
+        // frame one and the block sat oscillating at the edge, invisible and
+        // unplayable, until the next tap measured ~zero overlap and ended the run.
+        x: dir > 0 ? 0 : w - prev.w,
         w: prev.w,
         vx: dir > 0 ? 3.2 : -3.2,
         colorIdx: blocks.length % COLORS.length,
@@ -83,7 +92,7 @@ Strip.register({
       blocks.push({ x: overlapLeft, w: overlap, colorIdx: current.colorIdx });
       Feedback.tone("place"); Feedback.haptic("light");
       score++;
-      document.getElementById("st-score").textContent = score;
+      q("#st-score").textContent = score;
       current = null;
       if(blocks.length * BLOCK_H > (canvas.height/devicePixelRatio) * 0.6){
         camY += BLOCK_H;
@@ -96,7 +105,7 @@ Strip.register({
       hint.textContent = "Tap to try again";
       api.setHighscore(score).then(v => {
         best = v;
-        document.getElementById("st-best").textContent = best;
+        q("#st-best").textContent = best;
       });
     }
 

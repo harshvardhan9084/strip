@@ -66,6 +66,7 @@ Strip.register({
     function newGame(){
       grid = Array.from({length:SIZE}, () => Array(SIZE).fill(0));
       score = 0;
+      gameOverShown = false;
       addRandomTile(); addRandomTile();
       render();
     }
@@ -103,9 +104,33 @@ Strip.register({
         api.setHighscore(best);
       }
       bestBox.set(best);
+
+      // surface the loss on the board instead of silently freezing
+      if(gameOverShown){
+        const overlay = tileLayer.querySelector(".go-overlay");
+        if(!overlay){
+          const o = document.createElement("div");
+          o.className = "go-overlay";
+          o.style.cssText = `
+            position:absolute; inset:0; background:rgba(0,0,0,.62); border-radius:8px;
+            display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;
+            color:#EDEAE3; font-family:var(--font-display); font-size:14px; text-align:center;
+          `;
+          o.textContent = "No moves left";
+          const sub = document.createElement("div");
+          sub.style.cssText = "font-size:10px; color:var(--ink-dim);";
+          sub.textContent = "Tap New game to restart";
+          o.appendChild(sub);
+          tileLayer.appendChild(o);
+        }
+      } else {
+        const overlay = tileLayer.querySelector(".go-overlay");
+        if(overlay) overlay.remove();
+      }
     }
 
     let mergedThisMove = false;
+    let gameOverShown = false;
     function slide(row){
       const filtered = row.filter(v => v !== 0);
       for(let i=0;i<filtered.length-1;i++){
@@ -139,28 +164,30 @@ Strip.register({
 
     function move(dir){
       // normalize to "left" by rotating, slide, rotate back
+      // rotation map verified: CW rotation maps up->right, so sliding UP needs 3
+      // CW turns (up->left), DOWN 1 (down->left), RIGHT 2 (right->left), LEFT 0
+      const before = JSON.stringify(grid);
+      let rotations = { left:0, down:1, right:2, up:3 }[dir];
       let g = grid;
-      let rotations = { left:0, down:1, right:2, up:3 }[dir]; // up/down were swapped in the original mapping — see fix note below
       for(let i=0;i<rotations;i++) g = rotateGrid(g);
-      const before = JSON.stringify(g);
       mergedThisMove = false;
       g = g.map(slide);
-      const after = JSON.stringify(g);
       for(let i=0;i<(4-rotations)%4;i++) g = rotateGrid(g);
       grid = g;
-      const moved = before !== JSON.stringify(rotations ? rotateGridBack(g, rotations) : g);
+      // compare in the SAME coordinate space (both back in original orientation)
+      const moved = before !== JSON.stringify(grid);
       if(moved){
         addRandomTile();
         if(mergedThisMove) Feedback.tone("pop");
         else Feedback.haptic("light");
+        render();
+        if(!hasMoves()){
+          Feedback.buzz("lose");
+          gameOverShown = true;
+        }
+      } else {
+        render();
       }
-      render();
-      if(moved && !hasMoves()) Feedback.buzz("lose");
-    }
-    function rotateGridBack(g, rotations){
-      let r = g;
-      for(let i=0;i<rotations;i++) r = rotateGrid(r);
-      return r;
     }
 
     // swipe controls
@@ -183,7 +210,10 @@ Strip.register({
 
     function onKey(e){
       const map = { ArrowLeft:"left", ArrowRight:"right", ArrowUp:"up", ArrowDown:"down" };
-      if(map[e.key]) move(map[e.key]);
+      if(map[e.key]){
+        e.preventDefault(); // arrows slide tiles, not the strip scroll
+        move(map[e.key]);
+      }
     }
     window.addEventListener("keydown", onKey);
 

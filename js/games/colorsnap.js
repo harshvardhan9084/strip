@@ -5,6 +5,10 @@ Strip.register({
   tag: "⚡",
   hint: "Tap only when word ≠ color",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
     const COLORS = [
       { name:"RED", hex:"#E8637F" },
@@ -85,7 +89,7 @@ Strip.register({
       if(correct){
         Feedback.tone("success"); Feedback.haptic("light");
         score++;
-        document.getElementById("cs-score").textContent = score;
+        q("#cs-score").textContent = score;
         nextRound();
       } else {
         Feedback.buzz("error");
@@ -98,7 +102,7 @@ Strip.register({
       clearTimeout(timer);
       api.setHighscore(score).then(newBest => {
         best = newBest;
-        document.getElementById("cs-best").textContent = best;
+        q("#cs-best").textContent = best;
       });
       wordEl.textContent = "GAME OVER";
       wordEl.style.color = "var(--danger)";
@@ -107,7 +111,7 @@ Strip.register({
 
     function start(){
       running = true; score = 0;
-      document.getElementById("cs-score").textContent = 0;
+      q("#cs-score").textContent = 0;
       nextRound();
     }
 

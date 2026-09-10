@@ -8,6 +8,11 @@ Strip.register({
     let best = await api.getHighscore();
     const SIZE = 14;
 
+    // scope all element lookups to THIS card — duplicate ids across two copies
+    // of a cartridge briefly coexist in the strip, and document.getElementById
+    // would happily update the wrong (stale) one.
+    const q = (sel) => container.querySelector(sel);
+
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
@@ -44,18 +49,34 @@ Strip.register({
       placeFood();
       score = 0;
       running = true;
-      document.getElementById("sn-score").textContent = 0;
+      q("#sn-score").textContent = 0;
       startBtn.disabled = true;
       startBtn.textContent = "Playing…";
       draw();
     }
 
     function placeFood(){
-      let pos;
-      do {
-        pos = [Math.floor(Math.random()*SIZE), Math.floor(Math.random()*SIZE)];
-      } while(snake.some(([r,c]) => r===pos[0] && c===pos[1]));
-      food = pos;
+      // collect the free cells instead of rejection-sampling — the old do/while
+      // loop never terminated once the snake filled the board (a real win state
+      // the game simply didn't have), freezing the tab.
+      const free = [];
+      for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+        if(!snake.some(([sr,sc]) => sr===r && sc===c)) free.push([r,c]);
+      }
+      if(!free.length){ win(); return; }
+      food = free[Math.floor(Math.random()*free.length)];
+    }
+
+    function win(){
+      running = false;
+      clearInterval(tickId);
+      Feedback.buzz("win");
+      startBtn.disabled = false;
+      startBtn.textContent = "You filled the board! Play again";
+      api.setHighscore(score).then(v => {
+        best = v;
+        q("#sn-best").textContent = best;
+      });
     }
 
     function draw(){
@@ -83,8 +104,9 @@ Strip.register({
       if(nr===food[0] && nc===food[1]){
         score++;
         Feedback.tone("pop"); Feedback.haptic("light");
-        document.getElementById("sn-score").textContent = score;
+        q("#sn-score").textContent = score;
         placeFood();
+        if(!running) return; // board filled — win() already cleaned up
       } else {
         snake.pop();
       }
@@ -99,7 +121,7 @@ Strip.register({
       startBtn.textContent = "Play again";
       api.setHighscore(score).then(v => {
         best = v;
-        document.getElementById("sn-best").textContent = best;
+        q("#sn-best").textContent = best;
       });
     }
 
@@ -125,7 +147,10 @@ Strip.register({
 
     function onKey(e){
       const map = { ArrowLeft:[0,-1], ArrowRight:[0,1], ArrowUp:[-1,0], ArrowDown:[1,0] };
-      if(map[e.key]) setDir(...map[e.key]);
+      if(map[e.key]){
+        e.preventDefault(); // arrows steer the snake, not the strip scroll
+        setDir(...map[e.key]);
+      }
     }
     window.addEventListener("keydown", onKey);
 
@@ -135,6 +160,7 @@ Strip.register({
     });
 
     snake = [[7,7],[7,6],[7,5]];
+    dir = [0,1]; nextDir = [0,1]; // init immediately — the keydown handler runs even before the first Start, and setDir reads dir
     food = [3,3];
     draw();
 

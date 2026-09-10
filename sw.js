@@ -1,5 +1,5 @@
-const SHELL_CACHE = 'strip-shell-v1';
-const RUNTIME_CACHE = 'strip-runtime-v1';
+const SHELL_CACHE = 'strip-shell-v2';
+const RUNTIME_CACHE = 'strip-runtime-v2';
 
 const SHELL_ASSETS = [
   './',

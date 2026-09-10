@@ -5,6 +5,10 @@ Strip.register({
   tag: "🎨",
   hint: "Drag sliders, match the target color",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     const state = (await api.load()) || { matched: 0 };
     let best = await api.getHighscore();
 
@@ -94,12 +98,12 @@ Strip.register({
         matchNote.style.color = "var(--amber)";
         Feedback.buzz("success");
         state.matched++;
-        document.getElementById("cm-score").textContent = state.matched;
+        q("#cm-score").textContent = state.matched;
         api.save(state);
         if(state.matched > best){
           best = state.matched;
           api.setHighscore(best);
-          document.getElementById("cm-best").textContent = best;
+          q("#cm-best").textContent = best;
         }
         setTimeout(newTarget, 600);
       } else if(d < 60){

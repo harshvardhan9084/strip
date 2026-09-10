@@ -5,6 +5,10 @@ Strip.register({
   tag: "🧠",
   hint: "Watch the pattern, repeat it",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
 
     const COLORS = [
@@ -70,7 +74,7 @@ Strip.register({
     function nextRound(){
       round++;
       sequence.push(Math.floor(Math.random()*4));
-      document.getElementById("sm-round").textContent = round;
+      q("#sm-round").textContent = round;
       playSequence();
     }
 
@@ -99,14 +103,14 @@ Strip.register({
       if(finalRound > 0){
         api.setHighscore(finalRound).then(v => {
           best = v;
-          document.getElementById("sm-best").textContent = best;
+          q("#sm-best").textContent = best;
         });
       }
     }
 
     function start(){
       sequence = []; round = 0; playerPos = 0;
-      document.getElementById("sm-round").textContent = 0;
+      q("#sm-round").textContent = 0;
       startBtn.disabled = true;
       startBtn.textContent = "Watch…";
       nextRound();

@@ -11,12 +11,21 @@ Strip.register({
   tag: "sim",
   hint: "Water plants, keep them healthy, harvest",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     function mkPlant(){
       return { stage: 0, health: 100, lastWater: Date.now() };
     }
     const DEFAULT = { plants: [mkPlant(), mkPlant(), mkPlant()], coins: 0, lastSeen: Date.now() };
     const saved = await api.load();
     const state = saved ? Object.assign({}, DEFAULT, saved) : DEFAULT;
+    // never share the DEFAULT template's plant array by reference (a saved
+    // state missing `plants` would otherwise mutate the template)
+    if(!Array.isArray(state.plants) || !state.plants.length){
+      state.plants = [mkPlant(), mkPlant(), mkPlant()];
+    }
     let best = await api.getHighscore(); // best = total harvests ever
 
     const STAGES = ["🌱","🌿","🪴","🌸"];
@@ -106,8 +115,8 @@ Strip.register({
     function render(){
       plotRow.innerHTML = "";
       state.plants.forEach((p, i) => plotRow.appendChild(plantEl(p, i)));
-      document.getElementById("gd-coins").textContent = Math.floor(state.coins);
-      document.getElementById("gd-best").textContent = best;
+      q("#gd-coins").textContent = Math.floor(state.coins);
+      q("#gd-best").textContent = best;
       addBtn.disabled = state.coins < 20 || state.plants.length >= 6;
       addBtn.style.opacity = addBtn.disabled ? 0.5 : 1;
       addBtn.textContent = state.plants.length >= 6 ? "Plot full (max 6)" : "New plot (20 coins)";

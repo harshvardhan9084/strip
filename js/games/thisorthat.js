@@ -2,8 +2,8 @@ Strip.register({
   id: "thisorthat",
   label: "ODDBALL",
   title: "This or That",
-  tag: "swipe",
-  hint: "Swipe left/right or tap a side",
+  tag: "pick",
+  hint: "Tap a side — no wrong answers",
   async mount(container, api){
     const state = (await api.load()) || { total: 0, bag: null };
     const PAIRS = [

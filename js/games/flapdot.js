@@ -5,6 +5,10 @@ Strip.register({
   tag: "arcade",
   hint: "Tap to flap, avoid the bars",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
 
     const wrap = document.createElement("div");
@@ -40,7 +44,7 @@ Strip.register({
 
     function reset(){
       dotY = 100; vel = 0; pipes = []; score = 0; running = false;
-      document.getElementById("fd-score").textContent = 0;
+      q("#fd-score").textContent = 0;
       spawnPipe();
     }
 
@@ -69,7 +73,7 @@ Strip.register({
             p.passed = true;
             score++;
             Feedback.tone("select");
-            document.getElementById("fd-score").textContent = score;
+            q("#fd-score").textContent = score;
           }
           const dotX = 40;
           const hitX = dotX + 10 > p.x && dotX - 10 < p.x + PIPE_W;
@@ -97,12 +101,13 @@ Strip.register({
     }
 
     function gameOver(){
+      if(!running) return; // a single frame can collide several pipes plus the floor — only end once
       running = false;
       Feedback.buzz("fail");
       hint.textContent = "Tap to try again";
       api.setHighscore(score).then(v => {
         best = v;
-        document.getElementById("fd-best").textContent = best;
+        q("#fd-best").textContent = best;
       });
     }
 

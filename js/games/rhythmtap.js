@@ -5,6 +5,10 @@ Strip.register({
   tag: "beat",
   hint: "Tap the pad exactly when the ring closes",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
 
     const wrap = document.createElement("div");
@@ -58,7 +62,7 @@ Strip.register({
 
     function reset(){
       streak = 0;
-      document.getElementById("rt-score").textContent = 0;
+      q("#rt-score").textContent = 0;
       speed = 0.9;
       spawnRing();
     }
@@ -88,11 +92,11 @@ Strip.register({
       if(streak > 0){
         api.setHighscore(streak).then(v => {
           best = v;
-          document.getElementById("rt-best").textContent = best;
+          q("#rt-best").textContent = best;
         });
       }
       streak = 0;
-      document.getElementById("rt-score").textContent = 0;
+      q("#rt-score").textContent = 0;
       setTimeout(() => { feedback.textContent = ""; spawnRing(); }, 700);
     }
 
@@ -115,11 +119,11 @@ Strip.register({
         miss();
         return;
       }
-      document.getElementById("rt-score").textContent = streak;
+      q("#rt-score").textContent = streak;
       if(streak > best){
         best = streak;
         api.setHighscore(best);
-        document.getElementById("rt-best").textContent = best;
+        q("#rt-best").textContent = best;
       }
       setTimeout(() => { feedback.textContent = ""; }, 400);
       spawnRing();

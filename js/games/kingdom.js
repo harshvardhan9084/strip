@@ -23,7 +23,6 @@ Strip.register({
     const saved = await api.load();
     const state = saved ? Object.assign({}, DEFAULT, saved) : DEFAULT;
     let best = await api.getHighscore(); // best = longest survived day count
-
     const BUILD_COST = { farms: 15, mines: 20, houses: 25 };
     const FARM_YIELD = 4, MINE_YIELD = 3, FOOD_UPKEEP_PER_POP = 1.2;
     const POP_CAP_PER_HOUSE = 4;
@@ -159,7 +158,7 @@ Strip.register({
         note.textContent = "Your kingdom has collapsed. Starting fresh.";
         Feedback.buzz("lose");
         api.setHighscore(state.day).then(v => { best = v; renderAll(); });
-        Object.assign(state, DEFAULT, { day: 1 });
+        resetState();
       } else if(state.day > best){
         best = state.day;
         api.setHighscore(best);
@@ -179,9 +178,18 @@ Strip.register({
 
     function persist(){ api.save(state); }
 
+    // reset must build FRESH nested objects. Object.assign(state, DEFAULT, ...)
+    // copied DEFAULT.assign by reference, so every later assignment mutated the
+    // shared template and worker allocations leaked across resets.
+    function resetState(){
+      Object.assign(state, DEFAULT);
+      state.assign = { farm: 2, mine: 0 };
+      state.day = 1;
+    }
+
     advanceBtn.addEventListener("click", advance);
     resetBtn.addEventListener("click", () => {
-      Object.assign(state, DEFAULT, { day: 1 });
+      resetState();
       persist();
       renderAll();
     });

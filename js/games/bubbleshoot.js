@@ -9,6 +9,10 @@ Strip.register({
     const COLORS = ["#FFB347","#8B7FE8","#E8637F","#6FCF97"];
     const COLS = 7, R = 15;
 
+    // scope all element lookups to THIS card (duplicate ids across copies of a
+    // cartridge coexist briefly in the strip — getElementById can hit the stale one)
+    const q = (sel) => container.querySelector(sel);
+
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
@@ -39,7 +43,7 @@ Strip.register({
     }
     requestAnimationFrame(fit);
 
-    let grid, score, shooter, flying, over;
+    let grid, score, shooter, flying, over, overMessage = "Game Over — tap New game";
 
     function cellPos(row, col){
       const offset = row % 2 === 0 ? 0 : R;
@@ -58,7 +62,7 @@ Strip.register({
       over = false;
       flying = null;
       shooter = { colorIdx: Math.floor(Math.random()*COLORS.length), angle: -Math.PI/2 };
-      document.getElementById("bs-score").textContent = 0;
+      q("#bs-score").textContent = 0;
       draw();
     }
 
@@ -92,8 +96,53 @@ Strip.register({
         ctx.fillStyle = "#EDEAE3";
         ctx.font = "14px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Game Over — tap New game", cw/2, ch/2);
+        ctx.fillText(overMessage, cw/2, ch/2);
       }
+    }
+
+    // every bubble still attached to the ceiling (row 0), via any chain of
+    // hex-grid neighbors. Anything NOT in this set is floating in midair and
+    // must fall — the old code left detached bubbles hanging forever.
+    function anchoredSet(){
+      const anchored = new Set();
+      const stack = [];
+      for(let c=0;c<(grid[0] ? grid[0].length : 0);c++){
+        if(grid[0] && grid[0][c] != null){ stack.push([0,c]); anchored.add("0,"+c); }
+      }
+      while(stack.length){
+        const [r,c] = stack.pop();
+        neighborsOf(r,c).forEach(([nr,nc]) => {
+          const k = nr+","+nc;
+          if(!anchored.has(k) && grid[nr] && grid[nr][nc] != null){
+            anchored.add(k);
+            stack.push([nr,nc]);
+          }
+        });
+      }
+      return anchored;
+    }
+
+    // drop floating bubbles, collapse now-empty bottom rows, and report whether
+    // the whole board is clear (a win state the old game never had)
+    function settleBoard(){
+      const anchored = anchoredSet();
+      let dropped = 0;
+      for(let r=0;r<grid.length;r++) for(let c=0;c<grid[r].length;c++){
+        if(grid[r][c] != null && !anchored.has(r+","+c)){
+          grid[r][c] = null;
+          dropped++;
+        }
+      }
+      if(dropped > 0){
+        score += dropped * 10;
+        Feedback.tone("pop");
+      }
+      // collapse trailing rows that are now fully empty so grid.length reflects
+      // the real board height — otherwise the death line eventually triggers
+      // even when almost everything has been cleared
+      while(grid.length && grid[grid.length-1].every(v => v == null)) grid.pop();
+      q("#bs-score").textContent = score;
+      return grid.every(row => row.every(v => v == null));
     }
 
     function neighborsOf(r,c){
@@ -132,7 +181,12 @@ Strip.register({
       }
       if(!bestCell) return;
       const [r,c] = bestCell;
-      while(grid.length <= r) grid.push(new Array(COLS).fill(null));
+      // allocate the row with the correct width for its parity — the old code
+      // always pushed COLS slots, misaligning odd (offset) hex rows
+      while(grid.length <= r){
+        const rowIdx = grid.length;
+        grid.push(new Array(rowIdx % 2 === 0 ? COLS : COLS - 1).fill(null));
+      }
       grid[r][c] = flying.colorIdx;
 
       const cluster = findCluster(r,c,flying.colorIdx);
@@ -140,22 +194,36 @@ Strip.register({
         cluster.forEach(([cr,cc]) => { grid[cr][cc] = null; });
         Feedback.tone("pop"); Feedback.haptic("medium");
         score += cluster.length * 10;
-        document.getElementById("bs-score").textContent = score;
-        if(score > best){
-          best = score;
-          api.setHighscore(best);
-          document.getElementById("bs-best").textContent = best;
-        }
       } else {
         Feedback.tone("tap"); Feedback.haptic("light");
       }
       flying = null;
       shooter.colorIdx = Math.floor(Math.random()*COLORS.length);
 
-      const lowest = grid.length;
-      if(lowest * R * 1.7 > ch - 60){
+      if(settleBoard()){
+        saveBest();
         over = true;
+        overMessage = "You cleared the board! Tap New game";
+        Feedback.buzz("win");
+        return;
+      }
+      saveBest();
+
+      // game over only if the lowest OCCUPIED row crosses the death line —
+      // the old check used grid.length, which never shrank
+      const lowestOccupied = grid.reduce((max, row, ri) => row.some(v => v != null) ? ri : max, 0);
+      if((lowestOccupied + 1) * R * 1.7 > ch - 60){
+        over = true;
+        overMessage = "Game Over — tap New game";
         Feedback.buzz("lose");
+      }
+    }
+
+    function saveBest(){
+      if(score > best){
+        best = score;
+        api.setHighscore(best);
+        q("#bs-best").textContent = best;
       }
     }
 

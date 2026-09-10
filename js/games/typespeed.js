@@ -5,6 +5,10 @@ Strip.register({
   tag: "WPM",
   hint: "Type the phrase as fast as you can",
   async mount(container, api){
+    // lookups scoped to THIS card — duplicate ids across two copies of a
+    // cartridge coexist briefly in the strip, and getElementById could
+    // update the stale copy instead of the visible one
+    const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();
 
     const PHRASES = [
@@ -73,7 +77,7 @@ Strip.register({
       done = false;
       input.value = "";
       input.disabled = false;
-      document.getElementById("ty-score").textContent = "-";
+      q("#ty-score").textContent = "-";
       renderPhrase("");
     }
 
@@ -89,10 +93,10 @@ Strip.register({
         const seconds = (Date.now() - startTime) / 1000;
         const words = phrase.split(" ").length;
         const wpm = Math.round((words / seconds) * 60);
-        document.getElementById("ty-score").textContent = wpm;
+        q("#ty-score").textContent = wpm;
         api.setHighscore(wpm).then(v => {
           best = v;
-          document.getElementById("ty-best").textContent = best;
+          q("#ty-best").textContent = best;
         });
       }
     });

@@ -28,15 +28,17 @@ Your saves and high scores live on your device. I can't see them. Nobody can.
 
 ## What's on the strip right now
 
-47 cartridges at the moment. A rough mix:
+41 cartridges at the moment. A rough mix:
 
 - **The classics:** Snake, Mini 2048, Mini Sudoku, Maze, Slide Puzzle, Lights Out, Memory Match, Sequence (Simon Says), Bubble Shooter, Whack-a-Mole, XOX
-- **Fidgets and toys:** Bubble Wrap, Sand Drag, Kaleidoscope, Crumple Paper, Spinner, Break Glass, Etch Pad, Tone Pad, Color Lab
-- **Quick hits:** Reaction Time, Type Speed, Color Snap, Balloon Pop, Flap Dot, Stack Tower, Plinko, Rhythm Tap, Gravity Drop, Blob Merge
-- **Slow burns:** Tower Defense, Kingdom, Trading Post, Ant Colony, Garden, Tiny Aquarium, Artillery Duel, Chain Link
-- **The weird ones:** Pet Rock (a rock that needs nothing from you, and that's the point), Talk to a Wall (it will not help), The Button, Would You Rather, This or That, Random Fact, Breathe, Unscramble, Quick Trivia, Color Snap
+- **Quick hits:** Reaction Time, Type Speed, Color Snap, Balloon Pop, Flap Dot, Stack Tower, Plinko, Rhythm Tap, Gravity Drop, Blob Merge, Chain Link
+- **Slow burns:** Tower Defense, Kingdom, Trading Post, Ant Colony, Garden, Tiny Aquarium, Artillery Duel
+- **Puzzles:** Unscramble, Quick Trivia
+- **Toys & fidgets (all with something real to do):** Sand Drag, Kaleidoscope, Etch Pad, Tone Pad, Color Lab, Spinner, Breathe, Would You Rather, This or That, Random Fact
 
-Half of these are strange on purpose. That's not a bug.
+Every cartridge on the strip gives you something real back — a score, a save, a skill,
+or something worth looking at. Pure no-op gag cartridges were removed in the great
+cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* something.
 
 ## Now, the part I actually care about
 
@@ -81,7 +83,8 @@ Then add one line in `index.html` next to the other games:
 <script src="js/games/mygame.js"></script>
 ```
 
-Done. Your game is on the strip. It saves progress, works offline, shows up between Kingdom and Pet Rock for every single player. No config, no permissions, no asking me.
+Done. Your game is on the strip. It saves progress, works offline, and shows up in the
+deck for every single player. No config, no permissions, no asking me.
 
 The best way to start: open any file in `js/games/`, most are a few hundred lines, pick one that feels close to your idea, copy it, and start messing with it. That's how I build them too.
 
@@ -99,9 +102,10 @@ Open http://localhost:8000 in your browser. No npm install. No build. They're ju
 
 - One game = one file in `js/games/`. Keep it small.
 - No frameworks, no build step, no huge assets.
-- Use the shared helpers: `api` for saves, `Feedback` for sound and vibration, `ShuffleBag` when you need randomness that doesn't repeat.
+- Use the shared helpers: `api` for saves, `Feedback` for sound and vibration (never your own AudioContext), `ShuffleBag` when you need randomness that doesn't repeat.
 - A game should be fun within seconds. People open this on trains, in queues, while hiding from their boss.
-- Weird ideas are welcome. Look at Pet Rock. There are no rules about taste here.
+- A cartridge must actually *do* something: a goal, a score, a skill, or a real creative/toy output. No joke cards that exist only to waste a tap.
+- Scope element lookups to your card's `container` (two copies of your game can briefly be in the DOM at once; `document.getElementById` can grab the stale one).
 
 When it plays, send a pull request. Tell me what the game is and how to play it, and I'll take it from there.
 
