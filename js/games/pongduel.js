@@ -22,10 +22,20 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
-    canvas.width = W; canvas.height = H;
-    canvas.style.cssText = "width:min(76vw,264px); height:auto; border-radius:10px; background:#101018; touch-action:none; display:block;";
+    canvas.style.cssText = "width:min(76vw,264px); height:auto; aspect-ratio:240/160; border-radius:10px; background:#101018; touch-action:none; display:block;";
     wrap.appendChild(canvas);
     const ctx = canvas.getContext("2d");
+
+    // DPR-aware backing store (crispness parity with the other arcade cards)
+    function fit(){
+      const rect = canvas.getBoundingClientRect();
+      if(!rect.width) return;
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.width * dpr * (H / W));
+      ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    }
+    requestAnimationFrame(fit);
 
     const startBtn = document.createElement("button");
     startBtn.className = "btn accent";
@@ -171,9 +181,18 @@ Strip.register({
     statUpdate();
     draw();
 
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+
     return () => {
       running = false;
       cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
     };
   }
 });

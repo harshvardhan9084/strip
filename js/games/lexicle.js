@@ -173,6 +173,8 @@ Strip.register({
     }
 
     function onKey(e){
+      // input arbitration: only the CENTERED card takes keys
+      if(window.StripShell && !StripShell.isActive(container)) return;
       if(e.key === "Enter") handleKey("enter");
       else if(e.key === "Backspace") handleKey("back");
       else if(/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toLowerCase());

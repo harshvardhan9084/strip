@@ -22,10 +22,22 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
-    canvas.width = W; canvas.height = H;
-    canvas.style.cssText = "width:min(70vw,240px); height:auto; border-radius:10px; background:#101018; touch-action:none; display:block;";
+    canvas.style.cssText = "width:min(70vw,240px); height:auto; aspect-ratio:240/320; border-radius:10px; background:#101018; touch-action:none; display:block;";
     wrap.appendChild(canvas);
     const ctx = canvas.getContext("2d");
+
+    // DPR-aware backing store — without this the canvas renders at 240x320
+    // physical pixels and looks visibly blurrier than its DPR-aware neighbors
+    function fit(){
+      const rect = canvas.getBoundingClientRect();
+      if(!rect.width) return;
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.width * dpr * (H / W));
+      ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
+    }
+    // layout must exist before measuring — fit after first paint
+    requestAnimationFrame(fit);
 
     const startBtn = document.createElement("button");
     startBtn.className = "btn accent";
@@ -184,9 +196,19 @@ Strip.register({
     running = false;
     draw();
 
+    // refit the backing store on rotation/resize (debounced, like Bubble Shooter)
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+
     return () => {
       running = false;
       cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
     };
   }
 });

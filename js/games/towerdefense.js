@@ -34,8 +34,19 @@ Strip.register({
     statRow.style.cssText = "display:flex; gap:12px; font-family:var(--font-display); font-size:8px; color:var(--ink-dim);";
 
     const canvas = document.createElement("canvas");
-    canvas.width = COLS*CELL; canvas.height = ROWS*CELL;
-    canvas.style.cssText = `width:min(82vw,${COLS*CELL}px); height:min(82vw,${ROWS*CELL}px); border-radius:8px; background:#0d1420; touch-action:none;`;
+    canvas.style.cssText = `width:min(82vw,${COLS*CELL}px); height:auto; aspect-ratio:${COLS}/${ROWS}; border-radius:8px; background:#0d1420; touch-action:none;`;
+    const ctx = canvas.getContext("2d");
+    // DPR-aware backing store — logical coordinate space (COLS*CELL x ROWS*CELL)
+    // is preserved via the transform, so all render/click math stays unchanged
+    function fit(){
+      const rect = canvas.getBoundingClientRect();
+      if(!rect.width) return;
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.width * dpr * (ROWS / COLS));
+      ctx.setTransform(canvas.width / (COLS*CELL), 0, 0, canvas.height / (ROWS*CELL), 0, 0);
+    }
+    requestAnimationFrame(fit);
 
     const towerRow = document.createElement("div");
     towerRow.style.cssText = "display:flex; gap:6px;";
@@ -55,8 +66,6 @@ Strip.register({
     wrap.appendChild(towerRow);
     wrap.appendChild(bottomRow);
     container.appendChild(wrap);
-
-    const ctx = canvas.getContext("2d");
 
     const TOWER_TYPES = {
       arrow:  { cost: 15, range: 2.4, dmg: 8,  rate: 350, color: "#FFB347", splash: 0, slow: 0 },
@@ -152,7 +161,9 @@ Strip.register({
 
     canvas.addEventListener("click", (e) => {
       const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+      // map into the LOGICAL space (COLS*CELL x ROWS*CELL) — independent of the
+      // backing-store size, so DPR scaling never shifts tower placement
+      const scaleX = (COLS*CELL) / rect.width, scaleY = (ROWS*CELL) / rect.height;
       const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
       const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
       if(r>=0 && r<ROWS && c>=0 && c<COLS) placeTower(r,c);
@@ -351,6 +362,16 @@ Strip.register({
     updateTowerButtons();
     resetGame();
 
-    return () => cancelAnimationFrame(rafId);
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
   }
 });

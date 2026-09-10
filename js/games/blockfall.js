@@ -285,6 +285,9 @@ Strip.register({
     }
 
     function onKey(e){
+      // input arbitration: only the CENTERED card takes keys (two copies of
+      // a cartridge can coexist after the deck wraps; neighbors stay mounted)
+      if(window.StripShell && !StripShell.isActive(container)) return;
       if(!running) return;
       if(e.key === "ArrowLeft"){ e.preventDefault(); shift(-1); }
       else if(e.key === "ArrowRight"){ e.preventDefault(); shift(1); }

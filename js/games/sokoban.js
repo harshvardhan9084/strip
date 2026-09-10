@@ -217,6 +217,9 @@ Strip.register({
     }
 
     function onKey(e){
+      // input arbitration: only the CENTERED card takes keys (two copies of
+      // a cartridge can coexist after the deck wraps; neighbors stay mounted)
+      if(window.StripShell && !StripShell.isActive(container)) return;
       const map = { ArrowUp: [-1,0], ArrowDown: [1,0], ArrowLeft: [0,-1], ArrowRight: [0,1] };
       if(map[e.key]){ e.preventDefault(); move(...map[e.key]); }
       else if(e.key === "u" || e.key === "U"){ undo(); }

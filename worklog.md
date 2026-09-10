@@ -346,3 +346,35 @@ blind infinite scroll is no longer navigation. Shipped:
 - tap Blockfall -> strip lands on Blockfall, drawer closes, HUD shows 06/50
 - hint shows on first run, dismissed by tap, does not return after reload
 - favorites/recents survive reload; hintSeen persists
+
+---
+
+# Round 7 — Input arbitration, canvas crispness, render churn
+
+Critic next-moves #8 and #9, plus two perf findings:
+
+## Input arbitration (correctness)
+- app.js exposes StripShell.isActive(el): true only for the CENTERED card.
+- All six window-keyboard games (snake, maze, sandbox2048, blockfall, sokoban,
+  lexicle) now gate their onKey on it. Mount windows keep up to 5 cards alive
+  and the deck repeats after a full pass, so two copies of a cartridge could
+  coexist and both consume the same arrow keys — impossible now.
+
+## DPR-aware canvases (visual parity)
+- breakout, pongduel, towerdefense: backing store now scales with
+  devicePixelRatio (capped 2.5) via a fit() + debounced resize listener with
+  cleanup. Logical coordinate spaces are preserved through setTransform, so
+  game math is untouched; tower placement maps through the LOGICAL grid, not
+  the backing store. No more blurry arcade cards next to crisp neighbors.
+
+## Render churn (performance)
+- garden: the per-second tick used to nuke plotRow.innerHTML and rebuild every
+  plant box + listener (~6 DOM subtrees/sec, plus GC pressure). Boxes are now
+  created once and updated in place; new boxes only appear when a plot is
+  bought. Same for harvest (replace-in-place).
+- kingdom: state.assign now deep-copies nested defaults on first mount
+  (Object.assign is shallow).
+
+## Verification
+- node --check on all 10 touched files; full 50-card mount sweep with 0 errors;
+  live key-gating smoke test (keys only affect the centered card).

@@ -22,6 +22,9 @@ Strip.register({
     };
     const saved = await api.load();
     const state = saved ? Object.assign({}, DEFAULT, saved) : DEFAULT;
+    // deep-copy nested defaults on a first mount — Object.assign is shallow,
+    // and state.assign must never alias the local template object
+    state.assign = Object.assign({}, DEFAULT.assign, state.assign);
     let best = await api.getHighscore(); // best = longest survived day count
     const BUILD_COST = { farms: 15, mines: 20, houses: 25 };
     const FARM_YIELD = 4, MINE_YIELD = 3, FOOD_UPKEEP_PER_POP = 1.2;

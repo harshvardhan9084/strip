@@ -63,7 +63,11 @@ Strip.register({
 
     container.appendChild(wrap);
 
-    function plantEl(p, idx){
+    // Plant boxes are created ONCE and updated in place. The old render()
+    // nuked plotRow.innerHTML and rebuilt every box + listener every second —
+    // a pointless GC/relayout churn on a card that just needs its bars moved.
+    const boxes = [];
+    function makeBox(idx){
       const box = document.createElement("div");
       box.style.cssText = `
         width:74px; height:100px; border-radius:12px; background:var(--panel-2);
@@ -72,24 +76,23 @@ Strip.register({
       `;
       const emoji = document.createElement("div");
       emoji.style.fontSize = "28px";
-      emoji.textContent = STAGES[Math.min(p.stage, STAGES.length-1)];
 
       const healthBar = document.createElement("div");
       healthBar.style.cssText = "width:100%; height:4px; background:var(--bg); border-radius:3px; overflow:hidden;";
       const healthFill = document.createElement("div");
-      healthFill.style.cssText = `height:100%; width:${p.health}%; background:${p.health > 50 ? "#6FCF97" : p.health > 20 ? "var(--amber)" : "var(--danger)"}; transition:width .3s ease;`;
+      healthFill.style.cssText = "height:100%; width:100%; transition:width .3s ease;";
       healthBar.appendChild(healthFill);
 
       const label = document.createElement("div");
       label.style.cssText = "font-size:9px; color:var(--ink-dim);";
-      const isDry = Date.now() - p.lastWater > DRY_MS;
-      label.textContent = p.stage >= STAGES.length - 1 ? "Ready!" : (isDry ? "Needs water" : "Growing");
 
       box.appendChild(emoji);
       box.appendChild(healthBar);
       box.appendChild(label);
 
       box.addEventListener("click", () => {
+        const p = state.plants[idx];
+        if(!p) return;
         if(p.stage >= STAGES.length - 1){
           // harvest
           Feedback.buzz("success");
@@ -109,12 +112,25 @@ Strip.register({
         render();
       });
 
-      return box;
+      plotRow.appendChild(box);
+      boxes[idx] = { emoji, healthFill, label };
+    }
+
+    function syncPlots(){
+      // grow the box list only when the plot count changes
+      for(let i = boxes.length; i < state.plants.length; i++) makeBox(i);
     }
 
     function render(){
-      plotRow.innerHTML = "";
-      state.plants.forEach((p, i) => plotRow.appendChild(plantEl(p, i)));
+      syncPlots();
+      state.plants.forEach((p, i) => {
+        const b = boxes[i];
+        b.emoji.textContent = STAGES[Math.min(p.stage, STAGES.length-1)];
+        b.healthFill.style.width = p.health + "%";
+        b.healthFill.style.background = p.health > 50 ? "#6FCF97" : p.health > 20 ? "var(--amber)" : "var(--danger)";
+        const isDry = Date.now() - p.lastWater > DRY_MS;
+        b.label.textContent = p.stage >= STAGES.length - 1 ? "Ready!" : (isDry ? "Needs water" : "Growing");
+      });
       q("#gd-coins").textContent = Math.floor(state.coins);
       q("#gd-best").textContent = best;
       addBtn.disabled = state.coins < 20 || state.plants.length >= 6;

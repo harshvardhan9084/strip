@@ -209,6 +209,9 @@ Strip.register({
     boardWrap.addEventListener("mouseup", onEnd);
 
     function onKey(e){
+      // input arbitration: only the CENTERED card takes keys (two copies of
+      // a cartridge can coexist after the deck wraps; neighbors stay mounted)
+      if(window.StripShell && !StripShell.isActive(container)) return;
       const map = { ArrowLeft:"left", ArrowRight:"right", ArrowUp:"up", ArrowDown:"down" };
       if(map[e.key]){
         e.preventDefault(); // arrows slide tiles, not the strip scroll

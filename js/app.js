@@ -156,11 +156,13 @@
   // game with setup cost (audio contexts, canvas sizing), a visible flicker.
   let settleTimer = null;
   const SETTLE_MS = 220;
+  let currentCenterIdx = 0; // live center card — the input-arbitration source of truth
 
   function syncViewport(){
     const scrollTop = stripEl.scrollTop;
     const h = stripEl.clientHeight || 1;
     const centerIdx = Math.round(scrollTop / h);
+    currentCenterIdx = centerIdx;
 
     const centerEntry = cards[centerIdx];
     if(centerEntry){
@@ -234,6 +236,17 @@
         i = cards.findIndex(c => c.mod === mod);
       }
       if(i >= 0) this.jumpToIndex(i);
+    },
+    // input arbitration: a card is "active" only when it is the centered one.
+    // Games with window-level keyboard handlers MUST gate on this — mount
+    // windows keep up to 5 cards mounted, and the deck repeats after a full
+    // pass, so two copies of the same cartridge can coexist and would
+    // otherwise both consume the same arrow keys.
+    isActive(el){
+      if(el == null) return false;
+      const cart = el.closest ? el.closest(".cart") : null;
+      const entry = cards[currentCenterIdx];
+      return !!(cart && entry && entry.el === cart);
     }
   };
 })();
