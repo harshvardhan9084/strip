@@ -162,6 +162,7 @@ Strip.register({
       } else if(state.day > best){
         best = state.day;
         api.setHighscore(best);
+        Feedback.tone("success"); Feedback.haptic("medium");
       } else {
         Feedback.tone("tap"); Feedback.haptic("light");
       }

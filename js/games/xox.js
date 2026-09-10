@@ -77,7 +77,7 @@ Strip.register({
       cells.push(c);
     }
 
-    let grid, turn, over;
+    let grid, turn, over, roundGen = 0; // roundGen invalidates stale AI timeouts
 
     const LINES = [
       [0,1,2],[3,4,5],[6,7,8],
@@ -180,7 +180,9 @@ Strip.register({
 
       turn = "O";
       render();
+      const gen = roundGen;
       setTimeout(() => {
+        if(gen !== roundGen) return; // board was reset mid-think — drop the stale move
         aiMove();
         result = checkWinner(grid);
         render();
@@ -191,6 +193,7 @@ Strip.register({
     }
 
     function newRound(){
+      roundGen++;
       grid = Array(9).fill(null);
       over = false;
       // alternate who starts so it's not always the player
@@ -199,7 +202,9 @@ Strip.register({
       statusLine.textContent = turn === "X" ? "Your move" : "AI is thinking…";
       render();
       if(turn === "O"){
+        const gen = roundGen;
         setTimeout(() => {
+          if(gen !== roundGen) return; // stale — player reset before the AI moved
           aiMove();
           const result = checkWinner(grid);
           render();

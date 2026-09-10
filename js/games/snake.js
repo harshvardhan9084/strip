@@ -71,6 +71,7 @@ Strip.register({
       running = false;
       clearInterval(tickId);
       Feedback.buzz("win");
+      draw(); // redraw once more so the final food dot doesn't linger under the head
       startBtn.disabled = false;
       startBtn.textContent = "You filled the board! Play again";
       api.setHighscore(score).then(v => {

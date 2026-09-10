@@ -86,6 +86,18 @@ Strip.register({
       ctx.clearRect(0,0,rect.width,rect.height);
     });
 
-    return () => window.removeEventListener("mouseup", end);
+    // re-fit on rotation/resize (canvas is cleared — the pattern is gone anyway)
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("mouseup", end);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
   }
 });

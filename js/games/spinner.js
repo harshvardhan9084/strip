@@ -88,9 +88,10 @@ Strip.register({
           velocity = 0;
         }
       }
-      // velocity is deg/frame at ~60fps -> deg/s = v*60 -> rpm = deg/s / 360.
-      // The old formula multiplied by an extra 3.6, reading 3.6x too fast.
-      const rpm = Math.abs(velocity) * 60 / 360;
+      // velocity is deg/frame. At 60fps: deg/s = v*60; rev/s = deg/s/360;
+      // RPM = rev/s*60 = v*60*60/360 = v*10. (Earlier attempts had this off by
+      // 3.6x, then 60x — the two 60 factors and the 360 are easy to fumble.)
+      const rpm = Math.abs(velocity) * 10;
       rpmLabel.textContent = rpm > 0.5 ? `${rpm.toFixed(0)} rpm` : "flick to spin";
       rafId = requestAnimationFrame(tick);
     }

@@ -51,6 +51,14 @@ Strip.register({
     // slight delay so layout is settled
     requestAnimationFrame(resize);
 
+    // re-fit on rotation/resize; drawing is lost on resize (acceptable for an etch pad)
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 150);
+    };
+    window.addEventListener("resize", onResize);
+
     let drawing = false, lastX = 0, lastY = 0;
     function pos(e){
       const rect = canvas.getBoundingClientRect();
@@ -81,7 +89,10 @@ Strip.register({
     canvas.addEventListener("touchend", end);
 
     clearBtn.addEventListener("click", () => {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
+      // clear in user-space units (the context is dpr-scaled) so one swipe
+      // covers exactly the visible board regardless of device pixel ratio
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
     });
     colorBtn.addEventListener("click", () => {
       colorIdx = (colorIdx + 1) % COLORS.length;
@@ -92,6 +103,8 @@ Strip.register({
 
     return () => {
       window.removeEventListener("mouseup", end);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
     };
   }
 });

@@ -79,6 +79,18 @@ Strip.register({
 
     rakeBtn.addEventListener("click", () => { Feedback.tone("swap"); fillSand(); });
 
-    return () => window.removeEventListener("mouseup", end);
+    // re-fit (and refill the sand) on rotation/resize
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("mouseup", end);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
   }
 });

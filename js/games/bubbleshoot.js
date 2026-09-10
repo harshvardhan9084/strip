@@ -169,17 +169,36 @@ Strip.register({
     }
 
     function snapAndPlace(x,y){
-      let bestCell = null, bestDist = Infinity;
-      for(let r=0;r<grid.length+1;r++){
-        const cols = r % 2 === 0 ? COLS : COLS - 1;
-        for(let c=0;c<cols;c++){
-          if(grid[r] && grid[r][c] !== undefined && grid[r][c] !== null) continue;
-          const p = cellPos(r,c);
-          const d = (p.x-x)**2 + (p.y-y)**2;
-          if(d < bestDist){ bestDist = d; bestCell = [r,c]; }
+      // two-pass targeting: prefer the nearest free cell NEAR the impact point
+      // (no more teleporting up through gaps), but always fall back to the
+      // global nearest free cell so a shot into a crowded area still lands —
+      // a shot must never vanish (that reads exactly like a softlock).
+      const passes = [
+        (p) => p.y >= y - R*2.4 && p.y <= y + R*2.4,  // near the impact
+        () => true,                                    // global fallback
+      ];
+      let bestCell = null;
+      for(const inBand of passes){
+        let bestDist = Infinity;
+        for(let r=0;r<grid.length+1;r++){
+          const cols = r % 2 === 0 ? COLS : COLS - 1;
+          for(let c=0;c<cols;c++){
+            if(grid[r] && grid[r][c] !== undefined && grid[r][c] !== null) continue;
+            const p = cellPos(r,c);
+            if(!inBand(p)) continue;
+            const d = (p.x-x)**2 + (p.y-y)**2;
+            if(d < bestDist){ bestDist = d; bestCell = [r,c]; }
+          }
         }
+        if(bestCell) break;
       }
-      if(!bestCell) return;
+      if(!bestCell){
+        // cannot happen (the next row always has free cells), but never leave
+        // `flying` set — a stuck shot softlocks the cartridge
+        flying = null;
+        shooter.colorIdx = Math.floor(Math.random()*COLORS.length);
+        return;
+      }
       const [r,c] = bestCell;
       // allocate the row with the correct width for its parity — the old code
       // always pushed COLS slots, misaligning odd (offset) hex rows
@@ -271,7 +290,11 @@ Strip.register({
         flying.x += flying.vx;
         flying.y += flying.vy;
         if(flying.x < R || flying.x > cw-R) flying.vx *= -1;
-        let collided = flying.y > ch-30;
+        // CEILING: without this, a shot aimed up a vertical gap wider than the
+        // hit radius never collides — it flies to y=-infinity, `flying` is never
+        // cleared, and every future shot is silently ignored (softlock).
+        let collided = flying.y <= R;
+        if(!collided && flying.y > ch-30) collided = true;
         if(!collided){
           outer:
           for(let r=0;r<grid.length;r++){
@@ -297,6 +320,18 @@ Strip.register({
     newGame();
     rafId = requestAnimationFrame(loop);
 
-    return () => cancelAnimationFrame(rafId);
+    // keep geometry aligned when the viewport rotates or resizes
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
   }
 });

@@ -48,7 +48,11 @@
     if(!confirm("Erase all game progress and highscores? This can't be undone.")) return;
     StripDB.clearAll().then(() => {
       clearBtn.textContent = "Cleared ✓";
-      setTimeout(() => { clearBtn.textContent = "Clear all progress"; }, 1800);
+      // Idle games (garden, aquarium, anthill, tradingpost, kingdom...) re-persist
+      // their full state from memory on unmount/autosave, which would silently
+      // resurrect everything this button just erased. Reloading is the only airtight
+      // way to drop every mounted game's in-memory state.
+      setTimeout(() => location.reload(), 700);
     });
   });
 

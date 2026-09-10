@@ -1,5 +1,5 @@
-const SHELL_CACHE = 'strip-shell-v2';
-const RUNTIME_CACHE = 'strip-runtime-v2';
+const SHELL_CACHE = 'strip-shell-v3';
+const RUNTIME_CACHE = 'strip-runtime-v3';
 
 const SHELL_ASSETS = [
   './',
@@ -59,17 +59,21 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Runtime caching strategy for game scripts and dynamic assets under /js/games/
-  if (url.pathname.startsWith('/js/games/') || url.pathname.startsWith('js/games/')) {
+  // Game scripts: network-first so deploys reach installed clients immediately
+  // (cache only as offline fallback). The old branch matched pathname
+  // startsWith('/js/games/'), which NEVER matches on a GitHub Pages project
+  // site (paths look like /strip/js/games/...) — game code silently fell
+  // through to the cache-first branch and future fixes never shipped to
+  // installed PWAs.
+  if (url.origin === self.location.origin && url.pathname.includes('/js/games/')) {
     event.respondWith(
       fetch(req).then(networkResp => {
-        if (networkResp && networkResp.ok && url.origin === self.location.origin) {
+        if (networkResp && networkResp.ok) {
           const clone = networkResp.clone();
           caches.open(RUNTIME_CACHE).then(cache => {
             cache.put(req, clone);
-            // keep runtime cache small
             trimCache(RUNTIME_CACHE, 60);
-          });
+          }).catch(() => {});
         }
         return networkResp;
       }).catch(() => caches.match(req))

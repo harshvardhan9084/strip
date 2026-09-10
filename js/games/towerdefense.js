@@ -314,14 +314,19 @@ Strip.register({
       if(waveActive && enemies.length === 0){
         waveActive = false;
         waveBtn.disabled = false;
-        Feedback.buzz("success");
-        gold += 15;
-        if(wave > best){
-          best = wave;
-          api.setHighscore(best);
+        // only reward a CLEAR if the base actually survived the wave — the old
+        // code paid out +15g and a success chime even when every enemy leaked
+        // through and ended the run
+        if(lives > 0){
+          Feedback.buzz("success");
+          gold += 15;
+          if(wave > best){
+            best = wave;
+            api.setHighscore(best);
+          }
+          updateStat();
+          msg.textContent = `Wave ${wave} cleared`;
         }
-        updateStat();
-        msg.textContent = `Wave ${wave} cleared`;
       }
     }
 

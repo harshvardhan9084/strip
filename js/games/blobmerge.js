@@ -33,12 +33,11 @@ Strip.register({
 
     container.appendChild(wrap);
 
-    let grid, score, dragging;
+    let grid, score;
 
     function newGame(){
       grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
       score = 0;
-      dragging = null;
       for(let i=0;i<4;i++) addBlob();
       render();
       q("#bm-score").textContent = 0;
@@ -87,7 +86,6 @@ Strip.register({
         origTop = parseFloat(el.style.top);
         el.style.zIndex = 10;
         el.style.transition = "none";
-        dragging = el;
         window.addEventListener("mousemove", onMove);
         window.addEventListener("touchmove", onMove, {passive:false});
         window.addEventListener("mouseup", onUp);

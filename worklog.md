@@ -128,3 +128,49 @@ DOCS/INFRA:
 
 ### Round 1 outcome
 Ready for critic scoring.
+
+---
+
+## Round 2 — Critic-driven fixes (critic score round 1: 7/10)
+
+The critic verified every Round 1 claim (all removals, index/file parity, syntax,
+stacktower/snake/2048/kingdom/plinko/lightsout fixes) but found real issues:
+
+FIXED IN THIS ROUND:
+1. bubbleshoot — MISSED GAME-BREAKER: no ceiling collision. A shot aimed up a vertical
+   gap wider than the hit radius flew to y=-infinity forever; `flying` was never
+   cleared so every later shot was silently ignored (softlock). Now: `flying.y <= R`
+   collides at the ceiling. Also replaced the too-strict snap band with two-pass
+   targeting (nearest free cell near impact, global fallback) after live testing
+   showed the strict band discarded shots into crowded areas (reads like a softlock).
+   VERIFIED: straight-up-the-left-corridor shots land every time (pixel count grows
+   monotonically shot over shot); random shots still pop clusters (score 90).
+2. spinner — Round 1's RPM "fix" was itself wrong (|v|/6 is rev/s, not RPM; the
+   critic corrected the diagnosis: old code was 16.7x too LOW, not 3.6x too high).
+   True RPM = |v| (deg/frame) * 60 fps / 360 deg * 60 s = |v| * 10. Worklog corrected.
+3. sw.js — the /js/games/ branch used pathname.startsWith('/js/games/'), which NEVER
+   matches on a GitHub Pages project site (/strip/js/games/...): game scripts fell
+   through to cache-first, so future deploys would never reach installed PWAs.
+   Now: pathname.includes('/js/games/') + network-first for game scripts (cache is
+   the offline fallback). Caches bumped to v3.
+4. xox — stale AI setTimeout could drop an "O" onto a freshly reset board; fixed
+   with a round-generation counter checked inside both AI timeouts.
+5. settings-ui — "Clear all progress" was self-defeating: idle games re-persist
+   their in-memory state on cleanup. Now reloads the app after the wipe.
+6. artillery — added disposed flag + clearTimeout cleanup (pending AI turn and
+   in-flight projectile used to keep running after unmount).
+7. Canvas games (plinko, stacktower, flapdot, bubbleshoot, etch, sanddrag,
+   kaleidoscope) — added debounced resize listeners so rotation no longer leaves
+   stale geometry (plinko's invisible-peg bug); all cleaned up on unmount.
+8. offline.html — "Return to home" pointed at the domain root, breaking on project
+   pages; now href="./".
+9. towerdefense — wave-clear reward (+15g + chime) no longer pays out when every
+   enemy leaked and the base fell.
+10. snake — win() redraws so the final food dot doesn't linger under the head.
+11. kingdom — best-day advance now gives feedback instead of silence.
+12. etch — clear uses user-space dims under the dpr-scaled context.
+13. css — #install-btn had no rule (class hud-btn never defined); added matching HUD styling.
+14. blobmerge — removed write-only `dragging` variable.
+
+### Round 2 outcome
+All critic issues addressed. Committing and submitting for re-score.

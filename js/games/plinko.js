@@ -150,6 +150,18 @@ Strip.register({
     dropBtn.addEventListener("click", drop);
     canvas.addEventListener("click", drop);
 
-    return () => cancelAnimationFrame(rafId);
+    // keep pegs/slots aligned when the viewport rotates or resizes
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
   }
 });

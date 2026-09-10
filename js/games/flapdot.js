@@ -127,6 +127,18 @@ Strip.register({
     reset();
     loop();
 
-    return () => cancelAnimationFrame(rafId);
+    // keep geometry aligned when the viewport rotates or resizes
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fitCanvas, 150);
+    };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", onResize);
+      clearTimeout(resizeTimer);
+    };
   }
 });

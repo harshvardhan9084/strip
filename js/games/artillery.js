@@ -99,6 +99,7 @@ Strip.register({
     container.appendChild(wrap);
 
     const ctx = canvas.getContext("2d");
+    let disposed = false; // stops pending AI turns and the projectile loop after unmount
     function fit(){
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width * devicePixelRatio;
@@ -225,6 +226,7 @@ Strip.register({
       return new Promise(resolve => {
         let lastTime = performance.now();
         function step(now){
+          if(disposed){ resolve({ landX: projectile ? projectile.x : 0, didHit: false }); return; }
           const dt = Math.min(0.05, (now - lastTime)/1000);
           lastTime = now;
 
@@ -259,6 +261,7 @@ Strip.register({
     }
 
     async function playerFire(){
+      if(disposed) return;
       fireBtn.disabled = true;
       const angle = parseFloat(angleCtrl.input.value);
       const power = parseFloat(powerCtrl.input.value);
@@ -269,8 +272,10 @@ Strip.register({
       }
       turn = "ai";
       infoLine.textContent = "AI is aiming…";
-      setTimeout(aiTurn, 700);
+      aiTimer = setTimeout(aiTurn, 700);
     }
+
+    let aiTimer = null;
 
     function estimateHitParams(distance){
       // rough inverse physics estimate to seed the AI's first guess: pick a 45-degree-ish
@@ -284,6 +289,7 @@ Strip.register({
     }
 
     async function aiTurn(){
+      if(disposed) return;
       const distance = playerX - aiX;
       let angle, power;
 
@@ -352,5 +358,10 @@ Strip.register({
     updateDiffButtons();
     updateStat();
     newDuel();
+
+    return () => {
+      disposed = true;
+      if(aiTimer) clearTimeout(aiTimer);
+    };
   }
 });
