@@ -28,12 +28,13 @@ Your saves and high scores live on your device. I can't see them. Nobody can.
 
 ## What's on the strip right now
 
-41 cartridges at the moment. A rough mix:
+50 cartridges at the moment — the half-century deck. A rough mix:
 
-- **The classics:** Snake, Mini 2048, Mini Sudoku, Maze, Slide Puzzle, Lights Out, Memory Match, Sequence (Simon Says), Bubble Shooter, Whack-a-Mole, XOX
+- **The classics:** Snake, Mini 2048, Mini Sudoku, Maze, Slide Puzzle, Lights Out, Memory Match, Sequence (Simon Says), Bubble Shooter, Whack-a-Mole, XOX, Minesweeper, Blockfall, Breakout, Pong Duel
 - **Quick hits:** Reaction Time, Type Speed, Color Snap, Balloon Pop, Flap Dot, Stack Tower, Plinko, Rhythm Tap, Gravity Drop, Blob Merge, Chain Link
 - **Slow burns:** Tower Defense, Kingdom, Trading Post, Ant Colony, Garden, Tiny Aquarium, Artillery Duel
-- **Puzzles:** Unscramble, Quick Trivia
+- **Puzzles & strategy:** Unscramble, Quick Trivia, Code Breaker, Crate Push, Drop Four
+- **Words & cards:** Lexicle, Blackjack 21 (virtual chips only — no real money, ever)
 - **Toys & fidgets (all with something real to do):** Sand Drag, Kaleidoscope, Etch Pad, Tone Pad, Color Lab, Spinner, Breathe, Would You Rather, This or That, Random Fact
 
 Every cartridge on the strip gives you something real back — a score, a save, a skill,

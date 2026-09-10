@@ -233,3 +233,43 @@ fidgets — every one does something real: a goal, a score, a skill, or a genuin
 creative output. 47 -> 41 after removing six no-op gag cartridges and two junk
 files. All per-game logic errors found across three audit passes are fixed, and
 each fix was verified in a live headless browser, not just by reading.
+
+---
+
+# Round 4 — The Half Century (41 -> 50 cartridges)
+
+Goal: user asked for visible, meaningful growth — complete the 50-game deck with
+real, complete games (no novelty filler), wired, tested and shipped.
+
+## New cartridges (9)
+| id | game | label | highlights |
+|----|------|-------|-----------|
+| minesweeper | Minesweeper | PUZZLE | 8x8/10 mines, first-dig-safe mine placement (3x3 exclusion), iterative flood reveal, long-press/right-click flagging, live timer, best time stored (inverted for max-wins store) |
+| dropfour | Drop Four | STRATEGY | Connect Four 7x6 vs AI: AI takes wins, blocks losses, refuses moves that gift a win above, center-weighted otherwise; win-line highlight, persistent streak, stale-timer guard token |
+| codebreaker | Code Breaker | LOGIC | Mastermind 4/6 with duplicates; correct exact-then-multiset partial scoring (no double-count); 8 rows; best (fewest rows) stored inverted |
+| breakout | Breakout | ARCADE | Canvas wall-breaker: paddle-angle steering, dt-normalized physics (clamped), lives, level progression + speed scaling, 10pt/brick + 50/level bonus |
+| pongduel | Pong Duel | ARCADE | First-to-7 vs capped-speed AI with deadzone (beatable, not dumb); rally speed ramp; drag-follow paddle with speed cap so flicks aren't teleports |
+| blockfall | Blockfall | ARCADE | Full falling-block game: 7 tetrominoes, wall-kick rotation, line clears (re-check same row), level = lines/8 gravity ramp, next-piece preview, touch buttons + keyboard, hard/soft drop scoring |
+| sokoban | Crate Push | PUZZLE | 5 handcrafted levels, all verified solvable; undo (snapshot-before-mutate), reset, move PBs per level persisted, auto-advance, D-pad + arrows/U keys |
+| lexicle | Lexicle | WORD | 5-letter word guess: ~200-word dict (filtered/deduped at runtime), two-pass green/yellow marking (duplicate-safe), keyboard best-state coloring, physical-keyboard support, streak/played persisted |
+| blackjack | Blackjack 21 | CARDS | Full shoe (reshuffle < 15), soft-ace totals, dealer stands on 17, natural pays 3:2, double-free bank of virtual chips, bankroll persisted; explicit "no real money" note |
+
+## Integration & correctness
+- index.html: 9 script tags inserted alphabetically; tag/file parity diff-verified 50/50
+- sw.js unchanged (games are network-first runtime-cached; runtime cap 60 still above 50 files)
+- README lineup rewritten: 41 -> 50 with new categories (Puzzles & strategy, Words & cards)
+- node --check passed on all 9 files
+- Live headless-Chromium verification (not just static checks):
+  - registration count = 50, zero console/page errors on load
+  - full 50-card mount sweep: 0 errors
+  - functional spot tests: blackjack bet+deal (2+2 cards, "you: 19"), minesweeper
+    dig (22-cell flood reveal + live stats), blockfall start (piece + preview
+    rendered, arrow input accepted), lexicle TRAIN submit (tiles colored,
+    duplicate-safe logic exercised), dropfour player drop -> AI reply,
+    sokoban moves -> PB line + level auto-advance after clear, codebreaker
+    palette fill -> Check -> "○○" partial-peg scoring, breakout & pong start
+    (render loop alive, no errors)
+- Fixes applied during self-review before ship: blockfall statUpdate-before-init
+  undefined display + gameOver-during-spawn leaving a live gravity timer;
+  lexicle keyboard letter-state persisting across rounds; codebreaker dead
+  scoring loop removed; breakout junk launch conditional removed
