@@ -318,3 +318,31 @@ logic bugs. All fixed this round; every fix re-verified live in headless Chromiu
 - node --check pass on all 9 touched files
 - Live: 50/50 registration, 0 console errors, full 50-card mount sweep clean
 - Regression tests above re-run post-fix, all passing
+
+---
+
+# Round 6 — The deck gets a table of contents: cartridge drawer, HUD context, first-run hint
+
+Critic next-move #6/#7 (highest-leverage product change): at 50 cartridges,
+blind infinite scroll is no longer navigation. Shipped:
+
+## New
+1. Cartridge drawer (new js/drawer.js + HUD grid button + css): bottom-sheet
+   listing all 50 cartridges grouped by category, tap-to-jump the strip
+   straight to that game, text filter (title/category/id), long-overdue
+   discoverability for a deck that the README intends to keep growing.
+2. FAVORITES pinned first: star any cartridge, persisted on-device
+   (StripDB "__deck_meta__"). RECENT (max 8) shown next: app.js now emits
+   "strip:card-centered" once the scroll settles, so "recently played" means
+   games actually played, not games scrolled past.
+3. HUD position now means something: "07/50" instead of a bare "07".
+4. First-run hint: one-time overlay explaining scroll + drawer + favorites,
+   auto-dismissed on first scroll or tap, never shown again (Settings.hintSeen).
+
+## Verification (headless Chromium, fresh origin)
+- 50 items, 13 category groups render; 0 console errors
+- star Blockfall -> FAVORITES group appears first; persists across reload
+- filter "mine" -> exactly ["Minesweeper"]
+- tap Blockfall -> strip lands on Blockfall, drawer closes, HUD shows 06/50
+- hint shows on first run, dismissed by tap, does not return after reload
+- favorites/recents survive reload; hintSeen persists

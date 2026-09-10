@@ -164,7 +164,8 @@
 
     const centerEntry = cards[centerIdx];
     if(centerEntry){
-      hudIndex.textContent = String(centerEntry.trueIdx + 1).padStart(2, "0");
+      // position now means something: "07/50", not a bare "07"
+      hudIndex.textContent = String(centerEntry.trueIdx + 1).padStart(2, "0") + "/" + allModules.length;
     }
 
     cards.forEach((entry, i) => {
@@ -184,6 +185,12 @@
     cards.forEach((entry, i) => {
       if(Math.abs(i - centerIdx) > 2) unmountCard(entry);
     });
+    // the strip has settled — tell the shell which cartridge the player is
+    // actually ON (the drawer uses this to maintain a recents list)
+    const entry = cards[centerIdx];
+    if(entry){
+      window.dispatchEvent(new CustomEvent("strip:card-centered", { detail: { id: entry.mod.id } }));
+    }
   }
 
   let rafPending = false;
@@ -210,4 +217,23 @@
   }
 
   document.addEventListener("DOMContentLoaded", init);
+
+  // Shell API for the cartridge drawer (js/drawer.js): jump straight to a
+  // specific cartridge instead of blind-scrolling through the deck.
+  window.StripShell = {
+    jumpToIndex(i){
+      const h = stripEl.clientHeight || 1;
+      stripEl.scrollTo({ top: i * h, behavior: "smooth" });
+    },
+    jumpToModule(mod){
+      let i = cards.findIndex(c => c.mod === mod);
+      // not in the visible deck yet? extend it (bounded) until the cartridge appears
+      let guard = 0;
+      while(i < 0 && guard++ < 30){
+        appendCards(BATCH_SIZE);
+        i = cards.findIndex(c => c.mod === mod);
+      }
+      if(i >= 0) this.jumpToIndex(i);
+    }
+  };
 })();
