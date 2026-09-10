@@ -127,9 +127,17 @@ Strip.register({
       optB.textContent = b;
 
       if(voted){
-        // fake-but-consistent split, seeded from the question index so it feels stable per question
+        // HONESTY RULE: this is a single-player, offline app — there is no
+        // server and no real crowd, so showing a bare "63%" would be fake
+        // social proof. The split is clearly labeled as imaginary, seeded from
+        // the question index so the SAME imaginary crowd stays consistent for
+        // the SAME question across visits.
         const seed = (qIdx * 37 + 11) % 100;
         const pctA = 25 + (seed % 51); // 25-75 range
+        const note = document.createElement("div");
+        note.style.cssText = "font-size:10px; color:var(--ink-dim); text-align:center; margin-top:2px; min-height:14px;";
+        note.textContent = "an imaginary crowd agrees… (no one else is asked — this is offline)";
+        if(!wrap.contains(note)) wrap.insertBefore(note, nextBtn);
         showResult(optA, pctA, voted === "a");
         showResult(optB, 100 - pctA, voted === "b");
       }

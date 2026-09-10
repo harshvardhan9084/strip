@@ -378,3 +378,31 @@ Critic next-moves #8 and #9, plus two perf findings:
 ## Verification
 - node --check on all 10 touched files; full 50-card mount sweep with 0 errors;
   live key-gating smoke test (keys only affect the centered card).
+
+---
+
+# Round 8 — Honesty/ethics pass + accessibility
+
+Critic next-moves #12 (ethics) + a11y groundwork:
+
+## Ethics / honesty
+- wouldyourather: the post-vote split was presented as a real percentage —
+  fake social proof in an app with no server. It is now explicitly labeled
+  "an imaginary crowd agrees… (no one else is asked — this is offline)" while
+  staying consistent per question (same seeded split). Honest AND stable.
+- blackjack already states "Chips are virtual. No real money, no purchases —
+  ever." (shipped Round 4) — kept.
+- index.html: removed user-scalable=no — pinch zoom is a user right, and
+  blocking it is an accessibility violation (WCAG 1.4.4).
+
+## Accessibility
+- minesweeper: every cell now carries an aria-label (row/col/hidden/flagged/
+  revealed with neighbor count/mine); losing now SHOWS the mines (✱ glyph on
+  red tint), not just a red glow.
+- manifest.json: added app id + maskable icon variants (192/512, art scaled
+  into the 80% safe zone on the theme background) — no more cropped launch
+  icons on Android.
+
+## Verification
+- node --check on touched files; manifest JSON validated; live browser check:
+  honest note renders on vote, viewport meta is pinch-friendly, 0 errors.

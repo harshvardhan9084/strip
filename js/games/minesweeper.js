@@ -62,21 +62,27 @@ Strip.register({
       statRow.innerHTML = `<div>MINES <span style="color:var(--danger)">${MINES - flags}</span></div><div>TIME <span style="color:var(--amber)">${elapsed}s</span></div><div>BEST <span style="color:var(--purple)">${best === Infinity ? "-" : best + "s"}</span></div>`;
       for(let i = 0; i < W * H; i++){
         const el = cells[i];
+        const r = Math.floor(i / W) + 1, c = (i % W) + 1;
         if(revealed[i]){
           const n = mines[i];
           el.style.background = "#101018";
           el.textContent = n > 0 ? String(n) : "";
           el.style.color = NUM_COLORS[n];
+          el.setAttribute("aria-label", `row ${r} col ${c}, revealed${n ? `, ${n} neighbor mine${n>1?"s":""}` : ""}`);
         } else if(flagged[i]){
           el.style.background = "var(--panel-2)";
           el.textContent = "⚑";
           el.style.color = "var(--amber)";
+          el.setAttribute("aria-label", `row ${r} col ${c}, flagged`);
         } else {
           el.style.background = "var(--panel-2)";
           el.textContent = "";
+          el.setAttribute("aria-label", `row ${r} col ${c}, hidden`);
         }
         if(over && !won && mines[i] && revealed[i] !== true && !flagged[i]){
           el.style.background = "rgba(232,99,127,.35)";
+          el.textContent = "✱"; // the hit wasn't just visual — show WHAT was there
+          el.setAttribute("aria-label", `row ${r} col ${c}, mine`);
         }
       }
     }
