@@ -93,6 +93,11 @@ window.Feedback = (function(){
     lose:    () => { playNote(300, 0.12, { type:"triangle", gain:0.14 }); playNote(180, 0.22, { type:"triangle", gain:0.14, delay:0.1 }); },
     place:   () => playNote(340, 0.05,  { type:"square", gain:0.10 }),
     swap:    () => playNote(880, 0.04,  { type:"sine", gain:0.1 }),
+    // added in Round 5: dropfour/bubbleshoot/pongduel used these names but the
+    // presets didn't exist, so every call silently fell back to 440 Hz
+    blip:    () => playNote(980, 0.045, { type:"triangle", gain:0.13 }),
+    thud:    () => playNote(120, 0.09,  { type:"sine", gain:0.16, slideTo:60 }),
+    ok:      () => playNote(620, 0.06,  { type:"sine", gain:0.15, slideTo:860 }),
   };
 
   function tone(nameOrFreq, dur){

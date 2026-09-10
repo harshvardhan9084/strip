@@ -5,7 +5,8 @@ Strip.register({
   tag: "first to 7",
   hint: "Drag to move your paddle",
   async mount(container, api){
-    let best = await api.getHighscore(); // best = fewest points conceded in a win… simplest: win streak
+    const saved = await api.load();
+    let streak = saved && Number.isFinite(saved.streak) ? saved.streak : 0; // wins in a row
     const W = 240, H = 160, PW = 5, PH = 34, WIN = 7;
     const AI_SPEED = 2.05; // capped below ball speed — beatable but honest
 
@@ -35,7 +36,7 @@ Strip.register({
     container.appendChild(wrap);
 
     function statUpdate(){
-      statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${you}</span></div><div>AI <span style="color:var(--purple)">${ai}</span></div><div>BEST <span style="color:var(--ink-dim)">${best}</span></div>`;
+      statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${you}</span></div><div>AI <span style="color:var(--purple)">${ai}</span></div><div>STREAK <span style="color:var(--ink-dim)">${streak}</span></div>`;
     }
 
     function serve(dir){
@@ -63,7 +64,9 @@ Strip.register({
       startBtn.disabled = false;
       startBtn.textContent = winner === 1 ? "You win — rematch" : "AI wins — rematch";
       Feedback.buzz(winner === 1 ? "win" : "lose");
-      if(winner === 1) api.setHighscore(you).then(v => { best = v; statUpdate(); });
+      if(winner === 1){ streak++; } else { streak = 0; }
+      api.save({ streak });
+      statUpdate();
     }
 
     function tick(ts){

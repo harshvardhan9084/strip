@@ -1,6 +1,9 @@
-const SHELL_CACHE = 'strip-shell-v3';
-const RUNTIME_CACHE = 'strip-runtime-v3';
+const SHELL_CACHE = 'strip-shell-v4';
+const RUNTIME_CACHE = 'strip-runtime-v4';
 
+// Bump BOTH version strings every round that touches any shell file —
+// installed PWAs key their caches on these names, so a stale version means
+// stale code forever.
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -12,6 +15,9 @@ const SHELL_ASSETS = [
   './js/settings-ui.js',
   './js/registry.js',
   './js/app.js',
+  './js/feedback.js',
+  './js/shufflebag.js',
+  './js/install-handler.js',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
@@ -67,13 +73,15 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Game scripts: network-first so deploys reach installed clients immediately
-  // (cache only as offline fallback). The old branch matched pathname
-  // startsWith('/js/games/'), which NEVER matches on a GitHub Pages project
-  // site (paths look like /strip/js/games/...) — game code silently fell
-  // through to the cache-first branch and future fixes never shipped to
-  // installed PWAs.
-  if (url.origin === self.location.origin && url.pathname.includes('/js/games/')) {
+  // Game scripts AND shell code (all js/*.js + css): network-first so deploys
+  // reach installed clients immediately (cache only as offline fallback).
+  // The old branch matched pathname startsWith('/js/games/'), which NEVER
+  // matches on a GitHub Pages project site (paths look like /strip/js/games/...)
+  // — and even after that was fixed, feedback.js / shufflebag.js /
+  // install-handler.js fell through to a cache-first branch and froze at
+  // install-time versions, silently un-shippable.
+  if (url.origin === self.location.origin &&
+      (/\/js\/.+\.js$/.test(url.pathname) || /\/css\/.+\.css$/.test(url.pathname))) {
     event.respondWith(
       fetch(req).then(networkResp => {
         // degrade to cache on network failure OR a bad status (e.g. a 404

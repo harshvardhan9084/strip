@@ -84,6 +84,7 @@ Strip.register({
     });
 
     function render(){
+      if(failed) return; // loss board is frozen with the reveal — don't repaint it
       statRow.innerHTML = `ROW <span style="color:var(--amber)">${Math.min(row + 1, ROWS)}/${ROWS}</span> · BEST <span style="color:var(--purple)">${best === Infinity ? "-" : best + " rows"}</span>`;
       for(let r = 0; r < ROWS; r++){
         const { slotEls, pegs } = rowEls[r];
@@ -146,13 +147,19 @@ Strip.register({
         failed = true;
         Feedback.buzz("lose");
         row = ROWS - 1;
-        statRow.innerHTML = `CODE WAS <span style="color:var(--danger)">&nbsp;</span>`;
-        showSecret();
         render();
+        // paint the secret AFTER render() — render() repaints the active row
+        // from cur[] (the last guess), which used to overwrite the reveal
+        showSecret();
+        statRow.innerHTML = `CODE WAS <span style="color:var(--danger)">${secret.map(hexColoredDot).join("")}</span>`;
         return;
       }
       cur = Array(SLOTS).fill(null);
       render();
+    }
+
+    function hexColoredDot(hex){
+      return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${hex};margin-left:3px;vertical-align:middle"></span>`;
     }
 
     function showSecret(){

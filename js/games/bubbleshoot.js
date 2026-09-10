@@ -168,14 +168,20 @@ Strip.register({
       return cluster;
     }
 
-    function snapAndPlace(x,y){
-      // two-pass targeting: prefer the nearest free cell NEAR the impact point
-      // (no more teleporting up through gaps), but always fall back to the
-      // global nearest free cell so a shot into a crowded area still lands —
-      // a shot must never vanish (that reads exactly like a softlock).
+    function snapAndPlace(x, y, px, py){
+      // landing pick, in order of preference:
+      //   1. nearest free cell NEAR THE IMPACT POINT (this is what makes aim
+      //      meaningful — the bubble sticks where it actually hit)
+      //   2. nearest free cell to the last free point on the trajectory
+      //      (the spot it occupied the frame before contact) — the natural
+      //      "it slid into the gap" landing, without teleporting across
+      //      the board
+      //   3. global nearest free cell — absolute last resort so a shot can
+      //      never vanish (a stuck shot reads exactly like a softlock)
       const passes = [
-        (p) => p.y >= y - R*2.4 && p.y <= y + R*2.4,  // near the impact
-        () => true,                                    // global fallback
+        (p) => p.y >= y - R*2.4 && p.y <= y + R*2.4,
+        (p) => p.y >= py - R*2.4 && p.y <= py + R*2.4,
+        () => true,
       ];
       let bestCell = null;
       for(const inBand of passes){
@@ -291,14 +297,20 @@ Strip.register({
       const dtF = Math.min(3, Math.max(0, (now - lastFrame) / 16.67));
       lastFrame = now;
       if(flying){
+        // remember the last position that was still in free space — the
+        // trajectory fallback in snapAndPlace needs it
+        flying.px = flying.x;
+        flying.py = flying.y;
         flying.x += flying.vx * dtF;
         flying.y += flying.vy * dtF;
         if(flying.x < R || flying.x > cw-R) flying.vx *= -1;
         // CEILING: without this, a shot aimed up a vertical gap wider than the
         // hit radius never collides — it flies to y=-infinity, `flying` is never
         // cleared, and every future shot is silently ignored (softlock).
+        // (There is deliberately NO floor check: the shot spawns at ch-20 and
+        // only travels upward — the old `y > ch-30` guard tripped on frame 0,
+        // making every shot "collide" at the muzzle and aim meaningless.)
         let collided = flying.y <= R;
-        if(!collided && flying.y > ch-30) collided = true;
         if(!collided){
           outer:
           for(let r=0;r<grid.length;r++){
@@ -313,7 +325,7 @@ Strip.register({
           }
         }
         if(collided){
-          snapAndPlace(flying.x, Math.min(flying.y, ch-30));
+          snapAndPlace(flying.x, flying.y, flying.px, flying.py);
         }
       }
       draw();

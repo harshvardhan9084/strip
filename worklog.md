@@ -273,3 +273,48 @@ real, complete games (no novelty filler), wired, tested and shipped.
   undefined display + gameOver-during-spawn leaving a live gravity timer;
   lexicle keyboard letter-state persisting across rounds; codebreaker dead
   scoring loop removed; breakout junk launch conditional removed
+
+---
+
+# Round 5 — Critic Round 4 verdict: 6.5/10 -> fix every CRITICAL/MAJOR code finding
+
+Critic (strict, runtime-verified) found a shipped regression and four major
+logic bugs. All fixed this round; every fix re-verified live in headless Chromium.
+
+## Fixes
+1. CRITICAL bubbleshoot: the `flying.y > ch-30` floor guard tripped on frame 0
+   (shots spawn at ch-20), so every shot "collided" at the muzzle and the
+   two-pass snap's global fallback grew the board downward — aim was meaningless.
+   Fix: guard deleted (shots only travel upward; the ceiling check remains),
+   trajectory tracking added (px/py = last free-space position), and landing
+   pick is now impact-point-first with trajectory-adjacent fallback before the
+   global last resort. Live proof: 3 shots aimed top-left landed in pixel bands
+   5-6 (+83/+69 px), bottom bands changed by ZERO (was: bands 9-12 each +~480).
+2. MAJOR dropfour: stale AI move landed on a freshly reset board. Fix: roundGen
+   counter bumped on newRound() AND unmount; AI timeout checks its generation.
+   Live proof: drop -> New round mid-think -> board still empty 800ms later.
+3. MAJOR codebreaker: losing never revealed the code (render() repainted the
+   reveal with the last guess and clobbered the statRow). Fix: render() skips
+   repaint once failed; secret painted after render; statRow shows the code as
+   colored dots. Live proof: after 8 losing rows, statRow reads "CODE WAS" and
+   the final row holds the revealed colors.
+4. MAJOR minisudoku: win required matching THE generated solution, but ~22% of
+   8-clue 4x4 deals have multiple valid completions — correctly finished grids
+   were not accepted. Fix: rule-based check (all rows/cols/boxes contain 1-4).
+5. MAJOR sw.js: SHELL_ASSETS was missing feedback.js/shufflebag.js/
+   install-handler.js (they froze at install-time versions via the cache-first
+   branch), and shell files never updated post-install. Fix: v3->v4, all three
+   assets precached, network-first extended to ALL js/*.js and css/*.css
+   (cache only as offline fallback). Every future round now ships to installed PWAs.
+6. feedback.js: blip/thud/ok presets added — games called them but they silently
+   fell back to 440 Hz.
+7. blockfall: 7-bag piece randomizer (fairness); soft-drop credit before gravity
+   (saved score == displayed score at death); statUpdate in gameOver.
+8. blackjack: push is neutral feedback now (was a win fanfare); settle timer
+   cancelled on unmount; S17 comment corrected.
+9. pongduel: meaningless always-7 BEST replaced by a persisted win streak.
+
+## Verification
+- node --check pass on all 9 touched files
+- Live: 50/50 registration, 0 console errors, full 50-card mount sweep clean
+- Regression tests above re-run post-fix, all passing

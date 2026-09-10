@@ -112,8 +112,22 @@ Strip.register({
     }
 
     function checkSolved(){
-      for(let r=0;r<4;r++) for(let c=0;c<4;c++){
-        if(puzzle[r][c] !== solution[r][c]) return;
+      // RULE-BASED win check, not solution-equality. With only 8 clues a 4x4
+      // puzzle can legally have two valid completions (~22% of generated
+      // deals) — a player who correctly completes the *other* one must still
+      // win, or the game silently robs them.
+      const want = [1,2,3,4];
+      const ok = (arr) => want.every(n => arr.includes(n));
+      for(let r=0;r<4;r++){
+        if(!ok(puzzle[r])) return;
+      }
+      for(let c=0;c<4;c++){
+        if(!ok(puzzle.map(row => row[c]))) return;
+      }
+      for(let br=0;br<2;br++) for(let bc=0;bc<2;bc++){
+        const box = [];
+        for(let r=0;r<2;r++) for(let c=0;c<2;c++) box.push(puzzle[br*2+r][bc*2+c]);
+        if(!ok(box)) return;
       }
       solved = true;
       Feedback.buzz("win");

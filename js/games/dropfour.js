@@ -10,6 +10,7 @@ Strip.register({
     let streak = state && Number.isFinite(state.streak) ? state.streak : 0;
 
     let grid, over, aiTimer, busy;
+    let roundGen = 0; // bumped on every reset/unmount — kills pending AI timers
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
@@ -88,13 +89,12 @@ Strip.register({
       if(grid.every(row => row.every(v => v))){ finish(0, null); return; }
       render();
       busy = true;
-      // guard token: if the card unmounts while the AI "thinks", the timeout is
-      // dead on arrival — the token check stops a stale AI move landing on a
-      // fresh board (the same class of bug the XOX rewrite fixed)
-      const token = Symbol();
-      aiTimer = { token };
+      // guard token: if the round resets (or the card unmounts) while the AI
+      // "thinks", the stale timeout must not land a piece on the fresh board
+      const gen = roundGen;
+      aiTimer = { gen };
       setTimeout(() => {
-        if(!aiTimer || aiTimer.token !== token || over) return;
+        if(gen !== roundGen || over) return;
         aiMove();
       }, 380);
     }
@@ -171,12 +171,13 @@ Strip.register({
     }
 
     function newRound(){
+      roundGen++; // invalidate any AI move still pending from the old round
       grid = Array.from({ length: H }, () => Array(W).fill(0));
       over = false; busy = false;
       render();
     }
 
     newRound();
-    return () => { aiTimer = null; };
+    return () => { roundGen++; };
   }
 });

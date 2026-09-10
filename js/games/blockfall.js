@@ -24,6 +24,7 @@ Strip.register({
 
     let grid, piece, nextPiece, running, over, gravId;
     let score = 0, lines = 0, level = 1;
+    let bag = []; // 7-bag randomizer — no more cruel I-piece droughts
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
@@ -99,7 +100,16 @@ Strip.register({
     function idx(r, c){ return r * COLS + c; }
 
     function randPiece(){
-      const t = BAG[Math.floor(Math.random() * BAG.length)];
+      // 7-bag: shuffle all seven, deal them out before refilling — the classic
+      // fairness guarantee pure-random selection lacks
+      if(!bag.length){
+        bag = BAG.slice();
+        for(let i = bag.length - 1; i > 0; i--){
+          const j = Math.floor(Math.random() * (i + 1));
+          [bag[i], bag[j]] = [bag[j], bag[i]];
+        }
+      }
+      const t = bag.pop();
       return { type: t, m: SHAPES[t].map(row => row.slice()), r: 0, c: Math.floor((COLS - SHAPES[t][0].length) / 2) };
     }
 
@@ -214,8 +224,8 @@ Strip.register({
 
     function softDrop(){
       if(!running || over) return;
-      gravity();
-      score += 1;
+      score += 1; // credit BEFORE gravity — if this drop ends the game, the
+      gravity();  // saved highscore must match what the stat row shows
       statUpdate();
     }
 
@@ -269,6 +279,7 @@ Strip.register({
       Feedback.buzz("lose");
       startBtn.disabled = false;
       startBtn.textContent = "Piled up — retry";
+      statUpdate(); // final +2s from a hard drop must show before saving
       api.setHighscore(score).then(v => { best = v; statUpdate(); });
       draw();
     }

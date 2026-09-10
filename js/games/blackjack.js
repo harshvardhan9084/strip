@@ -17,6 +17,7 @@ Strip.register({
     let bet = 0;
     let deck = [], player = [], dealer = [], phase = "bet"; // bet | play | done
     let holeRevealed = false;
+    let settleTimer = null;
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
@@ -188,7 +189,8 @@ Strip.register({
     function stand(){
       if(phase !== "play") return;
       holeRevealed = true;
-      // dealer draws to 17, stands on soft 17 (house-friendly and standard)
+      // dealer draws to 17 and stands on ALL 17s including soft (S17 — the
+      // player-friendly standard; H17 would have the dealer hit soft 17)
       while(handValue(dealer) < 17){
         dealer.push(draw());
         render("dealer draws…");
@@ -203,15 +205,21 @@ Strip.register({
     function settle(delta, msg){
       phase = "done";
       bank += delta;
-      Feedback.buzz(delta > 0 ? "win" : delta < 0 ? "lose" : "win");
+      if(delta > 0) Feedback.buzz("win");
+      else if(delta < 0) Feedback.buzz("lose");
+      else Feedback.tone("ok"); // a push is neither a win nor a loss — neutral
       api.save({ bank });
-      const next = () => { phase = "bet"; bet = Math.min(bet, bank); if(bank < 10) bank += 200; render(); };
+      settleTimer = setTimeout(() => {
+        phase = "bet";
+        bet = Math.min(bet, bank);
+        if(bank < 10) bank += 200;
+        render();
+      }, 1600);
       render(msg + (bank < 10 ? " · restaked 200" : ""));
-      setTimeout(next, 1600);
     }
 
     render();
 
-    return () => {};
+    return () => clearTimeout(settleTimer);
   }
 });
