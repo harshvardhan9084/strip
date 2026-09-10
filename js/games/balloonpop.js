@@ -39,13 +39,41 @@ Strip.register({
       const isBomb = Math.random() < 0.18;
       const el = document.createElement("div");
       const size = 34 + Math.random()*14;
-      el.textContent = isBomb ? "💣" : "🎈";
       el.style.cssText = `
         position:absolute; left:${Math.random()*80}%; bottom:-40px;
         font-size:${size}px; cursor:pointer; user-select:none;
-        filter:${isBomb ? "none" : `hue-rotate(${Math.random()*360}deg)`};
         transition:bottom ${3 + Math.random()*2}s linear;
       `;
+      if(isBomb){
+        el.textContent = "💣";
+      } else {
+        // CSS balloons, not emoji: hue-rotate() silently does nothing on color
+        // emoji glyphs, so every balloon used to be the same red. Real painted
+        // colors give the game actual variety (and filters that work).
+        const BALLOON_COLORS = ["#E8637F","#FFB347","#8B7FE8","#5AC98A","#6FA8FF","#F2A65A"];
+        const color = BALLOON_COLORS[Math.floor(Math.random()*BALLOON_COLORS.length)];
+        const body = document.createElement("div");
+        body.style.cssText = `
+          width:${size}px; height:${size*1.18}px;
+          background:radial-gradient(circle at 32% 28%, rgba(255,255,255,.55), ${color} 46%);
+          border-radius:50% 50% 50% 50% / 56% 56% 44% 44%;
+        `;
+        const knot = document.createElement("div");
+        knot.style.cssText = `
+          width:0; height:0; margin:0 auto;
+          border-left:${size*0.10}px solid transparent;
+          border-right:${size*0.10}px solid transparent;
+          border-bottom:${size*0.16}px solid ${color};
+        `;
+        const string = document.createElement("div");
+        string.style.cssText = `
+          width:1px; height:${size*0.5}px; margin:0 auto;
+          background:rgba(237,234,227,.4);
+        `;
+        el.appendChild(body);
+        el.appendChild(knot);
+        el.appendChild(string);
+      }
       field.appendChild(el);
       activeEls.push(el);
       requestAnimationFrame(() => { el.style.bottom = "110%"; });

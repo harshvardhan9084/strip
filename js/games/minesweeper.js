@@ -14,6 +14,7 @@ Strip.register({
 
     let mines, revealed, flagged, placed, over, won, flags, elapsed, timerId;
     let longPress = null, suppressDig = false;
+    let restored = false;
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
@@ -50,7 +51,11 @@ Strip.register({
       c.addEventListener("pointercancel", () => clearTimeout(longPress));
       // desktop right-click flags
       c.addEventListener("contextmenu", (e) => { e.preventDefault(); clearTimeout(longPress); suppressDig = true; toggleFlag(r, col); });
-      c.addEventListener("click", () => { if(!suppressDig) dig(r, col); suppressDig = false; });
+      c.addEventListener("click", () => {
+        if(suppressDig){ suppressDig = false; return; }
+        if(placed && revealed[r * W + c]) chord(r, col);
+        else dig(r, col);
+      });
 
       board.appendChild(c);
       cells.push(c);
@@ -142,6 +147,7 @@ Strip.register({
         over = true; won = false;
         clearInterval(timerId);
         Feedback.buzz("lose");
+        persist();
         render();
         return;
       }
@@ -155,6 +161,7 @@ Strip.register({
         if(countAt(j) === 0) neighbors(j, k => { if(!revealed[k] && !mines[k]) stack.push(k); });
       }
       checkWin();
+      persist();
       render();
     }
 
@@ -162,11 +169,43 @@ Strip.register({
       if(over) return;
       const i = r * W + c;
       if(revealed[i]) return;
+      // flag supply is capped at the real mine count — a scoreboard that can
+      // read "-3" mines left is nonsense
+      if(!flagged[i] && flags >= MINES) return;
       flagged[i] = !flagged[i];
       flags += flagged[i] ? 1 : -1;
       Feedback.haptic("light");
+      persist();
       render();
     }
+
+    // chord: tapping a revealed number whose flag count matches reveals its
+    // remaining neighbors — the standard efficiency move for veterans
+    function chord(r, c){
+      const i = r * W + c;
+      if(over || !revealed[i] || !minesOrZero(i)) return;
+      let flaggedAround = 0;
+      neighbors(i, j => { if(flagged[j]) flaggedAround++; });
+      if(flaggedAround !== countAt(i)) return;
+      const targets = [];
+      neighbors(i, j => { if(!revealed[j] && !flagged[j]) targets.push(j); });
+      if(!targets.length) return;
+      for(const j of targets){
+        if(mines[j]){ over = true; won = false; clearInterval(timerId); Feedback.buzz("lose"); render(); return; }
+        const stack = [j];
+        while(stack.length){
+          const k = stack.pop();
+          if(revealed[k] || flagged[k]) continue;
+          revealed[k] = true;
+          if(countAt(k) === 0) neighbors(k, m => { if(!revealed[m] && !mines[m]) stack.push(m); });
+        }
+      }
+      Feedback.tone("ok");
+      checkWin();
+      persist();
+      render();
+    }
+    function minesOrZero(i){ return mines[i] ? true : countAt(i) > 0; }
 
     function checkWin(){
       const dug = revealed.reduce((s, v) => s + (v ? 1 : 0), 0);
@@ -177,19 +216,47 @@ Strip.register({
         // flag remaining mines for a clean final board
         for(let i = 0; i < W * H; i++) if(mines[i]) flagged[i] = true;
         api.setHighscore(INV - elapsed).then(v => { best = INV - v; render(); });
+        persist();
       }
     }
 
+    // mid-game persistence: the board survives scrolling away or an app switch
+    function persist(){
+      if(!mines) return;
+      api.save({ mines, revealed, flagged, elapsed, placed, over, won, flags }).catch(()=>{});
+    }
+
     function newGame(){
+      restored = true; // explicit reset — never resurrect the old board
+      freshBoard();
+      clearInterval(timerId); timerId = null;
+      persist();
+      render();
+    }
+
+    function freshBoard(){
       mines = new Array(W * H).fill(0);
       revealed = new Array(W * H).fill(false);
       flagged = new Array(W * H).fill(false);
       placed = false; over = false; won = false; flags = 0; elapsed = 0;
-      clearInterval(timerId); timerId = null;
       render();
     }
 
-    newGame();
-    return () => clearInterval(timerId);
+    // restore an in-progress board exactly once per mount (placed + not over)
+    api.load().then(saved => {
+      if(restored || !saved || !saved.placed || saved.over || !Array.isArray(saved.mines) || saved.mines.length !== W * H) return;
+      restored = true;
+      mines = saved.mines;
+      revealed = saved.revealed;
+      flagged = saved.flagged;
+      elapsed = saved.elapsed || 0;
+      flags = saved.flags || 0;
+      placed = true; over = false; won = false;
+      startTimer(); // the clock resumes with the board
+      render();
+    }).catch(()=>{});
+
+    freshBoard();
+    return () => { clearInterval(timerId); persist(); };
   }
 });

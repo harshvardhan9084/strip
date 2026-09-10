@@ -406,3 +406,26 @@ Critic next-moves #12 (ethics) + a11y groundwork:
 ## Verification
 - node --check on touched files; manifest JSON validated; live browser check:
   honest note renders on vote, viewport meta is pinch-friendly, 0 errors.
+
+---
+
+# Round 9 — Minesweeper grows up + last fairness/cosmetic fixes
+
+## Minesweeper (critic #11, completed)
+- Chording: tapping a revealed number whose flag count matches reveals its
+  remaining neighbors (standard veteran move), with correct mine-hit on
+  misflagged boards.
+- Flag supply capped at the real mine count — the counter can no longer go
+  negative.
+- Mid-game persistence: the live board (mines/reveals/flags/elapsed) is saved
+  on every dig and restored on remount, timer included. Scrolling away or
+  killing the app no longer erases a run. Explicit "New field" always resets;
+  finished/absent boards never resurrect.
+- Live proof: dug board (42 cells revealed) survived scroll-away + remount,
+  timer resumed; 0 errors.
+
+## Fairness/cosmetics
+- balloonpop: hue-rotate() does nothing on color emoji glyphs (Chromium), so
+  every balloon was the same red. Balloons are now real painted CSS shapes
+  with a 6-color palette, gradient shading, knot and string — actual visual
+  variety, verified live (multiple distinct colors on screen).
