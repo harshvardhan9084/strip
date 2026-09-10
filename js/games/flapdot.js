@@ -55,16 +55,21 @@ Strip.register({
       pipes.push({ x: w, gapY, passed:false });
     }
 
-    function loop(){
+    let lastFrame = performance.now();
+    function loop(now){
       const w = canvas.width / devicePixelRatio;
       const h = canvas.height / devicePixelRatio;
       ctx.clearRect(0,0,w,h);
+      // frame-rate independent physics: on 120Hz screens the old per-frame step
+      // ran everything twice as fast as on 60fps
+      const dtF = Math.min(3, Math.max(0, (now - lastFrame) / 16.67));
+      lastFrame = now;
 
       if(running){
-        vel += GRAVITY;
-        dotY += vel;
+        vel += GRAVITY * dtF;
+        dotY += vel * dtF;
 
-        pipes.forEach(p => p.x -= PIPE_SPEED);
+        pipes.forEach(p => p.x -= PIPE_SPEED * dtF);
         if(pipes.length && pipes[0].x < -PIPE_W) pipes.shift();
         if(pipes.length && pipes[pipes.length-1].x < w - 140) spawnPipe();
 

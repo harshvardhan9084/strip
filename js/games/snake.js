@@ -70,8 +70,9 @@ Strip.register({
     function win(){
       running = false;
       clearInterval(tickId);
+      food = null; // the last food was just eaten and its cell is the head — stop drawing it
       Feedback.buzz("win");
-      draw(); // redraw once more so the final food dot doesn't linger under the head
+      draw();
       startBtn.disabled = false;
       startBtn.textContent = "You filled the board! Play again";
       api.setHighscore(score).then(v => {
@@ -86,8 +87,10 @@ Strip.register({
         cells[idx(r,c)].style.background = i===0 ? "var(--amber)" : "var(--purple)";
         cells[idx(r,c)].style.borderRadius = "3px";
       });
-      cells[idx(food[0],food[1])].style.background = "var(--danger)";
-      cells[idx(food[0],food[1])].style.borderRadius = "50%";
+      if(food){
+        cells[idx(food[0],food[1])].style.background = "var(--danger)";
+        cells[idx(food[0],food[1])].style.borderRadius = "50%";
+      }
     }
 
     function step(){

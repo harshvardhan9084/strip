@@ -78,11 +78,16 @@ Strip.register({
     window.addEventListener("touchmove", onMove, {passive:true});
     window.addEventListener("touchend", onUp);
 
-    function tick(){
+    let lastFrame = performance.now();
+    function tick(now){
+      // velocity is drag-normalized to 60fps-equivalent deg/frame, so the spin
+      // must advance by velocity * dtF to look identical on 120Hz screens
+      const dtF = Math.min(3, Math.max(0, (now - lastFrame) / 16.67));
+      lastFrame = now;
       if(!dragging){
         if(Math.abs(velocity) > 0.01){
-          angle += velocity;
-          velocity *= 0.975; // friction
+          angle += velocity * dtF;
+          velocity *= Math.pow(0.975, dtF); // friction
           face.style.transform = `rotate(${angle}deg)`;
         } else {
           velocity = 0;
@@ -95,7 +100,7 @@ Strip.register({
       rpmLabel.textContent = rpm > 0.5 ? `${rpm.toFixed(0)} rpm` : "flick to spin";
       rafId = requestAnimationFrame(tick);
     }
-    tick();
+    rafId = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(rafId);

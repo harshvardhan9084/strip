@@ -174,3 +174,38 @@ FIXED IN THIS ROUND:
 
 ### Round 2 outcome
 All critic issues addressed. Committing and submitting for re-score.
+
+---
+
+## Round 3 — Critic-driven fixes (critic score round 2: 8/10)
+
+Critic confirmed 13/14 Round 2 fixes with zero new regressions. Fixed everything found:
+
+1. sw.js (MAJOR): the navigate branch had NO cache step — an installed PWA launched
+   offline always landed on offline.html and could not play anything, defeating the
+   product's core offline-first promise. Now: network -> precached shell -> offline
+   page. VERIFIED in headless browser: browser set offline + reload serves the full
+   app (41 cards), not the offline page.
+2. snake win(): the Round 2 redraw was ineffective — food still pointed at the eaten
+   cell (= the head), and draw() paints food last. Now food=null in win() + guarded
+   draw, so no stale dot.
+3. dt normalization (class-wide MINOR): bubbleshoot, flapdot, stacktower, plinko and
+   spinner stepped per rAF frame — on 120Hz displays physics ran ~2x fast and
+   spinner under-read RPM. All five now advance by dt/16.67 (clamped at 3 frames),
+   matching towerdefense's existing dt-correct pattern. Friction uses pow(f, dtF).
+4. sw.js: game-script branch degrades to cache on bad status (404 during a botched
+   deploy), not just network failure.
+5. sw.js trimCache: was a per-put single deletion that could never catch up — now
+   deletes until within the cap.
+6. xox: cleanup bumps roundGen so a pending AI timeout can't fire post-unmount.
+7. blobmerge: mid-drag unmount no longer leaks the window drag listeners
+   (dragCleanup installed on down, invoked on up/unmount).
+
+### Round 3 verification
+- node --check: all 43 JS files pass.
+- Mount sweep across all 41 cards + flapdot/plinko/stacktower gameplay: 0 errors.
+- Offline reload test: cached shell serves correctly (title Strip, 41 carts).
+- Corridor shots in bubbleshoot still land every shot (two-pass snap verified).
+
+### Round 3 outcome
+Submitting for final scoring.

@@ -34,6 +34,7 @@ Strip.register({
     container.appendChild(wrap);
 
     let grid, score;
+    let dragCleanup = null; // removes the window drag listeners if the card unmounts mid-drag
 
     function newGame(){
       grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
@@ -90,6 +91,13 @@ Strip.register({
         window.addEventListener("touchmove", onMove, {passive:false});
         window.addEventListener("mouseup", onUp);
         window.addEventListener("touchend", onUp);
+        // so an unmount mid-drag can't leak the window listeners
+        dragCleanup = () => {
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("touchmove", onMove);
+          window.removeEventListener("mouseup", onUp);
+          window.removeEventListener("touchend", onUp);
+        };
       }
       function onMove(e){
         if(e.cancelable) e.preventDefault();
@@ -98,10 +106,7 @@ Strip.register({
         el.style.top = (origTop + t.clientY - startY) + "px";
       }
       function onUp(){
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("touchmove", onMove);
-        window.removeEventListener("mouseup", onUp);
-        window.removeEventListener("touchend", onUp);
+        if(dragCleanup){ dragCleanup(); dragCleanup = null; }
         el.style.zIndex = 1;
 
         const r = +el.dataset.r, c = +el.dataset.c;
@@ -180,5 +185,9 @@ Strip.register({
 
     newBtn.addEventListener("click", newGame);
     newGame();
+
+    return () => {
+      if(dragCleanup) dragCleanup();
+    };
   }
 });

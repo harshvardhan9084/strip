@@ -102,13 +102,16 @@ Strip.register({
       });
     }
 
-    function step(){
+    let lastFrame = performance.now();
+    function step(now){
+      const dtF = Math.min(3, Math.max(0, (now - lastFrame) / 16.67));
+      lastFrame = now;
       balls.forEach(b => {
         if(b.settled) return;
-        b.vy += 0.25;
-        b.x += b.vx;
-        b.y += b.vy;
-        b.vx *= 0.995;
+        b.vy += 0.25 * dtF;
+        b.x += b.vx * dtF;
+        b.y += b.vy * dtF;
+        b.vx *= Math.pow(0.995, dtF);
 
         pegs.forEach(p => {
           const dx = b.x-p.x, dy = b.y-p.y;

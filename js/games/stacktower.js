@@ -109,13 +109,17 @@ Strip.register({
       });
     }
 
-    function loop(){
+    let lastFrame = performance.now();
+    function loop(now){
       const w = canvas.width / devicePixelRatio;
       const h = canvas.height / devicePixelRatio;
       ctx.clearRect(0,0,w,h);
+      // frame-rate independent physics
+      const dtF = Math.min(3, Math.max(0, (now - lastFrame) / 16.67));
+      lastFrame = now;
 
       if(current){
-        current.x += current.vx;
+        current.x += current.vx * dtF;
         if(current.x <= 0 || current.x + current.w >= w) current.vx *= -1;
       }
 

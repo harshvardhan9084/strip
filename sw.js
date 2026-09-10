@@ -16,12 +16,14 @@ const SHELL_ASSETS = [
   './icons/icon-512.png'
 ];
 
-// simple helper to limit runtime cache size (optional)
+// simple helper to limit runtime cache size
 async function trimCache(cacheName, maxItems) {
   const cache = await caches.open(cacheName);
   const keys = await cache.keys();
-  if (keys.length > maxItems) {
-    await cache.delete(keys[0]);
+  // delete until within the cap — the old code removed a single entry per put,
+  // which could never catch up once over the limit (effectively no cap)
+  for (let i = 0; i < keys.length - maxItems; i++) {
+    await cache.delete(keys[i]);
   }
 }
 
@@ -44,7 +46,11 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  // Navigation requests: try network first, then cache, then offline page
+  // Navigation requests: try network first, then the PRECACHED shell, then the
+  // offline page. The old handler skipped the cache step entirely — an installed
+  // PWA launched offline always landed on offline.html and could not play
+  // anything, defeating the app's offline-first promise (and contradicting
+  // offline.html's own "You can still play cached cartridges" copy).
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req).then(resp => {
@@ -54,7 +60,9 @@ self.addEventListener('fetch', event => {
           caches.open(SHELL_CACHE).then(c => c.put(req, copy)).catch(() => {});
         }
         return resp;
-      }).catch(() => caches.match('./offline.html'))
+      }).catch(() =>
+        caches.match(req).then(cached => cached || caches.match('./offline.html'))
+      )
     );
     return;
   }
@@ -68,14 +76,17 @@ self.addEventListener('fetch', event => {
   if (url.origin === self.location.origin && url.pathname.includes('/js/games/')) {
     event.respondWith(
       fetch(req).then(networkResp => {
+        // degrade to cache on network failure OR a bad status (e.g. a 404
+        // during a botched deploy) — a stale cartridge beats a broken one
         if (networkResp && networkResp.ok) {
           const clone = networkResp.clone();
           caches.open(RUNTIME_CACHE).then(cache => {
             cache.put(req, clone);
             trimCache(RUNTIME_CACHE, 60);
           }).catch(() => {});
+          return networkResp;
         }
-        return networkResp;
+        return caches.match(req).then(cached => cached || networkResp);
       }).catch(() => caches.match(req))
     );
     return;

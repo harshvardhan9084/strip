@@ -285,10 +285,14 @@ Strip.register({
     }, {passive:true});
 
     let rafId;
-    function loop(){
+    let lastFrame = performance.now();
+    function loop(now){
+      // frame-rate independent physics (120Hz screens ran shots twice as fast)
+      const dtF = Math.min(3, Math.max(0, (now - lastFrame) / 16.67));
+      lastFrame = now;
       if(flying){
-        flying.x += flying.vx;
-        flying.y += flying.vy;
+        flying.x += flying.vx * dtF;
+        flying.y += flying.vy * dtF;
         if(flying.x < R || flying.x > cw-R) flying.vx *= -1;
         // CEILING: without this, a shot aimed up a vertical gap wider than the
         // hit radius never collides — it flies to y=-infinity, `flying` is never

@@ -219,5 +219,9 @@ Strip.register({
     newBtn.addEventListener("click", newRound);
     updateDiffButtons();
     newRound();
+
+    // bumping roundGen on unmount defuses any pending AI timeout — without this,
+    // an in-flight "AI is thinking" timer could fire against the detached board
+    return () => { roundGen++; };
   }
 });
