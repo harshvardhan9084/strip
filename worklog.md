@@ -209,3 +209,27 @@ Critic confirmed 13/14 Round 2 fixes with zero new regressions. Fixed everything
 
 ### Round 3 outcome
 Submitting for final scoring.
+
+---
+
+## Final — Critic score: 9/10 (target met: >= 9 within 3 rounds)
+
+Round 3 critic verdict: 9/10. All seven Round 2 fixes CONFIRMED (including the dt
+math on clamp stability, integration order, and cross-refresh-rate consistency);
+zero remaining issues beyond accepted cosmetics. One trivial nit from the Round 3
+edit itself (flapdot's bare loop() call producing NaN dtF until the second rAF
+frame) fixed post-verdict: loop(performance.now()).
+
+### Score progression
+- Round 1 critic: 7/10 (critical fixes verified; bubble-shooter softlock, spinner
+  math, SW pathname found)
+- Round 2 critic: 8/10 (13/14 fixes confirmed, no regressions; SW offline
+  navigation found as the remaining MAJOR)
+- Round 3 critic: 9/10 (all confirmed; ready to push)
+
+### Deck summary
+41 cartridges: 11 classics, 11 quick hits, 7 slow burns, 2 puzzles, 10 toys &
+fidgets — every one does something real: a goal, a score, a skill, or a genuine
+creative output. 47 -> 41 after removing six no-op gag cartridges and two junk
+files. All per-game logic errors found across three audit passes are fixed, and
+each fix was verified in a live headless browser, not just by reading.

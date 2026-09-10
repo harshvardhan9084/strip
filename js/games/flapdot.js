@@ -130,7 +130,7 @@ Strip.register({
     canvas.addEventListener("touchstart", (e) => { e.preventDefault(); flapOrStart(); }, {passive:false});
 
     reset();
-    loop();
+    loop(performance.now()); // pass a real timestamp — a bare call makes dtF NaN until the second rAF
 
     // keep geometry aligned when the viewport rotates or resizes
     let resizeTimer = null;
