@@ -112,6 +112,13 @@ Strip.register({
     nextBtn.className = "btn purple";
     nextBtn.textContent = "Next question";
 
+    // ONE persistent disclosure element, hoisted here. Creating it inside
+    // render() leaked a copy per render (a fresh element is never
+    // "contained", so the guard always passed).
+    const honestyNote = document.createElement("div");
+    honestyNote.style.cssText = "font-size:10px; color:var(--ink-dim); text-align:center; margin-top:2px; min-height:14px;";
+    honestyNote.textContent = "an imaginary crowd agrees… (no one else is asked — this is offline)";
+
     wrap.appendChild(label);
     wrap.appendChild(optA);
     wrap.appendChild(optB);
@@ -134,12 +141,11 @@ Strip.register({
         // the SAME question across visits.
         const seed = (qIdx * 37 + 11) % 100;
         const pctA = 25 + (seed % 51); // 25-75 range
-        const note = document.createElement("div");
-        note.style.cssText = "font-size:10px; color:var(--ink-dim); text-align:center; margin-top:2px; min-height:14px;";
-        note.textContent = "an imaginary crowd agrees… (no one else is asked — this is offline)";
-        if(!wrap.contains(note)) wrap.insertBefore(note, nextBtn);
         showResult(optA, pctA, voted === "a");
         showResult(optB, 100 - pctA, voted === "b");
+        if(!honestyNote.isConnected) wrap.insertBefore(honestyNote, nextBtn);
+      } else if(honestyNote.isConnected){
+        honestyNote.remove(); // orphaned disclosure makes no sense pre-vote
       }
     }
 

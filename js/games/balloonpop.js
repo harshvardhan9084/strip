@@ -31,7 +31,6 @@ Strip.register({
 
     container.appendChild(wrap);
 
-    const COLORS = ["#E8637F","#FFB347","#8B7FE8","#6FCF97","#56B4E9"];
     let running = false, score = 0, timeLeft = 60, spawnTimer = null, countdownTimer = null, activeEls = [];
 
     function spawnItem(){

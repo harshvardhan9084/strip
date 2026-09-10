@@ -9,7 +9,7 @@ Strip.register({
     const state = await api.load();
     let streak = state && Number.isFinite(state.streak) ? state.streak : 0;
 
-    let grid, over, aiTimer, busy;
+    let grid, over, busy;
     let roundGen = 0; // bumped on every reset/unmount — kills pending AI timers
 
     const wrap = document.createElement("div");
@@ -89,10 +89,9 @@ Strip.register({
       if(grid.every(row => row.every(v => v))){ finish(0, null); return; }
       render();
       busy = true;
-      // guard token: if the round resets (or the card unmounts) while the AI
+      // guard: if the round resets (or the card unmounts) while the AI
       // "thinks", the stale timeout must not land a piece on the fresh board
       const gen = roundGen;
-      aiTimer = { gen };
       setTimeout(() => {
         if(gen !== roundGen || over) return;
         aiMove();

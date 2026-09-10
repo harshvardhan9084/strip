@@ -429,3 +429,43 @@ Critic next-moves #12 (ethics) + a11y groundwork:
   every balloon was the same red. Balloons are now real painted CSS shapes
   with a 6-color palette, gradient shading, knot and string — actual visual
   variety, verified live (multiple distinct colors on screen).
+
+---
+
+# Round 10 — Final: critic re-verdict 8.5/10 -> last two gaps closed
+
+Critic Round 10 re-review: every CRITICAL and MAJOR from the 6.5/10 verdict
+verified dead (live re-verification included). Score 8.5/10, held back by one
+regression and one offline gap. Both fixed this round, plus every nit:
+
+## Fixes
+1. MINOR wouldyourather note leak (regression of Round 8's own fix): the
+   disclosure element was created inside render(), so the
+   `wrap.contains(note)` guard on a detached node ALWAYS passed and the note
+   accumulated per render. Now a single hoisted element: inserted once on
+   vote, removed on unvoted questions. Live proof: 3 votes -> exactly 1 note.
+2. MINOR sw.js offline gap: drawer.js was shell chrome but not precached, and
+   RUNTIME_CACHE cap (60) sat exactly at the deck's entry count. v5: drawer.js
+   in SHELL_ASSETS, runtime cap 90. Cold offline reload now serves the whole
+   app including navigation (verified with the browser offline toggle).
+3. NIT blackjack: 3:2 naturals rounded with floor, always against the player —
+   now ceil (the odd chip goes to the player, matching the "fair 3:2" claim).
+4. NIT dropfour: dead aiTimer variable removed (roundGen guard made it
+   write-only).
+5. NIT balloonpop: dead COLORS array removed (CSS-balloon rewrite left it).
+6. NIT bubbleshoot: DPR capped at 2.5, parity with the other canvas games.
+7. NIT minesweeper: chord mine-hit path now persists like the dig path.
+
+## Final verification (this round, live headless Chromium)
+- 50/50 registration; full 50-card mount sweep, 0 console/page errors
+- wouldyourather note accumulation fixed (1 note after 3 votes)
+- cold OFFLINE reload serves the complete app (50 cartridges, boot completes)
+- node --check clean on all touched files
+
+## Deck final state
+50 cartridges, all real: navigation (drawer/favorites/recents/HUD 07/50),
+first-run hint, honest UX (imaginary-crowd disclosure, virtual-chips-only
+blackjack, no pinch-zoom blocking), DPR-crisp canvases, input arbitration,
+offline-first SW that actually ships updates, mid-game minesweeper saves,
+verified-solvable sokoban levels, duplicate-safe word coloring, fair 7-bag
+blockfall. worklog.md documents every round with live evidence.

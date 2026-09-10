@@ -191,7 +191,7 @@ Strip.register({
       neighbors(i, j => { if(!revealed[j] && !flagged[j]) targets.push(j); });
       if(!targets.length) return;
       for(const j of targets){
-        if(mines[j]){ over = true; won = false; clearInterval(timerId); Feedback.buzz("lose"); render(); return; }
+        if(mines[j]){ over = true; won = false; clearInterval(timerId); Feedback.buzz("lose"); persist(); render(); return; }
         const stack = [j];
         while(stack.length){
           const k = stack.pop();

@@ -165,7 +165,7 @@ Strip.register({
         holeRevealed = true;
         const dv = handValue(dealer);
         if(dv === 21){ settle(0, "both blackjack — push"); }
-        else { settle(Math.floor(bet * 1.5), "BLACKJACK! pays 3:2"); }
+        else { settle(Math.ceil(bet * 1.5), "BLACKJACK! pays 3:2"); } // ceil — rounding never eats the player's odd chip
         return;
       }
       render();

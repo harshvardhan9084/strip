@@ -1,5 +1,5 @@
-const SHELL_CACHE = 'strip-shell-v4';
-const RUNTIME_CACHE = 'strip-runtime-v4';
+const SHELL_CACHE = 'strip-shell-v5';
+const RUNTIME_CACHE = 'strip-runtime-v5';
 
 // Bump BOTH version strings every round that touches any shell file —
 // installed PWAs key their caches on these names, so a stale version means
@@ -15,6 +15,7 @@ const SHELL_ASSETS = [
   './js/settings-ui.js',
   './js/registry.js',
   './js/app.js',
+  './js/drawer.js',
   './js/feedback.js',
   './js/shufflebag.js',
   './js/install-handler.js',
@@ -90,7 +91,9 @@ self.addEventListener('fetch', event => {
           const clone = networkResp.clone();
           caches.open(RUNTIME_CACHE).then(cache => {
             cache.put(req, clone);
-            trimCache(RUNTIME_CACHE, 60);
+            // 50 game files + shell js/css + icons must fit with headroom —
+            // a cap the deck sits exactly at makes eviction order roulette
+            trimCache(RUNTIME_CACHE, 90);
           }).catch(() => {});
           return networkResp;
         }

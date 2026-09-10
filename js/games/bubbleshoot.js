@@ -36,9 +36,10 @@ Strip.register({
     let cw, ch;
     function fit(){
       const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * devicePixelRatio;
-      canvas.height = rect.height * devicePixelRatio;
-      ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+      const dpr = Math.min(2.5, devicePixelRatio || 1); // capped, parity with the other DPR canvases
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
       cw = rect.width; ch = rect.height;
     }
     requestAnimationFrame(fit);
