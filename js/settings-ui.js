@@ -34,6 +34,8 @@
   document.addEventListener("keydown", (e) => {
     if(e.key === "Escape" && overlay.classList.contains("show")) closePanel();
   });
+  // Round 13: Tab cycles inside the open sheet instead of escaping behind it
+  if(window.FocusTrap) FocusTrap.attach(overlay, () => overlay.classList.contains("show"));
 
   function syncToggles(settings){
     toggles.forEach(t => { t.checked = !!settings[t.dataset.key]; });

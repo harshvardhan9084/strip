@@ -168,6 +168,10 @@
     if(centerEntry){
       // position now means something: "07/50", not a bare "07"
       hudIndex.textContent = String(centerEntry.trueIdx + 1).padStart(2, "0") + "/" + allModules.length;
+      // Daily Pick (Round 13): tag/untag the centered card when it is/isn't
+      // today's pick — runs on every scroll frame but no-ops once the DOM
+      // already matches (daily.js keeps both branches cheap)
+      if(window.Daily) Daily.badge(centerEntry.el, centerEntry.mod.id);
     }
 
     cards.forEach((entry, i) => {

@@ -68,6 +68,8 @@
     overlay.addEventListener("click", (e) => { if(e.target === overlay) close(); });
     filterInput.addEventListener("input", () => renderGrid());
     window.addEventListener("keydown", (e) => { if(e.key === "Escape" && overlay.classList.contains("open")) close(); });
+    // Round 13: Tab cycles inside the open sheet instead of escaping behind it
+    if(window.FocusTrap) FocusTrap.attach(overlay, () => overlay.classList.contains("open"));
   }
 
   function close(){
@@ -161,6 +163,12 @@
 
     b.appendChild(main);
     b.appendChild(star);
+    // Daily Pick (Round 13): a ◆ marker on today's pick — decoration only.
+    // Runs AFTER main/star are in the row: the decorator queries inside the
+    // row, so calling it earlier silently no-ops (caught in live testing).
+    try{
+      if(window.Daily && Daily.decorateDrawerItem) Daily.decorateDrawerItem(b, mod.id);
+    }catch(e){}
     return b;
   }
 

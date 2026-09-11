@@ -41,6 +41,8 @@ window.Trophies = (function(){
       desc:"Browse the deck between midnight and 5 AM. We won't tell." },
     { id:"record-breaker", medal:"♛", name:"RECORD BREAKER",
       desc:"Revisit a cartridge where you already hold a highscore." },
+    { id:"daily-driver", medal:"◉", name:"DAILY DRIVER",
+      desc:"Play the Daily Pick. Come back tomorrow to grow the streak." },
   ];
 
   // ---------- state ----------
@@ -50,6 +52,8 @@ window.Trophies = (function(){
     visitsTotal: 0,
     dayVisits: {},         // "YYYY-MM-DD" -> visit count
     favCount: 0,           // hydrated from drawer meta, maintained via events
+    dailyPlayed: false,    // set via strip:daily-played (Daily Pick, Round 13)
+    dailyStreak: 0,        // mirror of the Daily module's streak, for the sub line
   };
   let seenCount = 0;       // how many unlocked trophies the panel has shown
   let readyResolve;
@@ -111,6 +115,7 @@ window.Trophies = (function(){
         ok = h < 5;
       }
       else if(def.id === "record-breaker") ok = !!ctx.holdsRecord;
+      else if(def.id === "daily-driver") ok = !!state.dailyPlayed;
       else if(def.metric === "favs") ok = state.favCount >= def.need;
       else if(def.metric === "dayVisits") ok = (state.dayVisits[dayKey()] || 0) >= def.need;
       else if(def.metric === "visited") ok = state.visited.length >= def.need;
@@ -144,7 +149,8 @@ window.Trophies = (function(){
     gridEl.innerHTML = "";
     const unlockedCount = Object.keys(state.unlocked).length;
     subEl.textContent = unlockedCount + " / " + DEFS.length + " unlocked · " +
-      state.visited.length + "/50 cartridges explored · " + state.visitsTotal + " visits";
+      state.visited.length + "/50 cartridges explored · " + state.visitsTotal + " visits" +
+      (state.dailyStreak > 0 ? " · daily streak " + state.dailyStreak : "");
     for(const def of DEFS){
       const ts = state.unlocked[def.id];
       const item = document.createElement("div");
@@ -206,6 +212,8 @@ window.Trophies = (function(){
     document.addEventListener("keydown", (e) => {
       if(e.key === "Escape" && overlay.classList.contains("open")) close();
     });
+    // Round 13: Tab cycles inside the open sheet instead of escaping behind it
+    if(window.FocusTrap) FocusTrap.attach(overlay, () => overlay.classList.contains("open"));
   }
 
   function open(){
@@ -278,6 +286,17 @@ window.Trophies = (function(){
     }
   }
 
+  // Daily Pick (Round 13): the Daily module owns streak math; we mirror what
+  // it announces so DAILY DRIVER + the streak readout stay event-driven like
+  // everything else in this file.
+  function onDailyPlayed(e){
+    const detail = e.detail || {};
+    state.dailyPlayed = true;
+    if(typeof detail.streak === "number") state.dailyStreak = detail.streak;
+    evaluate({});
+    if(overlay && overlay.classList.contains("open")) renderGrid();
+  }
+
   // ---------- boot ----------
   async function init(){
     // Listeners FIRST (Round 12): the shell's first settle can fire before
@@ -286,6 +305,7 @@ window.Trophies = (function(){
     // simply mutate `state` before the saved record is merged on top.
     window.addEventListener("strip:card-centered", onCardCentered, { passive:true });
     window.addEventListener("strip:fav-changed", onFavChanged, { passive:true });
+    window.addEventListener("strip:daily-played", onDailyPlayed, { passive:true });
 
     const saved = await load();
     if(saved && typeof saved === "object"){

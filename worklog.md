@@ -603,3 +603,71 @@ SW v7, 50/50 mount sweep, console clean, green-drawer screenshot captured.
 Honesty note appended to the record: Round 11's worklog claimed spines were
 verified when only their presence was. Round 12's spine check asserts the
 actual computed colors — the same class of claim, but now true.
+
+---
+
+## Round 13 — Daily Pick + focus traps + per-theme PWA chrome (feature round)
+
+Status going in: deck stable after Round 12 (critic's two named gaps closed
+with live evidence). QA sweep first: 50/50 mount+cleanup clean, zero console
+errors, drawer focus/theme persistence/jump math all re-verified live, SW v7
+serving. One styling nit found (drawer category labels ellipsized). Deck
+judged STABLE -> feature round per the loop rules.
+
+### Shipped
+
+1. **Daily Pick (new feature, js/daily.js ~190 lines).** One cartridge a day,
+   chosen deterministically from the local date (FNV-1a over sorted registry
+   ids — same deck version, same pick, on every device; a registry reorder
+   cannot silently change today's pick). HUD chip (hidden until hydrated)
+   jumps to the pick and flips to a dimmed check once played; the centered
+   card wears a "TODAY'S PICK" pill (injected by a 2-line hook in app.js'
+   syncViewport, cheap no-op once the DOM matches); the drawer row gets a
+   diamond marker; playing it once per local day extends a persisted streak
+   (`__daily__` store) with broken-streak reset on boot; fires
+   strip:daily-played. Trophy Case grew to 9 defs with DAILY DRIVER, and its
+   sub line now shows "daily streak N".
+2. **Per-theme PWA chrome (Round 12 judge's named nice-to-have).** An
+   installed PWA read theme_color from the static amber manifest no matter
+   the skin. settings.js now swaps the manifest <link> to an object-URL copy
+   recolored per theme — with id/start_url/scope absolutized (relative URLs
+   in a blob manifest resolve against blob: and corrupt app identity) — and
+   restores the real manifest.json on amber. Revokes its previous blob URL.
+3. **Focus trap (the other judge nice-to-have), js/focustrap.js.** One
+   shared capture-phase Tab cycler for all three sheets: Tab from the last
+   control wraps to the first, Shift+Tab from the first wraps to the last,
+   and focus that starts outside an open sheet is pulled back in. Attached
+   by drawer.js/trophies.js/settings-ui.js with their own isOpen fns.
+4. **Styling detail pass.** Drawer category labels no longer truncate
+   (STRATEGY was cut to "STRAT..." — width 44->60px, tracking tightened);
+   daily chip/card-tag/drawer-marker styling with glow pulse + pop-in;
+   hover polish for chip and theme segment buttons (hover:hover gated);
+   depth shadow under all three bottom sheets; :focus-visible extended to
+   the HUD buttons that lacked it (lock, settings, install, daily chip).
+5. **Narrow-viewport HUD regression FIX (caught by this round's own QA).**
+   At 375px the injected Install pill + 5 buttons + counter overflowed: the
+   counter slid off-screen and the pill overlapped the title. Below 480px
+   the HUD install pill now yields (Settings keeps an always-visible
+   install button), gaps/padding tighten, counter compacts. Verified: all
+   controls inside the viewport, no horizontal scroll.
+6. sw.js v7 -> v8; daily.js + focustrap.js precached. README feature docs
+   updated.
+
+### Verified live (agent-browser, fresh profile, no-cache server)
+
+- Chip hydration: correct pick ("Breathe"), aria-label carries the title
+- Chip click -> exact jump; card badge present; streak 1 recorded after
+  settle; chip flipped to done; DAILY DRIVER unlocked with toast badge pip
+- Drawer: diamond marker on the pick's row (after fixing an integration
+  ordering bug — the decorator originally ran before the row's buttons were
+  appended and silently no-oped); 0 truncating labels
+- Focus traps: Tab last->first and Shift+Tab first->last verified in drawer
+  and settings; focus never escapes an open sheet
+- Manifest: green -> blob manifest with green theme/background and absolute
+  id/start_url; amber -> static manifest restored; meta theme-color follows
+- Double-play guard: replaying the pick keeps streak at 1; badge removed
+  when scrolling away
+- Offline: all routes aborted, reload served whole app from SW v8
+- 50/50 mount sweep clean, console clean (x3 during the round)
+- Screenshots: daily card w/ tag, trophy panel w/ streak readout, drawer
+  w/ marker, narrow HUD before/after fix

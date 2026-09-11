@@ -444,7 +444,7 @@ html.scroll-locked #strip{
 .drawer-item:has(.drawer-item-main:active){ transform:scale(.97); border-color:var(--amber); }
 .drawer-item-label{
   font-family:var(--font-display); font-size:7px; color:var(--purple);
-  letter-spacing:.08em; flex:none; width:44px;
+  letter-spacing:.04em; flex:none; width:60px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .drawer-item-title{
@@ -509,12 +509,13 @@ html.scroll-locked #strip{
 /* ---------- Keyboard focus visible everywhere interactive ---------- */
 .btn:focus-visible, .drawer-item-main:focus-visible, .drawer-item-fav:focus-visible, .setting-row:focus-within,
 #drawer-close:focus-visible, #settings-close:focus-visible, #trophy-close:focus-visible,
-#drawer-filter:focus-visible, .theme-seg-btn:focus-visible, #trophy-btn:focus-visible{
+#drawer-filter:focus-visible, .theme-seg-btn:focus-visible, #trophy-btn:focus-visible,
+#daily-chip:focus-visible, #lock-btn:focus-visible, #settings-btn:focus-visible, #install-btn:focus-visible{
   outline:2px solid var(--amber); outline-offset:2px;
   border-radius:12px;
 }
 #drawer-close:focus-visible, #settings-close:focus-visible, #trophy-close:focus-visible,
-#trophy-btn:focus-visible{ border-radius:50%; }
+#trophy-btn:focus-visible, #lock-btn:focus-visible, #settings-btn:focus-visible{ border-radius:50%; }
 
 /* ---------- HUD: trophy button + unseen badge ---------- */
 #trophy-btn{
@@ -748,4 +749,88 @@ html.reduce-motion #trophy-toast{ transition:opacity .001s !important; }
 @media (prefers-reduced-motion: reduce){
   #hint-card{ animation:none; }
   .trophy-medal, .trophy-toast-medal{ animation:none !important; }
+}
+
+/* ================================================================
+   Round 13 — Daily Pick + sheet depth + detail pass
+   ================================================================ */
+
+/* ---------- Daily Pick HUD chip ---------- */
+#daily-chip{
+  height:32px; min-width:32px; padding:0 10px; border-radius:20px;
+  border:1px solid var(--amber-dim); background:rgba(var(--glow-rgb),.08);
+  color:var(--amber); cursor:pointer;
+  font-family:var(--font-display); font-size:10px; letter-spacing:.06em;
+  display:flex; align-items:center; justify-content:center;
+  transition:border-color .2s ease, background .2s ease, color .2s ease, transform .12s cubic-bezier(.34,1.56,.64,1), opacity .2s ease;
+}
+#daily-chip:active{ transform:scale(.9); }
+#daily-chip.done{
+  border-color:var(--line); color:var(--ink-dim); background:rgba(0,0,0,.35);
+}
+/* on narrow screens the word would crowd the HUD — the glyph carries it */
+@media (max-width:430px){
+  #daily-chip{ font-size:9px; padding:0 8px; }
+}
+/* Narrow HUD (Round 13): five round buttons + chip + counter don't fit a
+   360-430px viewport once install-handler injects its pill — the counter
+   slid off-screen and the pill overlapped the STRIP title. The settings
+   sheet already owns an always-visible "Install to play offline" button,
+   so the HUD copy can safely yield below 480px. */
+@media (max-width:480px){
+  #hud{ padding-left:12px; padding-right:12px; }
+  #hud-right{ gap:6px; }
+  #hud #install-btn{ display:none; }
+  #hud-index{ padding:6px 8px; font-size:10px; }
+}
+
+/* ---------- Daily Pick card tag (on the centered cartridge) ---------- */
+.cart-daily-tag{
+  font-family:var(--font-display); font-size:6px; letter-spacing:.1em;
+  color:var(--amber); border:1px solid var(--amber-dim);
+  background:rgba(var(--glow-rgb),.1);
+  padding:4px 8px; border-radius:10px; margin-left:6px;
+  box-shadow:0 0 10px rgba(var(--glow-rgb),.18);
+  animation:daily-glow 2.4s ease-in-out infinite;
+  white-space:nowrap;
+}
+@keyframes daily-glow{
+  0%,100%{ box-shadow:0 0 6px rgba(var(--glow-rgb),.14); }
+  50%{ box-shadow:0 0 14px rgba(var(--glow-rgb),.32); }
+}
+
+/* ---------- Daily Pick drawer marker ---------- */
+.drawer-item-daily{
+  flex:none; color:var(--amber); font-size:9px; line-height:1;
+  margin-left:6px; text-shadow:0 0 6px rgba(var(--glow-rgb),.55);
+  animation:daily-pop .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes daily-pop{
+  from{ transform:scale(0); }
+  to{ transform:scale(1); }
+}
+
+/* ---------- Hover polish (desktop pointers only) ---------- */
+@media (hover:hover){
+  #daily-chip:hover{
+    border-color:var(--amber);
+    box-shadow:0 0 12px rgba(var(--glow-rgb),.28);
+  }
+  #daily-chip.done:hover{ border-color:var(--line); box-shadow:none; }
+  .theme-seg-btn:hover{
+    border-color:rgba(var(--glow-rgb),.5);
+    color:var(--ink);
+  }
+}
+
+/* ---------- Sheet depth: the three bottom sheets floated off the page ---------- */
+#drawer-panel, #settings-panel, #trophy-panel{
+  box-shadow:0 -14px 44px rgba(0,0,0,.5), 0 0 0 1px rgba(var(--glow-rgb),.04);
+}
+
+/* ---------- reduce-motion coverage for Round 13 animations ---------- */
+html.reduce-motion .cart-daily-tag,
+html.reduce-motion .drawer-item-daily{ animation:none !important; }
+@media (prefers-reduced-motion: reduce){
+  .cart-daily-tag, .drawer-item-daily{ animation:none !important; }
 }

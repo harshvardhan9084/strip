@@ -1,5 +1,5 @@
-const SHELL_CACHE = 'strip-shell-v7';
-const RUNTIME_CACHE = 'strip-runtime-v7';
+const SHELL_CACHE = 'strip-shell-v8';
+const RUNTIME_CACHE = 'strip-runtime-v8';
 
 // Bump BOTH version strings every round that touches any shell file —
 // installed PWAs key their caches on these names, so a stale version means
@@ -17,6 +17,8 @@ const SHELL_ASSETS = [
   './js/app.js',
   './js/drawer.js',
   './js/trophies.js',
+  './js/daily.js',
+  './js/focustrap.js',
   './js/feedback.js',
   './js/shufflebag.js',
   './js/install-handler.js',

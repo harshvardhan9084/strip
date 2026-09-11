@@ -40,6 +40,8 @@ try{
     <button id="lock-btn" aria-label="Lock scroll" aria-pressed="false">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </button>
+    <!-- Daily Pick chip (Round 13) — js/daily.js unhides once hydrated -->
+    <button id="daily-chip" hidden aria-label="Today's pick"></button>
     <button id="settings-btn" aria-label="Settings">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 8.6 1.65 1.65 0 0 0 4.27 6.78l-.06-.06A2 2 0 1 1 6.99 3l.06.06A1.65 1.65 0 0 0 8.87 4.6a1.65 1.65 0 0 0 1.51-1H11a2 2 0 1 1 4 0h-.09a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.06.06A2 2 0 1 1 19.4 6.78l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1 1.51H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
@@ -140,6 +142,7 @@ try{
 <script src="js/storage.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/feedback.js"></script>
+<script src="js/focustrap.js"></script>
 <script src="js/trophies.js"></script>
 <script src="js/shufflebag.js"></script>
 <script src="js/registry.js"></script>
@@ -193,6 +196,7 @@ try{
   <script src="js/games/whackmole.js"></script>
   <script src="js/games/wouldyourather.js"></script>
   <script src="js/games/xox.js"></script>
+<script src="js/daily.js"></script>
 <script src="js/app.js"></script>
 <script src="js/settings-ui.js"></script>
 <script src="js/drawer.js"></script>

@@ -43,18 +43,27 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
 
 ## The stuff around the games
 
+- **Daily Pick** (◎ chip in the HUD): one cartridge a day, the same one for everyone,
+  picked from the date itself — no server, no account. The chip jumps straight to it;
+  the card wears a glowing "TODAY'S PICK" tag while you're on it; play it to grow your
+  streak (shown on the chip, best kept forever) and unlock the DAILY DRIVER trophy.
+  Come back tomorrow for a new pick.
 - **Cartridge drawer** (grid icon): the deck's table of contents. Jump straight to any
-cartridge, filter by name, and star the ones you keep coming back to. Favorites and
-recents are remembered on your device.
+  cartridge, filter by name, and star the ones you keep coming back to. Favorites and
+  recents are remembered on your device. Today's pick carries a little ◆ in the list.
 - **Trophy Case** (cup icon): achievements for exploring — your first cartridge, 10,
-25, all 50; a day with 30 visits; pinning 5 favorites; holding a highscore you went
-back to. Purely local, no account, no leaderboards, no streak-shaming. A cartridge you
-have already explored gets a small glowing dot in the drawer.
+  25, all 50; a day with 30 visits; pinning 5 favorites; holding a highscore you went
+  back to; playing the Daily Pick. Purely local, no account, no leaderboards, no
+  streak-shaming. A cartridge you have already explored gets a small glowing dot in
+  the drawer.
 - **CRT skins**: Settings → CRT skin. Amber (default), Green phosphor, or Violet.
-One tap re-tints the entire console — glows, panels, browser chrome. Games keep their
-own colors; only the shell changes.
-- **Everything stays local.** Saves, high scores, favorites, trophies — all in your
-browser's own storage. "Clear all progress" in Settings wipes it all, for real.
+One tap re-tints the entire console — glows, panels, browser chrome, and (for installed
+PWAs) the launch splash / titlebar color follow along. Games keep their own colors;
+only the shell changes.
+- **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
+  inside while open, so keyboard and screen-reader users never fall behind the overlay.
+- **Everything stays local.** Saves, high scores, favorites, trophies, streaks — all in
+your browser's own storage. "Clear all progress" in Settings wipes it all, for real.
 
 ## Now, the part I actually care about
 
@@ -71,7 +80,8 @@ I've already built the boring parts so you don't have to:
 - settings, the dark look, the shell around your game
 - the cartridge drawer (grid icon in the HUD): jump anywhere, filter by name, pin favorites
 - the Trophy Case: shell-level achievements for exploring the deck
-- three CRT skins — Amber, Green, Violet — in Settings
+- the Daily Pick: a deterministic game-of-the-day with streaks (`js/daily.js`)
+- three CRT skins — Amber, Green, Violet — in Settings, down to the PWA titlebar color
 
 What's missing is the fun part. Your game.
 
