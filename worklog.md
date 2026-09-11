@@ -671,3 +671,49 @@ judged STABLE -> feature round per the loop rules.
 - 50/50 mount sweep clean, console clean (x3 during the round)
 - Screenshots: daily card w/ tag, trophy panel w/ streak readout, drawer
   w/ marker, narrow HUD before/after fix
+
+### Round 13 critic verdict + fix pass (same round, second commit)
+
+Judge scored the first Round 13 push **8.0/10**: 2 MAJOR, 3 MINOR, 5 NIT.
+Every finding was implemented and re-verified live; sw bumped v8 -> v9.
+
+- [MAJOR-1 FIXED] The blob manifest left icons[].src relative — `new URL(src,
+  blobHref)` throws for blob bases, the icon gets dropped, and Chromium's
+  installability check fails, so beforeinstallprompt never fired while
+  green/violet was active (install silently broken for 2/3 skins). All icon
+  srcs (and any future screenshots) are now absolutized. Live proof: blob
+  manifest returns 4 icons, every src absolute and parseable against the
+  blob URL; amber restores manifest.json (compared via getAttribute now —
+  the old link.href-vs-relative comparison was always-true, NIT-7).
+- [MAJOR-2 FIXED] `#daily-chip{display:flex}` beat the UA [hidden] rule, so
+  the unhydrated chip rendered as an empty amber pill from first paint and
+  exposed a dead "Today's pick" button to AT. Added
+  `#daily-chip[hidden]{display:none !important}` (verified: computed
+  display none while hidden). updateChip() also refreshes the tooltip so
+  the streak readout can't go stale after playing.
+- [MINOR-3 FIXED] Cross-surface streak desync: the Trophy Case mirror only
+  learned from strip:daily-played, so a boot that reset a broken streak
+  left the panel claiming a stale streak. daily.js now dispatches
+  strip:daily-sync at boot with the authoritative numbers; trophies
+  re-applies it after its own saved-state merge (a plain listener could be
+  overwritten by the merge when the event lands mid-hydration). Live
+  proof: seeded mirror=7 with empty __daily__ -> after reload both chip
+  and panel read 0.
+- [MINOR-4 CORRECTED THE RECORD] "Badge removed when scrolling away" was
+  an over-claim: badge() only decorates the CENTERED card, and the tag is
+  meant to persist on the pick's card (it marks identity, not state) — my
+  earlier check passed for the wrong reason (the card it inspected never
+  had a tag). The manifest-swap claim is also scoped honestly: the blob
+  manifest affects NEW installs and DevTools reads; an already-installed
+  PWA keeps its install-time chrome until reinstalled.
+- [MINOR-5 FIXED] Midnight rollover: currentDay guards recordPlay against
+  stale post-midnight events minting a fake streak; visibilitychange +
+  a 30-min interval re-resolve the pick when the local date changes and
+  refresh chip text/aria/tooltip.
+- [NIT batch] Dead exports removed (Daily now exports only badge +
+  decorateDrawerItem); DST-safe yesterday via setDate arithmetic;
+  FocusTrap skips display:none controls and ignores Ctrl/Alt/Meta+Tab;
+  first-run hint is a real dialog now (role/aria-modal/label) dismissible
+  with Escape/Enter/Space, not just pointer/scroll; the Settings install
+  button is visible from load whenever the app isn't installed, so
+  iOS/Firefox users can finally reach the manual-install note.

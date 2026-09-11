@@ -297,6 +297,23 @@ window.Trophies = (function(){
     if(overlay && overlay.classList.contains("open")) renderGrid();
   }
 
+  // Boot reconciliation (Round 13 critic MINOR-3): daily.js resets a broken
+  // streak at boot and announces it here, so the sub line can never claim a
+  // streak the HUD chip no longer shows. The detail is also KEPT — if the
+  // event lands while our own hydration is still in flight, the saved-state
+  // merge below would overwrite the fresh mirror with the stale persisted
+  // one, so we re-apply after the merge.
+  let lastDailySync = null;
+  function applyDailySync(){
+    if(!lastDailySync || typeof lastDailySync.streak !== "number") return;
+    state.dailyStreak = lastDailySync.streak;
+    if(overlay && overlay.classList.contains("open")) renderGrid();
+  }
+  function onDailySync(e){
+    lastDailySync = e.detail || null;
+    applyDailySync();
+  }
+
   // ---------- boot ----------
   async function init(){
     // Listeners FIRST (Round 12): the shell's first settle can fire before
@@ -306,6 +323,7 @@ window.Trophies = (function(){
     window.addEventListener("strip:card-centered", onCardCentered, { passive:true });
     window.addEventListener("strip:fav-changed", onFavChanged, { passive:true });
     window.addEventListener("strip:daily-played", onDailyPlayed, { passive:true });
+    window.addEventListener("strip:daily-sync", onDailySync, { passive:true });
 
     const saved = await load();
     if(saved && typeof saved === "object"){
@@ -319,6 +337,8 @@ window.Trophies = (function(){
         const meta = await StripDB.loadState("__deck_meta__");
         if(meta && Array.isArray(meta.favorites)) state.favCount = meta.favorites.length;
       }catch(e){}
+      // fresh daily numbers beat the stale persisted mirror (see onDailySync)
+      applyDailySync();
     }
     // HUD button (markup lives in index.html, next to the other HUD buttons)
     trophyBtn = document.getElementById("trophy-btn");

@@ -20,6 +20,8 @@ window.Daily = (function(){
 
   let todayId = null;    // module id of today's pick (resolved after boot)
   let todayMod = null;   // the module object
+  let currentDay = null; // the day todayId was resolved FOR — guards against
+                         // stale events after local midnight (critic MINOR-5)
   let chip = null;
   let state = {
     lastPlayed: null,    // "YYYY-MM-DD" of the last played day (local time)
@@ -30,6 +32,15 @@ window.Daily = (function(){
   function dayKey(d){
     d = d || new Date();
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  // DST-safe "n days ago" date key: calendar-field arithmetic, not millisecond
+  // subtraction (critic NIT-8 — 864e5 lands on the wrong wall-clock day across
+  // DST transitions that occur at/before ~01:00 local)
+  function daysAgoKey(n){
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return dayKey(d);
   }
 
   // FNV-1a 32-bit — tiny, deterministic, no deps. Uniform enough mod n.
@@ -60,8 +71,9 @@ window.Daily = (function(){
   // ---------- play detection + streak ----------
   function recordPlay(){
     const dk = dayKey();
+    if(dk !== currentDay) return;       // day flipped but re-resolution hasn't run yet
     if(state.lastPlayed === dk) return; // once per day
-    const yesterday = dayKey(new Date(Date.now() - 864e5));
+    const yesterday = daysAgoKey(1);
     state.streak = (state.lastPlayed === yesterday) ? state.streak + 1 : 1;
     state.lastPlayed = dk;
     state.best = Math.max(state.best, state.streak);
@@ -72,8 +84,30 @@ window.Daily = (function(){
     }));
   }
 
+  // The pick is a property of the LOCAL DATE. A tab left open across midnight
+  // must re-resolve it, or it keeps serving yesterday's cartridge — and worse,
+  // centering that stale pick would mint the new day's streak for a game that
+  // is no longer the pick (critic MINOR-5). Checked on tab re-focus and on a
+  // slow interval; cheap date-string compare otherwise.
+  function checkDayRollover(){
+    const dk = dayKey();
+    if(dk === currentDay) return;
+    currentDay = dk;
+    todayId = pickFor(dk);
+    todayMod = Strip.all().find(m => m.id === todayId) || null;
+    if(chip){
+      const title = todayMod ? (todayMod.title || todayId) : "";
+      chip.setAttribute("aria-label", "Today's pick: " + title + " — jump to it");
+    }
+    updateChip();
+    // any stale card tag disappears on the next scroll frame via Daily.badge();
+    // the drawer's marker recomputes on its next renderGrid()
+  }
+  window.addEventListener("visibilitychange", () => { if(!document.hidden) checkDayRollover(); });
+  setInterval(checkDayRollover, 30 * 60 * 1000);
+
   window.addEventListener("strip:card-centered", (e) => {
-    if(!todayId) return;
+    if(!todayId || dayKey() !== currentDay) return;
     if(e.detail && e.detail.id === todayId) recordPlay();
   }, { passive:true });
 
@@ -120,6 +154,9 @@ window.Daily = (function(){
     chip.classList.toggle("done", done);
     // compact: glyph always, streak number once it means something
     chip.textContent = done ? "◎✓" : "◎" + (state.streak > 1 ? " " + state.streak : "");
+    // tooltip must not go stale after playing (critic MAJOR-2 companion)
+    const title = todayMod ? (todayMod.title || todayId) : "";
+    chip.title = "Today's pick: " + title + (state.streak ? " · streak " + state.streak : "");
   }
 
   // ---------- drawer marker ----------
@@ -146,26 +183,33 @@ window.Daily = (function(){
     }
     // yesterday's player who missed a day keeps the stale streak number in
     // the persisted record; display resets to 0 without erasing history
-    const yesterday = dayKey(new Date(Date.now() - 864e5));
+    const yesterday = daysAgoKey(1);
     if(state.lastPlayed && state.lastPlayed !== dayKey() && state.lastPlayed !== yesterday){
       state.streak = 0; // broken — next play starts a fresh streak
       persist();
     }
-    const id = pickFor(dayKey());
+    currentDay = dayKey();
+    const id = pickFor(currentDay);
     todayId = id;
     todayMod = Strip.all().find(m => m.id === id) || null;
     buildChip();
+    // Boot reconciliation (critic MINOR-3): the Trophy Case mirrors our streak
+    // for its sub line, but it can only learn from strip:daily-played — which
+    // never fires on a boot where the streak silently reset. Announce the
+    // authoritative numbers so the two surfaces can never disagree.
+    window.dispatchEvent(new CustomEvent("strip:daily-sync", {
+      detail: { streak: state.streak, best: state.best, id: todayId, lastPlayed: state.lastPlayed }
+    }));
   }
 
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
 
+  // Export only what external modules call (critic NIT-6): app.js -> badge,
+  // drawer.js -> decorateDrawerItem. Everything else stays internal; the
+  // Round 14 share/stats feature can read state via a dedicated getter then.
   return {
-    isToday: (id) => id === todayId,
-    badge,                                   // app.js hook (per scroll frame)
-    decorateDrawerItem,                      // drawer.js hook (per grid render)
-    getStreak: () => state.streak,
-    getBest: () => state.best,
-    todayId: () => todayId,
+    badge,
+    decorateDrawerItem,
   };
 })();

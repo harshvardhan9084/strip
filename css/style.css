@@ -764,6 +764,10 @@ html.reduce-motion #trophy-toast{ transition:opacity .001s !important; }
   display:flex; align-items:center; justify-content:center;
   transition:border-color .2s ease, background .2s ease, color .2s ease, transform .12s cubic-bezier(.34,1.56,.64,1), opacity .2s ease;
 }
+/* author display:flex beats the UA [hidden] rule — without this the
+   UNhydrated chip rendered as an empty amber pill from first paint until
+   js/daily.js finished its IndexedDB read (critic MAJOR-2) */
+#daily-chip[hidden]{ display:none !important; }
 #daily-chip:active{ transform:scale(.9); }
 #daily-chip.done{
   border-color:var(--line); color:var(--ink-dim); background:rgba(0,0,0,.35);

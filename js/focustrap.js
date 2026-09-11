@@ -21,12 +21,18 @@ window.FocusTrap = (function(){
     return Array.from(root.querySelectorAll(SELECTOR)).filter(el => {
       if(el.disabled || el.getAttribute("aria-disabled") === "true") return false;
       if(el.closest("[hidden]")) return false;
+      // display:none subtrees have empty client rects (critic NIT-9: the
+      // settings sheet's hidden install button used to be counted)
+      if(el.getClientRects().length === 0) return false;
       return true;
     });
   }
 
   function onKeydown(e){
     if(e.key !== "Tab") return;
+    // don't fight genuine tab-stops inside a modifier chord (Ctrl+Tab = new
+    // browser tab in most browsers anyway, but never trap it here)
+    if(e.ctrlKey || e.altKey || e.metaKey) return;
     // last-open wins (only one sheet is ever open in practice; if two ever
     // overlap the one opened later sits on top)
     let trap = null;

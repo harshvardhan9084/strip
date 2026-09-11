@@ -77,20 +77,20 @@ window.addEventListener('appinstalled', () => {
   hideInstallUI();
 });
 
-// On load, if already installed, hide UI; otherwise, keep settings button visible as a fallback
+// On load: if already installed, hide UI. Otherwise keep the SETTINGS install
+// button visible from the start (Round 13 critic NIT-10): on iOS/Firefox
+// beforeinstallprompt never fires, and the button used to stay hidden until
+// then — leaving those users no path to the manual "browser menu" note.
 window.addEventListener('DOMContentLoaded', () => {
   if (isInstalled()) {
     hideInstallUI();
     return;
   }
-  // if settings button exists in markup, show it as a fallback (it will be hidden by CSS if not supported)
   const settingsBtn = document.getElementById('install-setting-btn');
-  const note = document.getElementById('install-note');
   if (settingsBtn) {
-    // hide until beforeinstallprompt fires; but keep it visible to allow manual note
-    settingsBtn.style.display = 'none';
-    // attach click in case deferredPrompt becomes available later
     settingsBtn.addEventListener('click', triggerPromptFromElement);
   }
+  if (settingsBtn) settingsBtn.style.display = 'block';
+  const note = document.getElementById('install-note');
   if (note) note.style.display = 'none';
 });

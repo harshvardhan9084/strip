@@ -48,7 +48,7 @@ window.Settings = (function(){
       // default skin: restore the real manifest so install semantics stay
       // 100% conventional (same-origin file, stable id resolution)
       if(manifestBlobURL){ URL.revokeObjectURL(manifestBlobURL); manifestBlobURL = null; }
-      if(link.href !== origHref) link.href = origHref;
+      if(link.getAttribute("href") !== origHref) link.href = origHref;
       return;
     }
 
@@ -58,8 +58,11 @@ window.Settings = (function(){
       ? Promise.resolve(staticManifest)
       : fetch(origHref).then(r => r.json()).then(j => { staticManifest = j; return j; });
     ready.then(j => {
-      // id/start_url/scope must be ABSOLUTE here: relative URLs in an object-URL
-      // manifest resolve against blob:... which would corrupt the app identity
+      // EVERY URL in a blob manifest must be absolute: relative members resolve
+      // against blob:... which (a) corrupts app identity for id/start_url/scope
+      // and (b) THROWS for icons[].src — a thrown icon URL drops the icon, and
+      // without the 192+512 icons Chromium refuses to fire beforeinstallprompt
+      // at all (Round 13 critic, MAJOR-1: install silently broke for 2/3 skins)
       const abs = (v) => new URL(v || "./", location.href).toString();
       const patched = Object.assign({}, j, {
         id: abs(j.start_url),
@@ -67,7 +70,11 @@ window.Settings = (function(){
         scope: abs(j.scope),
         theme_color: bg,
         background_color: bg,
+        icons: (j.icons || []).map(i => Object.assign({}, i, { src: abs(i.src) })),
       });
+      if(Array.isArray(j.screenshots)){
+        patched.screenshots = j.screenshots.map(s => Object.assign({}, s, { src: abs(s.src) }));
+      }
       const url = URL.createObjectURL(new Blob([JSON.stringify(patched)], { type: "application/manifest+json" }));
       if(manifestBlobURL) URL.revokeObjectURL(manifestBlobURL);
       manifestBlobURL = url;

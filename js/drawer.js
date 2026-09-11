@@ -224,6 +224,12 @@
     if(Settings.get().hintSeen) return;
     const hint = document.createElement("div");
     hint.id = "hint-overlay";
+    // dialog semantics + keyboard dismissal (Round 13 critic NIT-10: the hint
+    // was pointer/scroll-only — a keyboard or switch-access user was stuck)
+    hint.setAttribute("role", "dialog");
+    hint.setAttribute("aria-modal", "true");
+    hint.setAttribute("aria-label", "Welcome to Strip — scroll to explore the cartridges");
+    hint.setAttribute("tabindex", "-1");
     hint.innerHTML = `
       <div id="hint-card">
         <div id="hint-line1">Scroll to explore ${Strip.all().length} cartridges</div>
@@ -233,11 +239,21 @@
     `;
     document.body.appendChild(hint);
     const dismiss = () => {
+      if(!hint.parentNode) return;
       hint.remove();
       Settings.set({ hintSeen: true });
       window.removeEventListener("scroll", dismiss, true);
+      document.removeEventListener("keydown", onKey, true);
+    };
+    const onKey = (e) => {
+      if(e.key === "Escape" || e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        e.stopPropagation();
+        dismiss();
+      }
     };
     hint.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", onKey, true);
     window.addEventListener("scroll", dismiss, { capture:true, once:true, passive:true });
   }
 
