@@ -557,3 +557,49 @@ feature work + shell styling depth instead of bugfixing.
 - Honest-data check: trophy stats come only from real shell events; the panel
   shows raw counters (visits/explored), no inflated vanity numbers. Clear all
   progress wipes trophies too, matching its label.
+
+---
+
+# Round 12 — critic-driven fixes (8.3/10 -> target 9)
+
+The strict critic judged Round 11 at 8.3/10 and named five moves. All five
+landed, including both MAJORs:
+
+1. [MAJOR] Spine palette was fiction — CSS keyed hues to invented categories
+   (ZEN/BRAIN/ACTION/SOCIAL/LUCK/SKILL/CREATE); only 2 of the registry's 12
+   real labels matched, so 32/50 items silently rendered the gray fallback
+   while the worklog claimed "50/50 spines". Rebuilt against the actual label
+   census (PUZZLE 15, REFLEX 8, TOY 7, COLONY 5, ODDBALL/GAME/ARCADE 3,
+   FIDGET 2, WORD/STRATEGY/LOGIC/CARDS 1). Live check now asserts 12 distinct
+   computed hues across the 50 items, zero fallbacks — and the phantom rules
+   are gone.
+2. [MAJOR] Favorites were pointer-only — the toggle was gated on
+   `e.target === star`, which keyboard activation can never produce. The row
+   is now a <div> with two real buttons (jump area + star toggle,
+   aria-pressed, Pin/Unpin labels). Bonus: toggling no longer re-renders the
+   grid, so a keyboard user's focus stays put; CURATOR is earnable by everyone.
+3. Theme FOUC eliminated — settings.js mirrors the theme key to localStorage
+   and a 3-line inline <head> script applies it before first paint; a
+   green/violet cold boot no longer flashes amber. Verified via reload.
+4. Dialog parity — settings overlay gained role=dialog + aria-modal + Escape;
+   all three bottom sheets now move focus in on open and restore it on close.
+   Subtle browser behavior surfaced here: focus() fired synchronously with
+   classList.add is silently dropped because the overlay is still
+   visibility:hidden at t=0 of its fade-in transition — focus is deferred one
+   frame in all three modules.
+5. Motion + dead-code sweep — reduce-motion covers medal-pop/star-pop/toast;
+   deleted the #trophy-btn.seen vs .news mismatch, the never-triggered .pop
+   rule (now real: toggles add it on the live node), and a self-referential
+   hover no-op.
+Bonus [NIT]: trophies registers its shell listeners BEFORE async hydration,
+so the first settle can no longer be dropped; the toast queue tolerates
+unlocks that fire mid-hydrate.
+
+sw.js bumped v6 -> v7. Live verification this round: 12/12 spine hues with
+0 fallbacks, keyboard favorite toggle + aria sync, focus in/out verified for
+drawer/settings/trophies, FOUC-free green reload, offline reload served by
+SW v7, 50/50 mount sweep, console clean, green-drawer screenshot captured.
+
+Honesty note appended to the record: Round 11's worklog claimed spines were
+verified when only their presence was. Round 12's spine check asserts the
+actual computed colors — the same class of claim, but now true.
