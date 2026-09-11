@@ -73,9 +73,18 @@ window.Trophies = (function(){
 
   function showToast(def){
     toastQueue.push(def);
-    if(!toastShowing) nextToast();
+    // toastEl is built at the end of init(); an unlock that fires during
+    // hydration (listeners now register first) must not touch a null node —
+    // the queued toast flushes as soon as the element exists.
+    if(!toastEl || !toastShowing) nextToast();
   }
   function nextToast(){
+    if(!toastEl){
+      if(!toastQueue.length){ toastShowing = false; return; }
+      // element not ready yet — retry on the next macrotask
+      setTimeout(nextToast, 120);
+      return;
+    }
     const def = toastQueue.shift();
     if(!def){ toastShowing = false; return; }
     toastShowing = true;
@@ -204,10 +213,21 @@ window.Trophies = (function(){
     markSeen();
     renderGrid();
     overlay.classList.add("open");
+    // dialog parity: move focus in (matches drawer/settings sheet behavior).
+    // Deferred one frame — the overlay is still visibility:hidden at
+    // classList.add time and focus() on hidden elements is silently dropped.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      overlay.querySelector("#trophy-close").focus({ preventScroll: true });
+    }));
     try{ Feedback.tone("select"); }catch(e){}
   }
   function close(){
     overlay.classList.remove("open");
+    // dialog parity: hand focus back to the HUD button that opened us
+    requestAnimationFrame(() => {
+      const btn = document.getElementById("trophy-btn");
+      if(btn && btn.focus) btn.focus({ preventScroll: true });
+    });
   }
   function markSeen(){
     seenCount = Object.keys(state.unlocked).length;
@@ -260,6 +280,13 @@ window.Trophies = (function(){
 
   // ---------- boot ----------
   async function init(){
+    // Listeners FIRST (Round 12): the shell's first settle can fire before
+    // IndexedDB hydration resolves; registering after the await used to drop
+    // that event, delaying FIRST SPARK by a card. Events arriving mid-hydrate
+    // simply mutate `state` before the saved record is merged on top.
+    window.addEventListener("strip:card-centered", onCardCentered, { passive:true });
+    window.addEventListener("strip:fav-changed", onFavChanged, { passive:true });
+
     const saved = await load();
     if(saved && typeof saved === "object"){
       state = Object.assign(state, saved);
@@ -286,8 +313,6 @@ window.Trophies = (function(){
       '<div class="trophy-toast-name"></div></div>';
     document.body.appendChild(toastEl);
 
-    window.addEventListener("strip:card-centered", onCardCentered, { passive:true });
-    window.addEventListener("strip:fav-changed", onFavChanged, { passive:true });
     updateBadge();
     readyResolve();
   }

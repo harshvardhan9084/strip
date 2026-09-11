@@ -423,14 +423,25 @@ html.scroll-locked #strip{
   letter-spacing:.14em; margin:10px 6px 2px;
 }
 .drawer-item{
-  display:flex; align-items:center; gap:8px;
-  padding:10px 10px; border-radius:12px;
+  display:flex; align-items:center; gap:2px;
+  padding:4px 6px 4px 10px; border-radius:12px;
   border:1px solid var(--line); background:var(--panel-2);
-  color:var(--ink); cursor:pointer; text-align:left;
+  color:var(--ink);
   transition:border-color .12s ease, background .12s ease, transform .1s ease;
   min-width:0;
 }
-.drawer-item:active{ transform:scale(.97); border-color:var(--amber); }
+/* inner jump button — a real <button> so keyboard focus lands on it
+   (Round 12: the row is no longer one big button) */
+.drawer-item-main{
+  flex:1; min-width:0;
+  display:flex; align-items:center; gap:8px;
+  padding:8px 4px 8px 0;
+  background:none; border:none; color:inherit;
+  font-family:inherit; font-size:inherit;
+  cursor:pointer; text-align:left;
+  border-radius:8px;
+}
+.drawer-item:has(.drawer-item-main:active){ transform:scale(.97); border-color:var(--amber); }
 .drawer-item-label{
   font-family:var(--font-display); font-size:7px; color:var(--purple);
   letter-spacing:.08em; flex:none; width:44px;
@@ -496,7 +507,7 @@ html.scroll-locked #strip{
 }
 
 /* ---------- Keyboard focus visible everywhere interactive ---------- */
-.btn:focus-visible, .drawer-item:focus-visible, .setting-row:focus-within,
+.btn:focus-visible, .drawer-item-main:focus-visible, .drawer-item-fav:focus-visible, .setting-row:focus-within,
 #drawer-close:focus-visible, #settings-close:focus-visible, #trophy-close:focus-visible,
 #drawer-filter:focus-visible, .theme-seg-btn:focus-visible, #trophy-btn:focus-visible{
   outline:2px solid var(--amber); outline-offset:2px;
@@ -514,7 +525,7 @@ html.scroll-locked #strip{
   transition:border-color .15s ease, color .15s ease, background .15s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
 }
 #trophy-btn:active{ transform:scale(.86); }
-#trophy-btn.seen{
+#trophy-btn.news{
   border-color:var(--amber); color:var(--amber); background:rgba(var(--glow-rgb),.12);
 }
 #trophy-btn::after{
@@ -679,8 +690,10 @@ html.scroll-locked #strip{
   }
 }
 .drawer-item-fav{
-  transition:transform .2s cubic-bezier(.34,1.56,.64,1), color .15s ease, text-shadow .15s ease;
+  background:none; border:none; padding:8px 6px; border-radius:8px;
+  font-size:15px; color:var(--ink-dim); flex:none; line-height:1;
   cursor:pointer;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), color .15s ease, text-shadow .15s ease;
 }
 .drawer-item-fav:active{ transform:scale(1.35) rotate(12deg); }
 .drawer-item-fav.pop{ animation:star-pop .35s cubic-bezier(.34,1.56,.64,1); }
@@ -695,19 +708,24 @@ html.scroll-locked #strip{
   background:var(--cat-color, var(--ink-dim));
   opacity:.75;
 }
-.drawer-item:hover{ --cat-color:var(--cat-color); }
 
-/* per-category hues — fixed identity colors so the deck reads at a glance;
-   deliberately desaturated (~55%) to sit quietly inside the dark UI */
-.drawer-item[data-cat="ARCADE"]{ --cat-color:#E8A045; }
+/* per-category hues — see the data-cat table above */
+/* hues are keyed to the labels the registry ACTUALLY uses (Round 12 fix —
+   the Round 11 set invented names and only matched 2/12): PUZZLE 15, REFLEX 8,
+   TOY 7, COLONY 5, ODDBALL 3, GAME 3, ARCADE 3, FIDGET 2, WORD/STRATEGY/
+   LOGIC/CARDS 1 each. Desaturated ~55-60% to sit inside the dark UI. */
 .drawer-item[data-cat="PUZZLE"]{ --cat-color:#8B7FE8; }
-.drawer-item[data-cat="ZEN"]{ --cat-color:#5FB89A; }
-.drawer-item[data-cat="BRAIN"]{ --cat-color:#5FA8C7; }
-.drawer-item[data-cat="ACTION"]{ --cat-color:#E8637F; }
-.drawer-item[data-cat="SOCIAL"]{ --cat-color:#C78FE8; }
-.drawer-item[data-cat="LUCK"]{ --cat-color:#C7B45F; }
-.drawer-item[data-cat="SKILL"]{ --cat-color:#7FC75F; }
-.drawer-item[data-cat="CREATE"]{ --cat-color:#E87F5F; }
+.drawer-item[data-cat="REFLEX"]{ --cat-color:#E8637F; }
+.drawer-item[data-cat="TOY"]{ --cat-color:#E8A045; }
+.drawer-item[data-cat="COLONY"]{ --cat-color:#5FB89A; }
+.drawer-item[data-cat="ODDBALL"]{ --cat-color:#C78FE8; }
+.drawer-item[data-cat="GAME"]{ --cat-color:#C7B45F; }
+.drawer-item[data-cat="ARCADE"]{ --cat-color:#5FA8C7; }
+.drawer-item[data-cat="FIDGET"]{ --cat-color:#7FC75F; }
+.drawer-item[data-cat="WORD"]{ --cat-color:#E87FA0; }
+.drawer-item[data-cat="STRATEGY"]{ --cat-color:#C0855F; }
+.drawer-item[data-cat="LOGIC"]{ --cat-color:#6F9FE0; }
+.drawer-item[data-cat="CARDS"]{ --cat-color:#8FD0C0; }
 
 /* visited dot — marks cartridges you have already explored (Trophy Case data) */
 .drawer-item-visited{
@@ -719,6 +737,15 @@ html.scroll-locked #strip{
 }
 .drawer-item-visited.on{ opacity:.9; transform:scale(1); }
 
-/* reduce-motion: the new animations fold into the existing global kill-switch,
-   but the float loop needs an explicit off since it carries transform */
+/* reduce-motion: the global kill-switch covers animation durations, but the
+   loops/carries that rely on transform need explicit offs so "non-essential
+   animation" truly means none (Round 12: medal-pop, star-pop, hint, toast) */
 html.reduce-motion #hint-card{ animation:none; }
+html.reduce-motion .trophy-medal,
+html.reduce-motion .trophy-toast-medal{ animation:none !important; }
+html.reduce-motion .drawer-item-fav{ transition:none !important; animation:none !important; }
+html.reduce-motion #trophy-toast{ transition:opacity .001s !important; }
+@media (prefers-reduced-motion: reduce){
+  #hint-card{ animation:none; }
+  .trophy-medal, .trophy-toast-medal{ animation:none !important; }
+}

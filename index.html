@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B0B0F">
+<script>
+/* CRT skin pre-paint (Round 12): apply the saved theme before first paint so
+   green/violet users never see an amber flash. Settings hydrates from
+   IndexedDB asynchronously; this reads the synchronous localStorage mirror
+   that js/settings.js keeps in step. Full failure-safe: no localStorage,
+   no JSON, or unknown value -> default amber, nothing thrown. */
+try{
+  (function(){
+    var t = localStorage.getItem("strip-theme");
+    if(t === "green" || t === "violet"){
+      document.documentElement.setAttribute("data-theme", t);
+      var m = document.querySelector('meta[name="theme-color"]');
+      if(m) m.setAttribute("content", t === "green" ? "#090F0B" : "#0E0A14");
+    }
+  })();
+}catch(e){}
+</script>
 <title>Strip</title>
 <link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="css/style.css">
@@ -36,7 +53,7 @@
   <!-- Cartridge panels injected here by js/app.js -->
 </main>
 
-<div id="settings-overlay">
+<div id="settings-overlay" role="dialog" aria-modal="true" aria-label="Settings">
   <div id="settings-panel">
     <div class="settings-header">
       <div class="settings-title">SETTINGS</div>

@@ -26,6 +26,10 @@ window.Settings = (function(){
     green:  "#090F0B",
     violet: "#0E0A14",
   };
+  // localStorage mirror of just the theme key — IndexedDB hydrates async, which
+  // meant green/violet users saw an amber flash on every cold boot. The inline
+  // <head> script in index.html reads this synchronously before first paint.
+  const THEME_LS_KEY = "strip-theme";
 
   let current = Object.assign({}, DEFAULTS);
   let listeners = [];
@@ -42,6 +46,7 @@ window.Settings = (function(){
     document.documentElement.dataset.theme = theme;
     const meta = document.querySelector('meta[name="theme-color"]');
     if(meta) meta.setAttribute("content", THEME_META_COLORS[theme]);
+    try{ localStorage.setItem(THEME_LS_KEY, theme); }catch(e){}
   }
 
   async function hydrate(){

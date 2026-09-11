@@ -73,34 +73,51 @@
   function close(){
     if(!overlay) return;
     overlay.classList.remove("open");
+    // dialog parity: hand focus back to the HUD button that opened us
+    requestAnimationFrame(() => {
+      const btn = document.getElementById("drawer-btn");
+      if(btn && btn.focus) btn.focus({ preventScroll: true });
+    });
   }
   function open(){
     ensureDom();
     renderGrid();
     overlay.classList.add("open");
     try{ filterInput.value = ""; }catch(e){}
+    // dialog parity: move focus into the sheet (filter first — it's the main
+    // tool). Deferred one frame: the overlay is still visibility:hidden at
+    // classList.add time (fade-in transition just started), and focus() on a
+    // hidden element is silently dropped.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      filterInput.focus({ preventScroll: true });
+    }));
   }
   function isOpen(){ return overlay && overlay.classList.contains("open"); }
 
   // ---------- grid ----------
+  // Row anatomy (Round 12 fix): the row is a <div> containing TWO real buttons —
+  // the main jump area and a favorite toggle. The old single-<button> + span
+  // design gated the fav toggle on `e.target === star`, which keyboard
+  // activation can never satisfy (Enter fires the button itself as target), so
+  // favorites — and therefore the CURATOR trophy — were pointer-only.
   function itemFor(mod){
     const fav = favorites.has(mod.id);
-    const b = document.createElement("button");
+    const b = document.createElement("div");
     b.className = "drawer-item";
     b.setAttribute("role", "listitem");
-    b.setAttribute("aria-label", (fav ? "Favorite " : "") + mod.title);
     // category spine (CSS keys off data-cat for the colored left bar)
     b.dataset.cat = (mod.label || "STRIP").toUpperCase();
+
+    const main = document.createElement("button");
+    main.className = "drawer-item-main";
+    main.type = "button";
+    main.setAttribute("aria-label", "Jump to " + (mod.title || mod.id));
     const label = document.createElement("span");
     label.className = "drawer-item-label";
     label.textContent = mod.label || "STRIP";
     const title = document.createElement("span");
     title.className = "drawer-item-title";
     title.textContent = mod.title || mod.id;
-    const star = document.createElement("span");
-    star.className = "drawer-item-fav" + (fav ? " on" : "");
-    star.textContent = fav ? "★" : "☆";
-    star.setAttribute("aria-hidden", "true");
     // explored marker — Trophy Case keeps the visited set; purely cosmetic here.
     // Lazy per-render check: renderGrid() runs on every drawer open, so the dot
     // reflects hydration state at open time, not at script-load time.
@@ -110,30 +127,48 @@
     try{
       if(window.Trophies && Trophies.isVisited && Trophies.isVisited(mod.id)) visited.classList.add("on");
     }catch(e){}
-    b.appendChild(label);
-    b.appendChild(title);
-    b.appendChild(star);
-    b.appendChild(visited);
-
-    b.addEventListener("click", (e) => {
-      if(e.target === star){
-        // toggle favorite without jumping
-        if(favorites.has(mod.id)) favorites.delete(mod.id);
-        else favorites.add(mod.id);
-        saveMeta();
-        // Trophy Case (and anything else) listens for this to track the
-        // CURATOR trophy — carry the fresh count so no extra read is needed
-        window.dispatchEvent(new CustomEvent("strip:fav-changed", {
-          detail: { id: mod.id, fav: favorites.has(mod.id), count: favorites.size }
-        }));
-        renderGrid();
-        Feedback.haptic("light");
-        return;
-      }
+    main.appendChild(label);
+    main.appendChild(title);
+    main.appendChild(visited);
+    main.addEventListener("click", () => {
       close();
       StripShell.jumpToModule(mod);
     });
+
+    const star = document.createElement("button");
+    star.className = "drawer-item-fav" + (fav ? " on" : "");
+    star.type = "button";
+    star.textContent = fav ? "★" : "☆";
+    syncStar(star, mod, fav);
+    star.addEventListener("click", () => {
+      // toggle favorite without jumping
+      const nowFav = !favorites.has(mod.id);
+      if(nowFav) favorites.add(mod.id); else favorites.delete(mod.id);
+      saveMeta();
+      // Trophy Case (and anything else) listens for this to track the
+      // CURATOR trophy — carry the fresh count so no extra read is needed
+      window.dispatchEvent(new CustomEvent("strip:fav-changed", {
+        detail: { id: mod.id, fav: nowFav, count: favorites.size }
+      }));
+      syncStar(star, mod, nowFav);
+      // re-trigger the pop on the live node instead of re-rendering the grid
+      // (re-render would steal focus from the button a keyboard user is on)
+      star.classList.remove("pop");
+      void star.offsetWidth; // restart the animation
+      star.classList.add("pop");
+      Feedback.haptic("light");
+    });
+
+    b.appendChild(main);
+    b.appendChild(star);
     return b;
+  }
+
+  function syncStar(star, mod, fav){
+    star.classList.toggle("on", fav);
+    star.textContent = fav ? "★" : "☆";
+    star.setAttribute("aria-pressed", fav ? "true" : "false");
+    star.setAttribute("aria-label", (fav ? "Unpin " : "Pin ") + (mod.title || mod.id) + (fav ? " from favorites" : " to favorites"));
   }
 
   function renderGrid(){

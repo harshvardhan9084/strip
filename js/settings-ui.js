@@ -8,16 +8,32 @@
   const lockToast = document.getElementById("lock-toast");
   const themeBtns = Array.from(document.querySelectorAll(".theme-seg-btn"));
 
+  // Dialog parity (Round 12): remember the invoker, move focus in on open,
+  // restore it on close. Same contract drawer.js/trophies.js now follow.
+  // Focus is deferred one frame: at classList.add time the overlay is still
+  // visibility:hidden (its fade-in transition just started), and focus() on a
+  // hidden element is silently dropped by the browser.
+  let lastFocus = null;
+  function focusInto(el){
+    requestAnimationFrame(() => requestAnimationFrame(() => { if(el) el.focus({ preventScroll: true }); }));
+  }
   function openPanel(){
+    lastFocus = document.activeElement;
     overlay.classList.add("show");
+    focusInto(closeBtn);
   }
   function closePanel(){
     overlay.classList.remove("show");
+    if(lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+    lastFocus = null;
   }
 
   openBtn.addEventListener("click", openPanel);
   closeBtn.addEventListener("click", closePanel);
   overlay.addEventListener("click", (e) => { if(e.target === overlay) closePanel(); });
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape" && overlay.classList.contains("show")) closePanel();
+  });
 
   function syncToggles(settings){
     toggles.forEach(t => { t.checked = !!settings[t.dataset.key]; });
