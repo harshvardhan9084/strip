@@ -489,3 +489,71 @@ Score progression: 6.5/10 (Round 4) -> 9/10 (Round 10), across rounds 5-10:
 
 Deck: 50 cartridges, zero known user-facing defects. Every claim above was
 re-verified live in headless Chromium during the round that made it.
+
+---
+
+# Round 11 — "Console Experience" (themes, trophy case, styling detail pass)
+
+Context: post-10th-round QA sweep found the deck stable (50/50 mount-and-cleanup
+clean, drawer/filter verified live, zero console errors), so this round went to
+feature work + shell styling depth instead of bugfixing.
+
+## What was added
+
+1. CRT skin engine (3 phosphor themes)
+   - Amber (default) / Green / Violet. One `html[data-theme]` attribute swap
+     re-tints every glow, veil, panel and the browser chrome (theme-color meta)
+     via new `--glow-rgb` / `--accent2-rgb` / `--bg-rgb` custom properties.
+     All 12 hardcoded rgba literals in style.css were variable-ized so the
+     swap is real, not partial. Games keep their own palettes by design.
+   - Settings row: segmented control with radial-gradient swatches, persisted
+     via the existing Settings store, survives reload (verified), syncs the
+     aria-pressed states live.
+
+2. Trophy Case (js/trophies.js, ~310 lines)
+   - 8 shell-level achievements rewarding deck exploration: FIRST SPARK,
+     SHELF LIFE (10 cartridges), QUARTER DECK (25), HALF CENTURY (50),
+     CURATOR (5 favorites), MARATHON (30 visits/day), NIGHT SHIFT (browse
+     00:00-05:00), RECORD BREAKER (revisit a cartridge where you hold a best).
+   - Zero per-game changes: derives everything from `strip:card-centered`
+     plus a new `strip:fav-changed` event the drawer now emits.
+   - Unlock UX: queue-ed toast (medal pop + Feedback win chime), unseen badge
+     pip on the new HUD trophy button, bottom-sheet panel with per-trophy
+     unlock dates and a live "N/8 unlocked · N/50 explored · N visits" line.
+   - Persisted under reserved `__trophies__`; wiped honestly by Clear all
+     progress (same store). Visited set also powers drawer dots.
+
+3. Drawer detail pass
+   - Per-category colored spine (3px left bar, 9 category hues) via data-cat.
+   - Glowing amber dot on cartridges you have already explored.
+   - Favorites now broadcast strip:fav-changed {id, fav, count}.
+
+4. Styling details (style.css 433 -> 725 lines)
+   - Themed slim scrollbars (drawer grid / settings / trophies), hover glow.
+   - :focus-visible rings on every interactive element (was: 3 HUD buttons).
+   - Setting-row hover tint, favorite-star pop animation, hint-card float,
+     trophy toast/panel/badge styling, theme segmented control.
+
+## Verification (all live in headless Chromium)
+- node --check clean on every touched file; mount sweep still 50/50 with zero
+  console errors after all changes.
+- Theme: green/violet/amber clicks re-tint HUD + panels + meta live; choice
+  survives reload; aria-pressed syncs.
+- Trophies: FIRST SPARK unlocked on card-centered; SHELF LIFE toast shown on
+  10-distinct threshold; CURATOR unlocked after 5 star taps via the new event;
+  panel lists 8/2-unlocked with dates, badge clears on open, Esc closes.
+- Drawer: 50/50 items carry data-cat spines; visited dots on (and only on)
+  explored cartridges; filter still works.
+- Offline: with every network request aborted (CDP route), reload serves the
+  full app from SW v6 — sw.js bumped v5->v6 and trophies.js precached.
+- Screenshots captured: amber console, green skin, violet skin, trophy panel,
+  settings skin picker, drawer spines/dots.
+
+## Notes
+- Two local-test-only cache traps were hit and documented: the browser's
+  heuristic HTTP cache serving stale JS (fixed per-test by port rotation) and
+  the SW v5 cache (fixed by design — v6 bump). Neither affects production
+  (GitHub Pages + SW versioning).
+- Honest-data check: trophy stats come only from real shell events; the panel
+  shows raw counters (visits/explored), no inflated vanity numbers. Clear all
+  progress wipes trophies too, matching its label.

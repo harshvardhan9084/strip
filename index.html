@@ -17,6 +17,9 @@
     <button id="drawer-btn" aria-label="All cartridges" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>
     </button>
+    <button id="trophy-btn" aria-label="Trophy case" aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a1 1 0 0 0-1 1c0 2.2 1.8 4 4 4M17 6h3a1 1 0 0 1 1 1c0 2.2-1.8 4-4 4"/></svg>
+    </button>
     <button id="lock-btn" aria-label="Lock scroll" aria-pressed="false">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </button>
@@ -75,6 +78,27 @@
         <input type="checkbox" class="setting-toggle" data-key="sound">
       </label>
 
+      <div class="settings-divider"></div>
+
+      <!-- CRT skin picker (Round 11) -->
+      <div class="theme-row">
+        <div class="setting-text">
+          <div class="setting-label">CRT skin</div>
+          <div class="setting-desc">Phosphor tint for the whole console. Pure palette swap — nothing else changes.</div>
+        </div>
+        <div class="theme-options" role="group" aria-label="CRT skin">
+          <button type="button" class="theme-seg-btn" data-theme-value="amber" aria-pressed="true">
+            <span class="theme-swatch amber" aria-hidden="true"></span>AMBER
+          </button>
+          <button type="button" class="theme-seg-btn" data-theme-value="green" aria-pressed="false">
+            <span class="theme-swatch green" aria-hidden="true"></span>GREEN
+          </button>
+          <button type="button" class="theme-seg-btn" data-theme-value="violet" aria-pressed="false">
+            <span class="theme-swatch violet" aria-hidden="true"></span>VIOLET
+          </button>
+        </div>
+      </div>
+
       <div style="margin-top:12px"></div>
 
       <!-- Install button added to settings -->
@@ -99,6 +123,7 @@
 <script src="js/storage.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/feedback.js"></script>
+<script src="js/trophies.js"></script>
 <script src="js/shufflebag.js"></script>
 <script src="js/registry.js"></script>
   <script src="js/games/anthill.js"></script>

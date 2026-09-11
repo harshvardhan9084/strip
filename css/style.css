@@ -16,6 +16,42 @@
   --gap:       16px;
   --font-display: "Press Start 2P", monospace;
   --font-body: "Space Grotesk", sans-serif;
+  /* RGB triplets for glow/veil effects — the CRT skin engine (Round 11) swaps
+     these per theme so every glow, tint and gradient re-tints without any JS
+     walking the DOM. Games keep their own hardcoded palettes on purpose. */
+  --glow-rgb:    255,179,71;   /* primary phosphor (was --amber) */
+  --accent2-rgb: 139,127,232;  /* secondary accent (was --purple) */
+  --bg-rgb:      11,11,15;     /* page background */
+}
+
+/* ---------- CRT skin engine (Round 11) ----------
+   Three phosphor skins. Only the chroma channels change — layout, spacing and
+   contrast ratios are identical across themes, so no game ever breaks. */
+html[data-theme="green"]{
+  --bg:        #090F0B;
+  --panel:     #101711;
+  --panel-2:   #16211A;
+  --amber:     #5EEA8F;
+  --amber-dim: #2A6B41;
+  --purple:    #7FD4C4;
+  --purple-dim:#3A6B62;
+  --line:      #24352A;
+  --glow-rgb:    94,234,143;
+  --accent2-rgb: 127,212,196;
+  --bg-rgb:      9,15,11;
+}
+html[data-theme="violet"]{
+  --bg:        #0E0A14;
+  --panel:     #171220;
+  --panel-2:   #201A2E;
+  --amber:     #C79BFF;
+  --amber-dim: #5E4090;
+  --purple:    #FF8FB8;
+  --purple-dim:#7A4458;
+  --line:      #302746;
+  --glow-rgb:    199,155,255;
+  --accent2-rgb: 255,143,184;
+  --bg-rgb:      14,10,20;
 }
 
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -36,7 +72,7 @@ html,body{
 #boot.hide{ opacity:0; visibility:hidden; pointer-events:none; }
 #boot-logo{
   font-family:var(--font-display); font-size:28px; color:var(--amber);
-  text-shadow:0 0 18px rgba(255,179,71,.55);
+  text-shadow:0 0 18px rgba(var(--glow-rgb),.55);
   animation:flicker 1.6s infinite;
 }
 #boot-sub{ font-size:12px; color:var(--ink-dim); letter-spacing:.05em; }
@@ -50,7 +86,7 @@ html,body{
   display:flex; align-items:center; justify-content:space-between;
   padding:calc(env(safe-area-inset-top,0px) + 14px) 20px 14px;
   pointer-events:none;
-  background:linear-gradient(to bottom, rgba(11,11,15,.85), rgba(11,11,15,0));
+  background:linear-gradient(to bottom, rgba(var(--bg-rgb),.85), rgba(var(--bg-rgb),0));
 }
 #hud-title{
   font-family:var(--font-display); font-size:11px; color:var(--amber);
@@ -67,13 +103,13 @@ html,body{
 }
 #lock-btn:active, #settings-btn:active{ transform:scale(.86); }
 #lock-btn[aria-pressed="true"]{
-  border-color:var(--amber); color:var(--amber); background:rgba(255,179,71,.12);
+  border-color:var(--amber); color:var(--amber); background:rgba(var(--glow-rgb),.12);
 }
 /* Install button injected into the HUD by install-handler.js — it previously had
    no rule at all (class "hud-btn" was never defined) and rendered unstyled */
 #install-btn{
   height:32px; padding:0 12px; border-radius:20px; border:1px solid var(--amber);
-  background:rgba(255,179,71,.12); color:var(--amber); cursor:pointer;
+  background:rgba(var(--glow-rgb),.12); color:var(--amber); cursor:pointer;
   font-family:var(--font-display); font-size:10px; letter-spacing:.08em;
   display:flex; align-items:center; justify-content:center;
   transition:background .15s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
@@ -273,11 +309,11 @@ html.scroll-locked #strip{
 .btn:active{ transform:scale(.94); }
 .btn:hover{ border-color:var(--ink-dim); }
 .btn.accent{ border-color:var(--amber); color:var(--amber); }
-.btn.accent:hover{ box-shadow:0 0 14px rgba(255,179,71,.25); background:rgba(255,179,71,.06); }
-.btn.accent:active{ box-shadow:0 0 20px rgba(255,179,71,.4); }
+.btn.accent:hover{ box-shadow:0 0 14px rgba(var(--glow-rgb),.25); background:rgba(var(--glow-rgb),.06); }
+.btn.accent:active{ box-shadow:0 0 20px rgba(var(--glow-rgb),.4); }
 .btn.purple{ border-color:var(--purple); color:var(--purple); }
-.btn.purple:hover{ box-shadow:0 0 14px rgba(139,127,232,.25); background:rgba(139,127,232,.06); }
-.btn.purple:active{ box-shadow:0 0 20px rgba(139,127,232,.4); }
+.btn.purple:hover{ box-shadow:0 0 14px rgba(var(--accent2-rgb),.25); background:rgba(var(--accent2-rgb),.06); }
+.btn.purple:active{ box-shadow:0 0 20px rgba(var(--accent2-rgb),.4); }
 
 /* quick radial "press" flash — respects the existing amber/purple palette,
    purely decorative so it never blocks pointer events on the button content */
@@ -305,7 +341,7 @@ html.scroll-locked #strip{
 }
 .cart:target .cart-tag,
 .cart-inner:hover .cart-tag{
-  box-shadow:0 0 10px rgba(255,179,71,.25);
+  box-shadow:0 0 10px rgba(var(--glow-rgb),.25);
 }
 
 .cart-title{
@@ -405,7 +441,7 @@ html.scroll-locked #strip{
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .drawer-item-fav{ font-size:15px; color:var(--ink-dim); flex:none; line-height:1; }
-.drawer-item-fav.on{ color:var(--amber); text-shadow:0 0 8px rgba(255,179,71,.5); }
+.drawer-item-fav.on{ color:var(--amber); text-shadow:0 0 8px rgba(var(--glow-rgb),.5); }
 .drawer-empty{
   grid-column:1 / -1; text-align:center; color:var(--ink-dim);
   font-size:12px; padding:24px 0;
@@ -424,10 +460,265 @@ html.scroll-locked #strip{
   background:var(--panel); border:1px solid var(--amber);
   border-radius:18px; padding:22px 26px; text-align:center;
   max-width:min(78vw, 320px);
-  box-shadow:0 0 30px rgba(255,179,71,.18);
+  box-shadow:0 0 30px rgba(var(--glow-rgb),.18);
+  animation:hint-float 2.6s ease-in-out infinite;
+}
+@keyframes hint-float{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-5px); }
 }
 #hint-line1{ font-size:15px; font-weight:700; color:var(--ink); margin-bottom:8px; }
 #hint-line2{ font-size:12px; color:var(--ink-dim); margin-bottom:12px; }
 #hint-tap{
   font-family:var(--font-display); font-size:9px; color:var(--amber); letter-spacing:.1em;
 }
+
+/* ================================================================
+   Round 11 — "Console Experience" styling detail pass
+   ================================================================ */
+
+/* ---------- Themed slim scrollbars (drawer grid / settings / trophies) ---------- */
+#drawer-grid, #settings-panel, #trophy-grid{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(var(--glow-rgb),.35) transparent;
+}
+#drawer-grid::-webkit-scrollbar, #settings-panel::-webkit-scrollbar, #trophy-grid::-webkit-scrollbar{
+  width:6px;
+}
+#drawer-grid::-webkit-scrollbar-thumb, #settings-panel::-webkit-scrollbar-thumb, #trophy-grid::-webkit-scrollbar-thumb{
+  background:rgba(var(--glow-rgb),.3); border-radius:3px;
+}
+#drawer-grid::-webkit-scrollbar-thumb:hover, #settings-panel::-webkit-scrollbar-thumb:hover, #trophy-grid::-webkit-scrollbar-thumb:hover{
+  background:rgba(var(--glow-rgb),.55);
+}
+#drawer-grid::-webkit-scrollbar-track, #settings-panel::-webkit-scrollbar-track, #trophy-grid::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+/* ---------- Keyboard focus visible everywhere interactive ---------- */
+.btn:focus-visible, .drawer-item:focus-visible, .setting-row:focus-within,
+#drawer-close:focus-visible, #settings-close:focus-visible, #trophy-close:focus-visible,
+#drawer-filter:focus-visible, .theme-seg-btn:focus-visible, #trophy-btn:focus-visible{
+  outline:2px solid var(--amber); outline-offset:2px;
+  border-radius:12px;
+}
+#drawer-close:focus-visible, #settings-close:focus-visible, #trophy-close:focus-visible,
+#trophy-btn:focus-visible{ border-radius:50%; }
+
+/* ---------- HUD: trophy button + unseen badge ---------- */
+#trophy-btn{
+  width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+  background:rgba(0,0,0,.35); color:var(--ink-dim); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+  transition:border-color .15s ease, color .15s ease, background .15s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
+}
+#trophy-btn:active{ transform:scale(.86); }
+#trophy-btn.seen{
+  border-color:var(--amber); color:var(--amber); background:rgba(var(--glow-rgb),.12);
+}
+#trophy-btn::after{
+  /* unseen-unlock pip — subtle, only present while there is news */
+  content:""; position:absolute; top:-2px; right:-2px;
+  width:9px; height:9px; border-radius:50%;
+  background:var(--amber);
+  box-shadow:0 0 8px rgba(var(--glow-rgb),.8);
+  opacity:0; transform:scale(0);
+  transition:opacity .25s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+#trophy-btn.news::after{ opacity:1; transform:scale(1); }
+
+/* ---------- Trophy panel (bottom sheet, matches settings/drawer family) ---------- */
+#trophy-overlay{
+  position:fixed; inset:0; z-index:200;
+  background:rgba(5,5,8,.72); backdrop-filter:blur(4px);
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .22s ease, visibility .22s ease;
+}
+#trophy-overlay.open{ opacity:1; visibility:visible; pointer-events:auto; }
+#trophy-panel{
+  width:min(100vw, 480px); max-height:78vh;
+  background:var(--panel); border:1px solid var(--line); border-bottom:none;
+  border-radius:22px 22px 0 0;
+  display:flex; flex-direction:column;
+  transform:translateY(24px);
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+#trophy-overlay.open #trophy-panel{ transform:translateY(0); }
+.trophy-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px 4px;
+}
+.trophy-title{
+  font-family:var(--font-display); font-size:12px; color:var(--amber); letter-spacing:.12em;
+}
+#trophy-close{
+  width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
+  background:transparent; color:var(--ink-dim); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+#trophy-sub{
+  padding:2px 20px 10px; font-size:11px; color:var(--ink-dim); letter-spacing:.03em;
+}
+#trophy-grid{
+  overflow-y:auto; overscroll-behavior:contain;
+  padding:0 14px 20px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.trophy-item{
+  display:flex; align-items:center; gap:12px;
+  padding:12px 12px; border-radius:14px;
+  border:1px solid var(--line); background:var(--panel-2);
+  opacity:.55;
+  transition:opacity .3s ease, border-color .3s ease;
+}
+.trophy-item.unlocked{
+  opacity:1; border-color:rgba(var(--glow-rgb),.4);
+  background:linear-gradient(to right, rgba(var(--glow-rgb),.07), var(--panel-2) 65%);
+}
+.trophy-medal{
+  width:38px; height:38px; flex:none; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:17px;
+  border:1px solid var(--line); background:rgba(0,0,0,.3);
+  filter:grayscale(1); opacity:.6;
+}
+.trophy-item.unlocked .trophy-medal{
+  filter:none; opacity:1;
+  border-color:var(--amber-dim);
+  box-shadow:0 0 12px rgba(var(--glow-rgb),.22), inset 0 0 8px rgba(var(--glow-rgb),.1);
+  animation:medal-pop .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes medal-pop{
+  0%{ transform:scale(.4); } 70%{ transform:scale(1.12); } 100%{ transform:scale(1); }
+}
+.trophy-text{ flex:1; min-width:0; }
+.trophy-name{
+  font-family:var(--font-display); font-size:9px; color:var(--ink);
+  letter-spacing:.08em; margin-bottom:4px;
+}
+.trophy-item.unlocked .trophy-name{ color:var(--amber); }
+.trophy-desc{ font-size:11px; color:var(--ink-dim); line-height:1.45; }
+.trophy-date{
+  font-size:9px; font-family:var(--font-display); color:var(--ink-dim);
+  flex:none; letter-spacing:.04em;
+}
+.trophy-empty{
+  text-align:center; color:var(--ink-dim); font-size:12px; padding:24px 0;
+}
+
+/* ---------- Trophy toast (unlock announcement) ---------- */
+#trophy-toast{
+  position:fixed; top:70px; left:50%; z-index:250;
+  transform:translateX(-50%) translateY(-16px) scale(.95);
+  display:flex; align-items:center; gap:10px;
+  background:var(--panel-2); border:1px solid var(--amber);
+  border-radius:16px; padding:10px 16px;
+  box-shadow:0 0 24px rgba(var(--glow-rgb),.25), 0 8px 24px rgba(0,0,0,.5);
+  pointer-events:none;
+  opacity:0; visibility:hidden;
+  transition:opacity .3s ease, transform .3s cubic-bezier(.34,1.56,.64,1), visibility .3s ease;
+}
+#trophy-toast.show{
+  opacity:1; visibility:visible;
+  transform:translateX(-50%) translateY(0) scale(1);
+}
+.trophy-toast-medal{ font-size:20px; animation:medal-pop .5s cubic-bezier(.34,1.56,.64,1); }
+.trophy-toast-label{
+  font-family:var(--font-display); font-size:7px; color:var(--ink-dim);
+  letter-spacing:.14em; margin-bottom:4px;
+}
+.trophy-toast-name{
+  font-family:var(--font-display); font-size:9px; color:var(--amber); letter-spacing:.06em;
+}
+
+/* ---------- Theme picker (settings segmented control) ---------- */
+.theme-row{ border-bottom:1px solid var(--line); padding:12px 4px; }
+.theme-options{
+  display:flex; gap:8px; margin-top:10px;
+}
+.theme-seg-btn{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:7px;
+  padding:10px 6px 8px; border-radius:12px; cursor:pointer;
+  border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim);
+  font-family:var(--font-display); font-size:7px; letter-spacing:.1em;
+  transition:border-color .15s ease, box-shadow .2s ease, color .15s ease, transform .12s ease;
+}
+.theme-seg-btn:active{ transform:scale(.95); }
+.theme-swatch{
+  width:26px; height:26px; border-radius:50%;
+  border:2px solid transparent;
+  box-shadow:inset 0 0 8px rgba(0,0,0,.5);
+}
+.theme-seg-btn[aria-pressed="true"]{
+  border-color:var(--amber); color:var(--ink);
+  box-shadow:0 0 12px rgba(var(--glow-rgb),.2);
+}
+.theme-swatch.amber{ background:radial-gradient(circle at 35% 35%, #FFD9A0, #FFB347 60%, #7A5A22); }
+.theme-swatch.green{ background:radial-gradient(circle at 35% 35%, #B8FFD1, #5EEA8F 60%, #2A6B41); }
+.theme-swatch.violet{ background:radial-gradient(circle at 35% 35%, #E8D4FF, #C79BFF 60%, #5E4090); }
+
+/* ---------- Setting rows: hover response (desktop) ---------- */
+.setting-row{
+  border-radius:10px;
+  transition:background .15s ease;
+}
+.setting-row:hover{ background:rgba(var(--glow-rgb),.035); }
+
+/* ---------- Drawer detail pass ---------- */
+.drawer-item{
+  position:relative;
+  transition:border-color .12s ease, background .12s ease, transform .1s ease, box-shadow .2s ease;
+}
+@media (hover:hover){
+  .drawer-item:hover{
+    border-color:rgba(var(--glow-rgb),.45);
+    box-shadow:0 0 10px rgba(var(--glow-rgb),.12);
+  }
+}
+.drawer-item-fav{
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), color .15s ease, text-shadow .15s ease;
+  cursor:pointer;
+}
+.drawer-item-fav:active{ transform:scale(1.35) rotate(12deg); }
+.drawer-item-fav.pop{ animation:star-pop .35s cubic-bezier(.34,1.56,.64,1); }
+@keyframes star-pop{
+  0%{ transform:scale(.6); } 60%{ transform:scale(1.4) rotate(16deg); } 100%{ transform:scale(1); }
+}
+
+/* category spine — 3px colored bar on the left edge of each drawer item */
+.drawer-item::before{
+  content:""; position:absolute; left:0; top:8px; bottom:8px;
+  width:3px; border-radius:0 3px 3px 0;
+  background:var(--cat-color, var(--ink-dim));
+  opacity:.75;
+}
+.drawer-item:hover{ --cat-color:var(--cat-color); }
+
+/* per-category hues — fixed identity colors so the deck reads at a glance;
+   deliberately desaturated (~55%) to sit quietly inside the dark UI */
+.drawer-item[data-cat="ARCADE"]{ --cat-color:#E8A045; }
+.drawer-item[data-cat="PUZZLE"]{ --cat-color:#8B7FE8; }
+.drawer-item[data-cat="ZEN"]{ --cat-color:#5FB89A; }
+.drawer-item[data-cat="BRAIN"]{ --cat-color:#5FA8C7; }
+.drawer-item[data-cat="ACTION"]{ --cat-color:#E8637F; }
+.drawer-item[data-cat="SOCIAL"]{ --cat-color:#C78FE8; }
+.drawer-item[data-cat="LUCK"]{ --cat-color:#C7B45F; }
+.drawer-item[data-cat="SKILL"]{ --cat-color:#7FC75F; }
+.drawer-item[data-cat="CREATE"]{ --cat-color:#E87F5F; }
+
+/* visited dot — marks cartridges you have already explored (Trophy Case data) */
+.drawer-item-visited{
+  width:5px; height:5px; border-radius:50%; flex:none;
+  background:var(--amber);
+  box-shadow:0 0 6px rgba(var(--glow-rgb),.6);
+  opacity:0; transform:scale(0);
+  transition:opacity .2s ease, transform .2s ease;
+}
+.drawer-item-visited.on{ opacity:.9; transform:scale(1); }
+
+/* reduce-motion: the new animations fold into the existing global kill-switch,
+   but the float loop needs an explicit off since it carries transform */
+html.reduce-motion #hint-card{ animation:none; }

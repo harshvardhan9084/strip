@@ -89,6 +89,8 @@
     b.className = "drawer-item";
     b.setAttribute("role", "listitem");
     b.setAttribute("aria-label", (fav ? "Favorite " : "") + mod.title);
+    // category spine (CSS keys off data-cat for the colored left bar)
+    b.dataset.cat = (mod.label || "STRIP").toUpperCase();
     const label = document.createElement("span");
     label.className = "drawer-item-label";
     label.textContent = mod.label || "STRIP";
@@ -99,9 +101,19 @@
     star.className = "drawer-item-fav" + (fav ? " on" : "");
     star.textContent = fav ? "★" : "☆";
     star.setAttribute("aria-hidden", "true");
+    // explored marker — Trophy Case keeps the visited set; purely cosmetic here.
+    // Lazy per-render check: renderGrid() runs on every drawer open, so the dot
+    // reflects hydration state at open time, not at script-load time.
+    const visited = document.createElement("span");
+    visited.className = "drawer-item-visited";
+    visited.title = "Explored";
+    try{
+      if(window.Trophies && Trophies.isVisited && Trophies.isVisited(mod.id)) visited.classList.add("on");
+    }catch(e){}
     b.appendChild(label);
     b.appendChild(title);
     b.appendChild(star);
+    b.appendChild(visited);
 
     b.addEventListener("click", (e) => {
       if(e.target === star){
@@ -109,6 +121,11 @@
         if(favorites.has(mod.id)) favorites.delete(mod.id);
         else favorites.add(mod.id);
         saveMeta();
+        // Trophy Case (and anything else) listens for this to track the
+        // CURATOR trophy — carry the fresh count so no extra read is needed
+        window.dispatchEvent(new CustomEvent("strip:fav-changed", {
+          detail: { id: mod.id, fav: favorites.has(mod.id), count: favorites.size }
+        }));
         renderGrid();
         Feedback.haptic("light");
         return;

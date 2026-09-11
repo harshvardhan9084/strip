@@ -41,6 +41,21 @@ Every cartridge on the strip gives you something real back — a score, a save, 
 or something worth looking at. Pure no-op gag cartridges were removed in the great
 cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* something.
 
+## The stuff around the games
+
+- **Cartridge drawer** (grid icon): the deck's table of contents. Jump straight to any
+cartridge, filter by name, and star the ones you keep coming back to. Favorites and
+recents are remembered on your device.
+- **Trophy Case** (cup icon): achievements for exploring — your first cartridge, 10,
+25, all 50; a day with 30 visits; pinning 5 favorites; holding a highscore you went
+back to. Purely local, no account, no leaderboards, no streak-shaming. A cartridge you
+have already explored gets a small glowing dot in the drawer.
+- **CRT skins**: Settings → CRT skin. Amber (default), Green phosphor, or Violet.
+One tap re-tints the entire console — glows, panels, browser chrome. Games keep their
+own colors; only the shell changes.
+- **Everything stays local.** Saves, high scores, favorites, trophies — all in your
+browser's own storage. "Clear all progress" in Settings wipes it all, for real.
+
 ## Now, the part I actually care about
 
 The repo description says it in five words: **this game needs developer + gamer.**
@@ -54,6 +69,9 @@ I've already built the boring parts so you don't have to:
 - sound and vibration that respect whatever the player turned on or off (`js/feedback.js`)
 - the whole install and offline thing (`manifest.json`, `sw.js`)
 - settings, the dark look, the shell around your game
+- the cartridge drawer (grid icon in the HUD): jump anywhere, filter by name, pin favorites
+- the Trophy Case: shell-level achievements for exploring the deck
+- three CRT skins — Amber, Green, Violet — in Settings
 
 What's missing is the fun part. Your game.
 

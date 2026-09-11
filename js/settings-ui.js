@@ -6,6 +6,7 @@
   const clearBtn = document.getElementById("clear-progress-btn");
   const lockBtn = document.getElementById("lock-btn");
   const lockToast = document.getElementById("lock-toast");
+  const themeBtns = Array.from(document.querySelectorAll(".theme-seg-btn"));
 
   function openPanel(){
     overlay.classList.add("show");
@@ -26,6 +27,21 @@
   toggles.forEach(t => {
     t.addEventListener("change", () => {
       Settings.set({ [t.dataset.key]: t.checked });
+    });
+  });
+
+  // CRT skin picker — one settings key, instant repaint via html[data-theme]
+  function syncThemeBtns(settings){
+    themeBtns.forEach(b => {
+      b.setAttribute("aria-pressed", settings.theme === b.dataset.themeValue ? "true" : "false");
+    });
+  }
+  themeBtns.forEach(b => {
+    b.addEventListener("click", () => {
+      if(Settings.get().theme === b.dataset.themeValue) return;
+      Settings.set({ theme: b.dataset.themeValue });
+      Feedback.tone("toggle");
+      Feedback.haptic("light");
     });
   });
 
@@ -57,6 +73,6 @@
   });
 
   // reflect settings changes made anywhere (e.g. the lock button) back into the panel toggles
-  Settings.onChange(syncToggles);
-  Settings.whenReady().then(() => syncToggles(Settings.get()));
+  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); });
+  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); });
 })();

@@ -18,6 +18,13 @@ window.Settings = (function(){
     reduceMotion: false,
     haptics: true,
     sound: true,
+    theme: "amber",   // "amber" | "green" | "violet" — CRT skin engine (Round 11)
+  };
+
+  const THEME_META_COLORS = {
+    amber:  "#0B0B0F",
+    green:  "#090F0B",
+    violet: "#0E0A14",
   };
 
   let current = Object.assign({}, DEFAULTS);
@@ -29,6 +36,12 @@ window.Settings = (function(){
   function applyToDocument(){
     document.documentElement.classList.toggle("reduce-motion", !!current.reduceMotion);
     document.documentElement.classList.toggle("scroll-locked", !!current.lockScroll);
+    // CRT skin: one attribute swap re-tints every glow/veil via the --*-rgb
+    // custom properties; the browser UI chrome follows via theme-color meta.
+    const theme = THEME_META_COLORS[current.theme] ? current.theme : "amber";
+    document.documentElement.dataset.theme = theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if(meta) meta.setAttribute("content", THEME_META_COLORS[theme]);
   }
 
   async function hydrate(){
