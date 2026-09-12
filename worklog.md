@@ -1081,3 +1081,21 @@ WEEK RIPPLE toast.
   the natural retry), disarmed with the others on first store answer.
 - sw v14 → v15. Final: 50/50 sweep clean, console clean, offline v15 boots
   the full deck.
+
+### Round 16 re-verdict: 9.3/10 (target met) — residual closes same-round
+
+- **(NIT) cascade**: `.daily-cal-cell.open` dropped its `border-style:dotted`
+  ("open" only ever co-occurs with `.today`, whose dashed ring owns the
+  border — dotted was contradicting this commit's own README wording).
+  Live: today-open computes `dashed`.
+- **(LOW) malformed disk keys**: new `normalizeDayKeys` guard (lastPlayed +
+  plays[] + pickLog[] day-key validation) in BOTH the boot merge and the
+  adoption merge — corrupt/foreign keys are nulled/filtered BEFORE the
+  key-vs-key compare, so a gated play survives instead of being silently
+  dropped. Live-proven: numeric lastPlayed + numeric plays entry + junk
+  pickLog → adoption keeps the play, disk re-persisted with clean keys.
+- **(LOW) honest pick capture**: recordPlay now stamps `lastPlayId` at the
+  moment of the play; adoption's fallback reads that instead of
+  adoption-time todayId (which is tomorrow's pick after a day flip).
+- Comment hygiene on the `online` hatch (IDB reads don't need the network).
+- sw v15 → v16. Final sweep clean, console clean.

@@ -30,6 +30,11 @@ window.Daily = (function(){
   let currentDay = null; // the day todayId was resolved FOR — guards against
                          // stale events after local midnight (critic MINOR-5)
   let chip = null;
+  // The pick id as it stood at the MOMENT of the last play (recordPlay
+  // stamps it): adoption-time todayId may already be tomorrow's pick when a
+  // day flips mid-gate, so the re-announce's fallback must not read it
+  // (judge Round 16 fix-pass LOW).
+  let lastPlayId = null;
   // Disk-write gate (Round 15 judge CRITICAL): every persist() no-ops until a
   // boot PROVES the store answers. A transient IndexedDB failure used to fall
   // back to defaults and then logPick+persist them over the player's real
@@ -118,6 +123,20 @@ window.Daily = (function(){
     StripDB.saveState(STORE_ID, state).catch(() => {});
   }
 
+  // Disk-shape guard: lastPlayed (and every plays[]/pickLog[] key) must be a
+  // real day key, or the key-vs-key adoption compare silently mis-sorts and
+  // drops the gated play (judge: "2026-9-11", 1797100000000, "garbage" all
+  // compare false). All in-repo writers emit dayKey(); this only fires on
+  // store corruption or a foreign write — then the play SURVIVES instead.
+  function isDayKey(v){
+    return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  }
+  function normalizeDayKeys(rec){
+    if(!isDayKey(rec.lastPlayed)) rec.lastPlayed = null;
+    rec.plays = rec.plays.filter(isDayKey);
+    if(Array.isArray(rec.pickLog)) rec.pickLog = rec.pickLog.filter(p => p && isDayKey(p.d));
+  }
+
   // ---------- one-shot hydration re-probe (Round 16, judge move) ----------
   // A failed boot read used to sentence the session to in-memory-only until
   // the next full reload. But the failure is almost always transient (an
@@ -128,8 +147,9 @@ window.Daily = (function(){
   //   2. one probe per visibility GAIN — recovers the "tab slept through it"
   //      case when the player comes back;
   //   3. one probe per `online` event — an offline window is a classic way
-  //      for a read to fail, and connectivity returning is the natural retry
-  //      moment (judge move, Round 16 fix pass). No polling anywhere.
+  //      for a boot to fail in the wild (suspended page, blocked storage);
+  //      connectivity restored is a natural wake to retry the read (judge
+  //      move, Round 16 fix pass). No polling anywhere.
   let reProbeArmed = false;
   let reProbeTimer = null;
   function armHydrationReprobe(){
@@ -175,7 +195,7 @@ window.Daily = (function(){
     hydrated = true; // synchronous first — the anti-double-adopt guard below relies on it
     const dk = dayKey();
     const inMemLast = state.lastPlayed;      // the play's own day key
-    const inMemPlayId = todayId;             // the pick as it stood when the play landed
+    const inMemPlayId = lastPlayId;          // the pick AS PLAYED (stamped by recordPlay)
 
     state = { lastPlayed: null, streak: 0, best: 0, plays: [], pickLog: [] };
     if(data && typeof data === "object"){
@@ -184,6 +204,7 @@ window.Daily = (function(){
       if(typeof state.best !== "number") state.best = 0;
       if(!Array.isArray(state.plays)) state.plays = [];
       if(!Array.isArray(state.pickLog)) state.pickLog = [];
+      normalizeDayKeys(state);
     }
 
     if(inMemLast && (!state.lastPlayed || inMemLast > state.lastPlayed)){
@@ -229,6 +250,7 @@ window.Daily = (function(){
     const dk = dayKey();
     if(dk !== currentDay) return;       // day flipped but re-resolution hasn't run yet
     if(state.lastPlayed === dk) return; // once per day
+    lastPlayId = todayId;               // stamp the pick AS PLAYED (see above)
     const yesterday = daysAgoKey(1);
     state.streak = computeStreak(state.lastPlayed, dk, yesterday, state.streak);
     state.lastPlayed = dk;
@@ -517,6 +539,7 @@ window.Daily = (function(){
       if(typeof state.best !== "number") state.best = 0;
       if(!Array.isArray(state.plays)) state.plays = []; // pre-Round-14 records
       if(!Array.isArray(state.pickLog)) state.pickLog = []; // pre-Round-15 records
+      normalizeDayKeys(state); // corrupt/foreign keys must never steer the streak math
     }
     // Repair ONLY on a proven hydration. If the read failed transiently (an
     // IndexedDB hiccup / write interrupted by a reload — observed live during
