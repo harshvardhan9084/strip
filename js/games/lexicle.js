@@ -24,7 +24,7 @@ Strip.register({
     // Round 19 (AUDIT.md — Lexicle P1, live-proven BLOCKING): ARISE and ADIEU —
     // the two most standard openers in the genre — were rejected with "not in
     // word list" because the dictionary WAS the answer list. Guesses are now
-    // checked against a separate ~300-word common-guess list first; answers
+    // checked against a separate 900+-word common-guess list first; answers
     // stay curated. Deduction workflow no longer fights its own tool.
     const GUESS_EXTRA = ("adieu irate arose arise abide above abuse acute adapt admit adopt adult after again agent agree ahead " +
       "alarm alert alive allow alone along alter among anger angle angry ankle apart apply arena argue " +

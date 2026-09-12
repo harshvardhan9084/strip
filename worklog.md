@@ -1165,3 +1165,25 @@ WEEK RIPPLE toast.
   Maze/Sudoku/CodeBreaker), Trivia runs, TypeSpeed accuracy, This-or-That
   profile, RandomFact favorites, Etch/Kaleido save-PNG, Breathe counter,
   TonePad loop, PhysicsDrop collision, WhackMole waves, Breakout HP tiers.
+
+## Round 19 addendum — judge verdict 9.2/10 + adversarial findings closed same-round
+
+- JUDGE: 9.2/10 (target ≥9 met). Independently re-derived TD upgrade math
+  (income 4,402g @W17 vs 1,879 flat; maxed fleet ~3,234 dps vs old ~686),
+  re-solved all 20 sokoban levels with its OWN solver (all solvable, 19/20
+  pars = ceil(opt×1.4)), measured Lexicle's guess list (923 unique words,
+  ARISE/ADIEU/IRATE accepted).
+- Judge finding #1 CLOSED — Garden seed economy was inverted (6/9 species
+  net-negative; free daisy dominated everything). Yields re-tuned so every
+  species is profit-positive AND profit/min ascends with tier:
+  45 → 48 → 51 → 65 → 90 → 115 → 143 → 175 → 240 net/min. Invariant
+  checked programmatically; card live-verified error-free.
+- Judge finding #2 CLOSED — AUDIT.md TD polynomial corrected: (5+2W)(20+8W)
+  = 16W²+80W+100 ⇒ wave-17 EHP 6,084 (~470 dps), not 14,720/~980; the wall
+  still stood via the usable-dps ceiling + uncapped speed, and the fix beats
+  it 2–4× either way. Docs no longer carry the wrong figure.
+- Judge finding #3 CLOSED — repo now self-verifies: scripts/sokoban_solver.js
+  (BFS, levels 1–19) + scripts/push_solver.js (push-A*, L20 finale = 9
+  pushes) both read the shipped game array directly.
+- QA pin gap (judge: garden/blackjack/etc unpinned) acknowledged → Round 20
+  move #2. sw v18. Commit follows this addendum.

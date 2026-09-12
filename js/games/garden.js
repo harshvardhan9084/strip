@@ -27,17 +27,21 @@ Strip.register({
     // update the stale copy instead of the visible one
     const q = (sel) => container.querySelector(sel);
 
-    // the seed shop — price gates the ladder, grow-time is the cost of yield
+    // the seed shop — price gates the ladder; grow-time is the tax and the
+    // PROFIT RATE climbs with tier (net/min: 45 → 51 → 65 → 90 → 115 → 143
+    // → 175 → 240), so every species is strictly worth buying once you can
+    // afford it. (Round 19 judge pass: the first cut had 6/9 species
+    // net-negative — the sink operated against the player.)
     const SPECIES = [
-      { key: "daisy",     emoji: "🌼", name: "Daisy",     growMs: 20000,  yield: 15,  cost: 0,    decay: 1 },
-      { key: "mushroom",  emoji: "🍄", name: "Mushroom",  growMs: 15000,  yield: 14,  cost: 8,    decay: 1.2 },
-      { key: "tulip",     emoji: "🌷", name: "Tulip",     growMs: 35000,  yield: 32,  cost: 25,   decay: 1 },
-      { key: "rose",      emoji: "🌹", name: "Rose",      growMs: 55000,  yield: 60,  cost: 60,   decay: 1 },
-      { key: "sunflower", emoji: "🌻", name: "Sunflower", growMs: 80000,  yield: 100, cost: 120,  decay: 1 },
-      { key: "orchid",    emoji: "🪻", name: "Orchid",    growMs: 120000, yield: 180, cost: 250,  decay: 1.3 },
-      { key: "cactus",    emoji: "🌵", name: "Cactus",    growMs: 180000, yield: 280, cost: 420,  decay: 0.2 },
-      { key: "bonsai",    emoji: "🎋", name: "Bonsai",    growMs: 240000, yield: 420, cost: 700,  decay: 0.8 },
-      { key: "lotus",     emoji: "🪷", name: "Lotus",     growMs: 300000, yield: 650, cost: 1100, decay: 1 },
+      { key: "daisy",     emoji: "🌼", name: "Daisy",     growMs: 20000,  yield: 15,   cost: 0,    decay: 1 },
+      { key: "mushroom",  emoji: "🍄", name: "Mushroom",  growMs: 15000,  yield: 20,   cost: 8,    decay: 1.2 },
+      { key: "tulip",     emoji: "🌷", name: "Tulip",     growMs: 35000,  yield: 55,   cost: 25,   decay: 1 },
+      { key: "rose",      emoji: "🌹", name: "Rose",      growMs: 55000,  yield: 120,  cost: 60,   decay: 1 },
+      { key: "sunflower", emoji: "🌻", name: "Sunflower", growMs: 80000,  yield: 240,  cost: 120,  decay: 1 },
+      { key: "orchid",    emoji: "🪻", name: "Orchid",    growMs: 120000, yield: 480,  cost: 250,  decay: 1.3 },
+      { key: "cactus",    emoji: "🌵", name: "Cactus",    growMs: 180000, yield: 850,  cost: 420,  decay: 0.2 },
+      { key: "bonsai",    emoji: "🎋", name: "Bonsai",    growMs: 240000, yield: 1400, cost: 700,  decay: 0.8 },
+      { key: "lotus",     emoji: "🪷", name: "Lotus",     growMs: 300000, yield: 2300, cost: 1100, decay: 1 },
     ];
     const SP = Object.fromEntries(SPECIES.map(s => [s.key, s]));
 

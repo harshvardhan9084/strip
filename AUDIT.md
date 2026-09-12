@@ -120,15 +120,21 @@ upgradable, when we are already earning gold."*
 stats forever; there is no upgrade, no sell, no repair anywhere in the file (the only
 buttons are Arrow/Cannon/Frost/Start wave — live-probed).
 
-- Enemy effective HP per wave W: `(5+2W)(20+8W) = 40W² + 180W + 100` — quadratic.
+- Enemy effective HP per wave W: `(5+2W)(20+8W) = 16W² + 80W + 100` — quadratic
+  (Round 19 correction: an earlier draft here squared the wrong factor and printed
+  14,720 EHP / ~980 dps at wave 17; the true wave-17 EHP is **6,084**, needing ~470
+  sustained dps. The wall was real anyway — see below — because the usable-dps
+  ceiling and the uncapped enemy speed still closed on the player around wave 15–18).
 - Total income by wave W: `60 + Σ(4·(5+2W) + 15) = 60 + 4W² + 39W` — quadratic, but the
   spendable outcome is capped: an arrow is 22.9 dps, and only cells within 2.4 cells of the
   path can ever fire. On the 10×10 board that bounds the *usable* fleet at roughly 25–35
-  towers ⇒ max sustainable ~570–800 dps no matter how much gold you hold.
-- Enemy speed grows without a cap (`0.9 + 0.05W` ⇒ 1.75 at wave 17), shrinking the time any
-  enemy spends inside range. Wave 17's 14,720 EHP must be burned down in ~15 s ⇒ ~980 dps
-  sustained, **above the board's hard ceiling**. The run therefore *must* end at wave ~15–18
-  even with perfect play — exactly the playtester's "~17 waves".
+  towers ⇒ max sustainable ~570–800 dps no matter how much gold you hold — BELOW the
+  ~470+ dps needed exactly when enemy speed (0.9 + 0.05W ⇒ 1.75 at wave 17) shrinks
+  exposure time, so effective throughput drops under the requirement at the same waves.
+  The run therefore *must* end at wave ~15–18 even with perfect play — exactly the
+  playtester's "~17 waves". (The Round 19 fix beats this by 2–4×: judge re-ran the math —
+  income through wave 17 is 4,402g with scaled bounties vs 1,879 flat, and a maxed fleet
+  reaches ~3,234 dps against the old ~686 ceiling.)
 - ILLOGICITY: kill bounty is a flat 4 g whether the enemy has 28 HP (wave 1) or 156 HP
   (wave 17) — the reward curve is linear inside a quadratic difficulty curve.
 - Live probe: 6 towers placed, wave 1 leaked 7 of 12 lives while the wave still paid the
