@@ -92,13 +92,15 @@ window.Sparkline = (function(){
     return chip;
   }
 
-  // Identity of the rendered picture: history is append-only (concat +
-  // slice(-20) in setHighscore), so best + length + last point uniquely
-  // determine the chart — if all three match what's on the card, the DOM
-  // is already correct and this frame is a true no-op.
+  // Identity of the rendered picture: history is append-only, so best +
+  // length + last point pin it UNTIL the 20-cap window starts shifting —
+  // a new play at the cap (concat + slice(-20)) can tie the previous score
+  // without changing best, leaving the triple identical over a DIFFERENT
+  // 12-point picture. The window's first drawn point closes that hole.
   function signature(mod, rec){
     const h = (rec && Array.isArray(rec.history)) ? rec.history : [];
-    return mod.id + "|" + (rec ? rec.best : 0) + "|" + h.length + "|" + (h.length ? h[h.length - 1] : "");
+    const firstDrawn = h.length > MAX_POINTS ? h[h.length - MAX_POINTS] : (h.length ? h[0] : "");
+    return mod.id + "|" + (rec ? rec.best : 0) + "|" + h.length + "|" + (h.length ? h[h.length - 1] : "") + "|" + firstDrawn;
   }
 
   // Called by app.js on every scroll frame for the CENTERED card. Three

@@ -977,3 +977,22 @@ WEEK RIPPLE toast.
 - Final re-verification on fresh code: 50/50 sweep clean, console clean,
   sparkline lifecycle (linear/inverted/thin/wipe) intact, offline v13
   query+root reloads boot the full deck.
+
+### Round 15 re-verdict: 9.0/10 (target met) — two residual closes same-round
+
+- [MINOR] sparkline signature at the 20-cap: a new play tying the previous
+  best (concat+slice shifts the window, best/length/last unchanged) produced
+  an identical sig over a different 12-point picture. The window's first
+  drawn point (history[len-12]) is now part of the sig. Regression proven
+  live: seeded cap-20 ring, tied-score play -> sigMoved true
+  (stacktower|60|20|60|30 — the |30 term is the shifted window's head).
+- [NIT] deferred evaluate dropped its context: onCardCentered's
+  {holdsRecord} arriving mid-hydration flushed as evaluate({}) — and since
+  strip:card-centered won't re-fire for the same card, a RECORD BREAKER
+  unlock on the boot's first settled card could be missed that session.
+  pendingCtx now OR-merges the deferred context and the flush uses it.
+- Accepted residuals (disclosed): the daily write gate is session-long with
+  no retry (a one-shot re-probe on visibilitychange is Round 16 candidate
+  (a)); retroactive milestones honor only streaks still live at upgrade;
+  a sub-15s round shows a stale chip until TTL + next scroll frame.
+- Pushed as the Round 15 finale follow-up commit.

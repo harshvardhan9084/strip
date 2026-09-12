@@ -93,6 +93,7 @@ window.Trophies = (function(){
   let toastShowing = false;
   let hydrateDone = false;
   let evaluateDeferred = false;
+  let pendingCtx = null; // the deferred call's context, preserved for the flush
 
   function showToast(def){
     toastQueue.push(def);
@@ -124,7 +125,14 @@ window.Trophies = (function(){
   }
 
   function evaluate(ctx){
-    if(!hydrateDone){ evaluateDeferred = true; return; }
+    if(!hydrateDone){
+      // keep the caller's context (e.g. holdsRecord from the boot settle's
+      // onCardCentered — that event won't re-fire for the same card, so a
+      // context-free flush would silently drop a RECORD BREAKER unlock)
+      pendingCtx = Object.assign({}, pendingCtx || {}, ctx || {});
+      evaluateDeferred = true;
+      return;
+    }
     const newlyUnlocked = [];
     for(const def of DEFS){
       if(state.unlocked[def.id]) continue;
@@ -530,7 +538,9 @@ window.Trophies = (function(){
     hydrateDone = true; // deferred evaluates flush AFTER the saved-merge
     if(evaluateDeferred){
       evaluateDeferred = false;
-      evaluate({});
+      const ctx = pendingCtx || {};
+      pendingCtx = null;
+      evaluate(ctx);
     }
     readyResolve();
   }
