@@ -7,8 +7,13 @@ Strip.register({
   async mount(container, api){
     const saved = await api.load();
     let streak = saved && Number.isFinite(saved.streak) ? saved.streak : 0; // wins in a row
+    // Round 19 (AUDIT.md — Pong Duel P2): the streak erased itself on defeat
+    // with no all-time best ever recorded; the AI ran one fixed speed forever.
+    let best = await api.getHighscore();
+    const DIFFS = [["chill", 1.6], ["classic", 2.05], ["feral", 2.6]];
+    let diffIdx = saved && Number.isFinite(saved.diff) ? Math.min(2, Math.max(0, saved.diff)) : 1;
+    let AI_SPEED = DIFFS[diffIdx][1]; // capped below ball speed — beatable but honest
     const W = 240, H = 160, PW = 5, PH = 34, WIN = 7;
-    const AI_SPEED = 2.05; // capped below ball speed — beatable but honest
 
     let you = 0, ai = 0, running = false, rafId = null, lastTs = 0;
     let py = (H - PH) / 2, ay = (H - PH) / 2, target = py;
@@ -19,7 +24,33 @@ Strip.register({
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
+
+    // difficulty pills — the audit's missing escalation curve
+    const diffRow = document.createElement("div");
+    diffRow.style.cssText = "display:flex; gap:6px;";
+    const diffBtns = [];
+    DIFFS.forEach(([label, speed], i) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.style.cssText = "font-size:10px; padding:4px 9px; border-radius:20px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer;";
+      b.addEventListener("click", () => {
+        if(running) return; // no mid-match swaps
+        diffIdx = i; AI_SPEED = speed;
+        api.save({ streak, diff: diffIdx });
+        paintDiff();
+      });
+      diffBtns.push(b);
+      diffRow.appendChild(b);
+    });
+    function paintDiff(){
+      diffBtns.forEach((b, i) => {
+        const active = i === diffIdx;
+        b.style.background = active ? "var(--amber)" : "var(--panel-2)";
+        b.style.color = active ? "#000" : "var(--ink-dim)";
+      });
+    }
     wrap.appendChild(statRow);
+    wrap.appendChild(diffRow);
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "width:min(76vw,264px); height:auto; aspect-ratio:240/160; border-radius:10px; background:#101018; touch-action:none; display:block;";
@@ -46,7 +77,9 @@ Strip.register({
     container.appendChild(wrap);
 
     function statUpdate(){
-      statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${you}</span></div><div>AI <span style="color:var(--purple)">${ai}</span></div><div>STREAK <span style="color:var(--ink-dim)">${streak}</span></div>`;
+      const matchPoint = (you === WIN - 1 || ai === WIN - 1) && running;
+      statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${you}</span></div><div>AI <span style="color:var(--purple)">${ai}</span></div><div>STREAK <span style="color:var(--ink-dim)">${streak}</span> · BEST <span style="color:var(--purple)">${best}</span></div>` +
+        (matchPoint ? `<div style="color:var(--danger); animation:pdPulse 1s infinite;">MATCH POINT</div>` : "");
     }
 
     function serve(dir){
@@ -74,8 +107,12 @@ Strip.register({
       startBtn.disabled = false;
       startBtn.textContent = winner === 1 ? "You win — rematch" : "AI wins — rematch";
       Feedback.buzz(winner === 1 ? "win" : "lose");
-      if(winner === 1){ streak++; } else { streak = 0; }
-      api.save({ streak });
+      if(winner === 1){
+        streak++;
+        best = Math.max(best, streak);
+        api.setHighscore(best); // the all-time streak survives every defeat
+      } else { streak = 0; }
+      api.save({ streak, diff: diffIdx });
       statUpdate();
     }
 
@@ -160,7 +197,8 @@ Strip.register({
       ctx.fillRect(W - 8 - PW, ay, PW, PH);
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = "#EDEAE3";
+      // match-point tension: the ball runs hot when either side is at 6
+      ctx.fillStyle = (you === WIN - 1 || ai === WIN - 1) ? "#E8637F" : "#EDEAE3";
       ctx.fill();
       if(!running){
         ctx.fillStyle = "rgba(237,234,227,.6)";
@@ -179,7 +217,16 @@ Strip.register({
     canvas.addEventListener("pointermove", (e) => { if(e.buttons || e.pointerType === "touch") pointerToY(e); });
 
     statUpdate();
+    paintDiff();
     draw();
+
+    // match-point pulse keyframes (one shared node, idempotent)
+    if(!document.getElementById("pd-keyframes")){
+      const st = document.createElement("style");
+      st.id = "pd-keyframes";
+      st.textContent = "@keyframes pdPulse{0%,100%{opacity:1}50%{opacity:.35}}";
+      document.head.appendChild(st);
+    }
 
     let resizeTimer = null;
     const onResize = () => {

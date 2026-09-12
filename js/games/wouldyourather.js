@@ -89,6 +89,8 @@ Strip.register({
     ];
 
     const bag = ShuffleBag.restore(state.bag, QUESTIONS.length);
+    // (bag is re-creatable: the reset valve rebuilds it, so `let` semantics
+    // are simulated via a holder object below)
     let qIdx = bag.next();
 
     const wrap = document.createElement("div");
@@ -181,6 +183,28 @@ Strip.register({
       api.save(state);
       render();
     });
+
+    // Round 19 (S8-lite): all 81 votes used to be a terminal state — the card
+    // could only replay results, votes were locked forever. A reset valve
+    // fixes the dead end without touching vote history mid-game.
+    const resetBtn = document.createElement("button");
+    resetBtn.className = "btn";
+    resetBtn.textContent = "Reset my votes";
+    resetBtn.style.fontSize = "10px";
+    resetBtn.style.color = "var(--ink-dim)";
+    resetBtn.addEventListener("click", () => {
+      state.votes = {};
+      state.bag = null;
+      api.save(state);
+      Feedback.buzz("success");
+      // rebuild the shuffle bag in place — same bag variable, fresh order
+      const fresh = ShuffleBag.restore(null, QUESTIONS.length);
+      bag.next = fresh.next;
+      bag.serialize = fresh.serialize;
+      qIdx = 0;
+      render();
+    });
+    wrap.appendChild(resetBtn);
 
     render();
   }

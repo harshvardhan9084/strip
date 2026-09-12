@@ -10,6 +10,7 @@ Strip.register({
     // update the stale copy instead of the visible one
     const q = (sel) => container.querySelector(sel);
     const state = (await api.load()) || { matched: 0 };
+    let tweakCount = 0; // resets each new target — the per-match skill metric
     let best = await api.getHighscore();
 
     const wrap = document.createElement("div");
@@ -17,7 +18,7 @@ Strip.register({
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>MATCHED <span id="cm-score" style="color:var(--amber)">${state.matched}</span></div><div>BEST <span id="cm-best" style="color:var(--purple)">${best}</span></div>`;
+    statRow.innerHTML = `<div>MATCHED <span id="cm-score" style="color:var(--amber)">${state.matched}</span></div><div>BEST <span id="cm-best" style="color:var(--purple)">${best ? (9999 - best) + " tweaks" : "-"}</span></div>`;
     wrap.appendChild(statRow);
 
     const swatches = document.createElement("div");
@@ -59,6 +60,7 @@ Strip.register({
     function newTarget(){
       target = randColor();
       rgb = [128,128,128];
+      tweakCount = 0; // fresh target, fresh tweak budget
       targetSwatch.style.background = `rgb(${target.join(",")})`;
       updateMix();
       matchNote.textContent = "";
@@ -79,6 +81,7 @@ Strip.register({
       slider.style.cssText = "flex:1; accent-color: " + ["#E8637F","#6FCF97","#56B4E9"][i] + ";";
       slider.addEventListener("input", () => {
         rgb[i] = +slider.value;
+        tweakCount++; // every nudge counts toward the fewest-tweaks record
         updateMix();
         checkMatch();
       });
@@ -100,11 +103,14 @@ Strip.register({
         state.matched++;
         q("#cm-score").textContent = state.matched;
         api.save(state);
-        if(state.matched > best){
-          best = state.matched;
-          api.setHighscore(best);
-          q("#cm-best").textContent = best;
-        }
+        // Round 19 (S7 fix): BEST used to be the lifetime counter mirrored
+        // back at you (always equal to MATCHED). Now it's a real skill record:
+        // fewest slider tweaks per match, stored inverted for the max-wins store
+        const record = Math.max(1, 9999 - tweakCount);
+        api.setHighscore(record).then(v => {
+          best = v;
+          q("#cm-best").textContent = (9999 - best) + " tweaks";
+        });
         setTimeout(newTarget, 600);
       } else if(d < 60){
         matchNote.textContent = "Getting close…";

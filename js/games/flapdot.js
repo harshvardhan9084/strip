@@ -40,7 +40,11 @@ Strip.register({
     requestAnimationFrame(fitCanvas);
 
     let dotY, vel, gap, pipes, score, running, rafId;
-    const GRAVITY = 0.35, FLAP = -6, PIPE_GAP = 90, PIPE_W = 34, PIPE_SPEED = 2.2;
+    const GRAVITY = 0.35, FLAP = -6, PIPE_W = 34;
+    // Round 19 (S3): gap 90→70 and speed 2.2→3.0 as the score climbs — a 50
+    // run and a 5 run finally play differently
+    function currentGap(){ return Math.max(70, 90 - score * 0.4); }
+    function currentSpeed(){ return Math.min(3.0, 2.2 + score * 0.016); }
 
     function reset(){
       dotY = 100; vel = 0; pipes = []; score = 0; running = false;
@@ -51,7 +55,7 @@ Strip.register({
     function spawnPipe(){
       const w = canvas.width / devicePixelRatio;
       const h = canvas.height / devicePixelRatio;
-      const gapY = 40 + Math.random() * (h - 80 - PIPE_GAP);
+      const gapY = 40 + Math.random() * (h - 80 - currentGap());
       pipes.push({ x: w, gapY, passed:false });
     }
 
@@ -69,7 +73,7 @@ Strip.register({
         vel += GRAVITY * dtF;
         dotY += vel * dtF;
 
-        pipes.forEach(p => p.x -= PIPE_SPEED * dtF);
+        pipes.forEach(p => p.x -= currentSpeed() * dtF);
         if(pipes.length && pipes[0].x < -PIPE_W) pipes.shift();
         if(pipes.length && pipes[pipes.length-1].x < w - 140) spawnPipe();
 
@@ -82,7 +86,8 @@ Strip.register({
           }
           const dotX = 40;
           const hitX = dotX + 10 > p.x && dotX - 10 < p.x + PIPE_W;
-          const hitY = dotY - 10 < p.gapY || dotY + 10 > p.gapY + PIPE_GAP;
+          const GAP = currentGap();
+          const hitY = dotY - 10 < p.gapY || dotY + 10 > p.gapY + GAP;
           if(hitX && hitY) gameOver();
         });
 
@@ -93,7 +98,7 @@ Strip.register({
       ctx.fillStyle = "#8B7FE8";
       pipes.forEach(p => {
         ctx.fillRect(p.x, 0, PIPE_W, p.gapY);
-        ctx.fillRect(p.x, p.gapY + PIPE_GAP, PIPE_W, h - p.gapY - PIPE_GAP);
+        ctx.fillRect(p.x, p.gapY + currentGap(), PIPE_W, h - p.gapY - currentGap());
       });
 
       // draw dot

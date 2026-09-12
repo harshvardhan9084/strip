@@ -45,6 +45,7 @@ Strip.register({
     requestAnimationFrame(fit);
 
     let grid, score, shooter, flying, over, overMessage = "Game Over — tap New game";
+    let nextColorIdx = 0; // the queued next bubble, shown beside the shooter
 
     function cellPos(row, col){
       const offset = row % 2 === 0 ? 0 : R;
@@ -63,6 +64,7 @@ Strip.register({
       over = false;
       flying = null;
       shooter = { colorIdx: Math.floor(Math.random()*COLORS.length), angle: -Math.PI/2 };
+      nextColorIdx = Math.floor(Math.random()*COLORS.length);
       q("#bs-score").textContent = 0;
       draw();
     }
@@ -90,6 +92,12 @@ Strip.register({
       ctx.stroke();
       ctx.fillStyle = COLORS[shooter.colorIdx];
       ctx.beginPath(); ctx.arc(sx, sy, R-1.5, 0, Math.PI*2); ctx.fill();
+      // Round 19: the NEXT bubble — a standard affordance that was missing
+      // (planning shots one ahead is half the genre's skill)
+      ctx.fillStyle = COLORS[nextColorIdx];
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath(); ctx.arc(sx + R*2.4, sy, (R-1.5)*0.62, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
 
       if(over){
         ctx.fillStyle = "rgba(0,0,0,.6)";
@@ -203,7 +211,8 @@ Strip.register({
         // cannot happen (the next row always has free cells), but never leave
         // `flying` set — a stuck shot softlocks the cartridge
         flying = null;
-        shooter.colorIdx = Math.floor(Math.random()*COLORS.length);
+        shooter.colorIdx = nextColorIdx;
+        nextColorIdx = Math.floor(Math.random()*COLORS.length);
         return;
       }
       const [r,c] = bestCell;
@@ -224,7 +233,8 @@ Strip.register({
         Feedback.tone("tap"); Feedback.haptic("light");
       }
       flying = null;
-      shooter.colorIdx = Math.floor(Math.random()*COLORS.length);
+      shooter.colorIdx = nextColorIdx;
+      nextColorIdx = Math.floor(Math.random()*COLORS.length);
 
       if(settleBoard()){
         saveBest();

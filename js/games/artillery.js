@@ -27,7 +27,14 @@ Strip.register({
   hint: "Set angle & power, account for wind",
   async mount(container, api){
     const saved = await api.load();
-    const state = Object.assign({ wins: 0, losses: 0, difficulty: "medium" }, saved || {});
+    const state = Object.assign({ wins: 0, losses: 0, difficulty: "medium", streak: 0 }, saved || {});
+    let best = await api.getHighscore(); // best = longest duel win streak
+
+    // Round 19 (AUDIT.md — Artillery P1): one hit = instant end gave the duel
+    // no drama, no comeback arc, no near-miss feedback, and wins never reached
+    // the meta. Duels are now 3-HP affairs (comebacks exist), misses report
+    // EXACTLY how far off they landed, and the win streak feeds setHighscore
+    // so the Daily ×2 / RECORD BREAKER systems can finally see this game.
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
@@ -112,6 +119,7 @@ Strip.register({
     let playerX, aiX, groundY;
     let wind, turn, inRound, projectile, craters, over;
     let aiMemory; // { lastAngle, lastPower, lastLandX } for the bracketing logic
+    let playerHP, aiHP;
 
     const GRAVITY = 220; // px/s^2 (tuned for a satisfying arc at our canvas scale)
 
@@ -119,6 +127,7 @@ Strip.register({
       const rect = canvas.getBoundingClientRect();
       W = rect.width; H = rect.height;
       groundY = H - 24;
+      playerHP = 3; aiHP = 3; // the comeback arc: a duel is won 3 times
       // vary tank distance each duel so a single memorized angle/power can't win
       // forever — this is the direct fix for a fixed layout being solvable once
       // and then replayable from memory with zero further skill required.
@@ -183,8 +192,8 @@ Strip.register({
       ctx.stroke();
 
       // tanks
-      drawTank(playerX, groundHeightAt(playerX), "#FFB347");
-      drawTank(aiX, groundHeightAt(aiX), "#8B7FE8");
+      drawTank(playerX, groundHeightAt(playerX), "#FFB347", playerHP);
+      drawTank(aiX, groundHeightAt(aiX), "#8B7FE8", aiHP);
 
       // projectile
       if(projectile){
@@ -201,12 +210,17 @@ Strip.register({
       }
     }
 
-    function drawTank(x, groundY, color){
+    function drawTank(x, groundY, color, hp){
       ctx.fillStyle = color;
       ctx.fillRect(x-10, groundY-8, 20, 8);
       ctx.beginPath();
       ctx.arc(x, groundY-8, 5, 0, Math.PI*2);
       ctx.fill();
+      // hull pips over each tank — the duel's stakes visible on the field
+      for(let i=0;i<3;i++){
+        ctx.fillStyle = i < hp ? color : "rgba(255,255,255,0.15)";
+        ctx.fillRect(x - 7 + i*6, groundY - 15, 4, 3);
+      }
     }
 
     function fire(shooter, angleDeg, power){
@@ -267,12 +281,18 @@ Strip.register({
       const power = parseFloat(powerCtrl.input.value);
       const result = await fire("player", angle, power);
       if(result.didHit){
-        endRound("player");
-        return;
+        aiHP--;
+        updateStat();
+        draw();
+        if(aiHP <= 0){ endRound("player"); return; }
+        infoLine.textContent = `DIRECT HIT! AI hull ${aiHP}/3`;
+      } else {
+        // near-miss honesty: say HOW the miss failed — short/over by N px
+        const miss = Math.round(result.landX - aiX);
+        infoLine.textContent = miss < 0 ? `${-miss}px SHORT — add power` : `${miss}px OVER — ease off`;
       }
       turn = "ai";
-      infoLine.textContent = "AI is aiming…";
-      aiTimer = setTimeout(aiTurn, 700);
+      aiTimer = setTimeout(aiTurn, 900);
     }
 
     let aiTimer = null;
@@ -322,19 +342,34 @@ Strip.register({
       aiMemory = { lastAngle: angle, lastPower: power, lastLandX: result.landX };
 
       if(result.didHit){
-        endRound("ai");
-        return;
+        playerHP--;
+        updateStat();
+        draw();
+        if(playerHP <= 0){ endRound("ai"); return; }
+        infoLine.textContent = `you're hit! hull ${playerHP}/3`;
+      } else {
+        const miss = Math.round(result.landX - playerX);
+        infoLine.textContent = `AI missed ${Math.abs(miss)}px ${miss < 0 ? "short" : "over"}`;
       }
       turn = "player";
-      infoLine.textContent = `Wind: ${wind > 0 ? "→" : "←"} ${Math.abs(wind).toFixed(1)}`;
       fireBtn.disabled = false;
     }
 
     function endRound(winner){
       over = true;
       inRound = false;
-      if(winner === "player"){ state.wins++; infoLine.textContent = "Direct hit — you win the duel!"; Feedback.buzz("win"); }
-      else { state.losses++; infoLine.textContent = "You got hit — AI wins the duel."; Feedback.buzz("lose"); }
+      if(winner === "player"){
+        state.wins++;
+        state.streak = (state.streak || 0) + 1;
+        infoLine.textContent = "Direct hit — duel won!";
+        Feedback.buzz("win");
+        api.setHighscore(state.streak); // the meta finally sees the duel record
+      } else {
+        state.losses++;
+        state.streak = 0;
+        infoLine.textContent = "You got hit — AI wins the duel.";
+        Feedback.buzz("lose");
+      }
       api.save(state);
       updateStat();
       fireBtn.disabled = true;
@@ -343,7 +378,8 @@ Strip.register({
     }
 
     function updateStat(){
-      statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${state.wins}</span></div><div>AI <span style="color:var(--purple)">${state.losses}</span></div>`;
+      const hearts = (n) => "♥".repeat(n) + "♡".repeat(Math.max(0, 3 - n));
+      statRow.innerHTML = `<div style="color:var(--amber)">YOU ${hearts(playerHP || 3)}</div><div style="color:var(--purple)">AI ${hearts(aiHP || 3)}</div><div>W-L <span style="color:var(--ink)">${state.wins}-${state.losses}</span></div><div>STREAK <span style="color:var(--ink)">${state.streak || 0}</span> · BEST <span style="color:var(--ink)">${best}</span></div>`;
     }
 
     fireBtn.addEventListener("click", () => {

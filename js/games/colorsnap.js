@@ -19,7 +19,6 @@ Strip.register({
     ];
 
     let running = false, score = 0, timer = null, current = null, timeLeft = 0;
-    const ROUND_MS = 1600;
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:22px; width:100%;";
@@ -67,6 +66,12 @@ Strip.register({
       return { wordColor, inkColor, isMatch: wordColor.name === inkColor.name };
     }
 
+    // Round 19 (S3): the classic Stroop ramp — each correct answer shaves 40 ms
+    // off the round (floor 600 ms). Escalation is the whole curve this game had
+    // no curve of.
+    let ROUND_MS = 1600;
+    const ROUND_FLOOR = 600;
+
     function nextRound(){
       current = pick();
       wordEl.textContent = current.wordColor.name;
@@ -90,6 +95,7 @@ Strip.register({
         Feedback.tone("success"); Feedback.haptic("light");
         score++;
         q("#cs-score").textContent = score;
+        ROUND_MS = Math.max(ROUND_FLOOR, ROUND_MS - 40); // the ramp
         nextRound();
       } else {
         Feedback.buzz("error");
@@ -111,6 +117,7 @@ Strip.register({
 
     function start(){
       running = true; score = 0;
+      ROUND_MS = 1600; // reset the ramp each run
       q("#cs-score").textContent = 0;
       nextRound();
     }

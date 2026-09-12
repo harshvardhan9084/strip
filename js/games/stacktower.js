@@ -12,7 +12,7 @@ Strip.register({
     let best = await api.getHighscore();
 
     const wrap = document.createElement("div");
-    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
+    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; position:relative;";
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
@@ -41,6 +41,23 @@ Strip.register({
 
     const COLORS = ["#FFB347","#8B7FE8","#E8637F","#6FCF97","#56B4E9"];
     let blocks, current, running, rafId, score, camY;
+    let perfectStreak = 0; // consecutive dead-center drops (width regen every 3)
+
+    // PERFECT banner — one shared node, replaced per call
+    let stBannerTimer = null;
+    function showSt(text){
+      let t = canvas.parentElement.querySelector(".st-banner");
+      if(!t){
+        t = document.createElement("div");
+        t.className = "st-banner";
+        t.style.cssText = "position:absolute; left:0; right:0; top:30%; text-align:center; font-family:var(--font-display); font-size:15px; color:#6FCF97; letter-spacing:2px; pointer-events:none; text-shadow:0 2px 8px rgba(0,0,0,.7);";
+        canvas.parentElement.appendChild(t);
+      }
+      t.textContent = text;
+      t.style.opacity = "1";
+      clearTimeout(stBannerTimer);
+      stBannerTimer = setTimeout(() => { t.style.opacity = "0"; t.style.transition = "opacity .4s"; }, 800);
+    }
     const BLOCK_H = 22;
 
     function reset(){
@@ -57,6 +74,9 @@ Strip.register({
       const w = canvas.width / devicePixelRatio;
       const prev = blocks[blocks.length - 1];
       const dir = Math.random() < 0.5 ? -1 : 1;
+      // Round 19 (S3): speed ramps with height (2.6 → 4.6 px/frame by 40 blocks),
+      // so a tower run keeps escalating instead of flat-lining at one pace
+      const speed = Math.min(4.6, 2.6 + blocks.length * 0.05);
       current = {
         // spawn INSIDE the canvas, flush with the chosen wall. The old version
         // spawned fully offscreen (x = -prev.w or x = w), where the wall-bounce
@@ -65,7 +85,7 @@ Strip.register({
         // unplayable, until the next tap measured ~zero overlap and ended the run.
         x: dir > 0 ? 0 : w - prev.w,
         w: prev.w,
-        vx: dir > 0 ? 3.2 : -3.2,
+        vx: dir > 0 ? speed : -speed,
         colorIdx: blocks.length % COLORS.length,
       };
     }
@@ -92,6 +112,22 @@ Strip.register({
       blocks.push({ x: overlapLeft, w: overlap, colorIdx: current.colorIdx });
       Feedback.tone("place"); Feedback.haptic("light");
       score++;
+      // PERFECT-drop streak: a dead-center stack (+2 pts, +2 width regen every
+      // 3 in a row) — the genre's best compulsion trick, and the answer to the
+      // audit's "width only ever shrinks"
+      const perfect = Math.abs(current.x - prev.x) <= 2;
+      if(perfect){
+        perfectStreak++;
+        score += 2;
+        if(perfectStreak % 3 === 0){
+          const top = blocks[blocks.length - 1];
+          top.w = Math.min(top.w + 2, canvas.width / devicePixelRatio - 4);
+          showSt("PERFECT ×" + perfectStreak + " +width!");
+          Feedback.buzz("success");
+        }
+      } else {
+        perfectStreak = 0;
+      }
       q("#st-score").textContent = score;
       current = null;
       if(blocks.length * BLOCK_H > (canvas.height/devicePixelRatio) * 0.6){

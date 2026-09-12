@@ -17,7 +17,9 @@ Strip.register({
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>DROPS <span id="pk-drops" style="color:var(--amber)">${state.drops}</span></div><div>BEST SLOT <span id="pk-best" style="color:var(--purple)">${best}</span></div>`;
+    statRow.innerHTML = `<div>DROPS <span id="pk-drops" style="color:var(--amber)">${state.drops}</span></div><div>TOTAL <span id="pk-total" style="color:var(--ink)">${state.totalScore || 0}</span></div><div>BEST SLOT <span id="pk-best" style="color:var(--purple)">${best}</span></div>`;
+    // Round 19 (ILLOGICITY-lite fix): totalScore accumulated but was never
+    // displayed — dead data. Now shown with its average per drop.
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
@@ -136,6 +138,7 @@ Strip.register({
           state.drops++;
           state.totalScore += score;
           q("#pk-drops").textContent = state.drops;
+          q("#pk-total").textContent = state.totalScore;
           api.save(state);
           if(score > best){
             best = score;

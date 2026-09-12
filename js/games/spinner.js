@@ -26,7 +26,19 @@ Strip.register({
 
     const rpmLabel = document.createElement("div");
     rpmLabel.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    rpmLabel.textContent = "flick to spin";
+    // Round 19 (TOY hook): persist top RPM — one line of meta turns a flick
+    // toy into a "beat my 312 rpm" return hook
+    let topRpm = 0, peakRpm = 0;
+    api.getHighscore().then(v => {
+      topRpm = v || 0;
+      paintLabel();
+    });
+    let currentRpm = 0;
+    function paintLabel(){
+      rpmLabel.textContent = currentRpm > 0.5
+        ? `${currentRpm.toFixed(0)} rpm`
+        : (topRpm ? `flick to spin · top ${topRpm} rpm` : "flick to spin");
+    }
 
     wrap.appendChild(face);
     wrap.appendChild(rpmLabel);
@@ -69,6 +81,13 @@ Strip.register({
       dragging = false;
       face.style.cursor = "grab";
       if(Math.abs(velocity) > 2) Feedback.haptic("light");
+      // the release is when a peak becomes a record
+      const record = Math.round(peakRpm);
+      if(record > topRpm){
+        topRpm = record;
+        api.setHighscore(topRpm);
+      }
+      peakRpm = 0;
     }
 
     face.addEventListener("mousedown", onDown);
@@ -97,7 +116,9 @@ Strip.register({
       // RPM = rev/s*60 = v*60*60/360 = v*10. (Earlier attempts had this off by
       // 3.6x, then 60x — the two 60 factors and the 360 are easy to fumble.)
       const rpm = Math.abs(velocity) * 10;
-      rpmLabel.textContent = rpm > 0.5 ? `${rpm.toFixed(0)} rpm` : "flick to spin";
+      currentRpm = rpm;
+      if(rpm > peakRpm) peakRpm = rpm;
+      paintLabel();
       rafId = requestAnimationFrame(tick);
     }
     rafId = requestAnimationFrame(tick);

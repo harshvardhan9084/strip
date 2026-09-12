@@ -60,13 +60,20 @@ Strip.register({
     const COLORS = {
       2:"#2A2A34", 4:"#3A3A46", 8:"#5A4A2E", 16:"#7A5A22", 32:"#9A6A1E",
       64:"#C07E1A", 128:"#4A4470", 256:"#5D54A0", 512:"#8B7FE8",
-      1024:"#E8637F", 2048:"#FFB347"
+      1024:"#E8637F", 2048:"#FFB347", 4096:"#6FCF97", 8192:"#5FD4D0"
     };
+
+    // Round 19 (AUDIT.md S6): reaching 2048 fired one buzz — no banner, no
+    // "keep going" — and 4096/8192 fell back to 2048's amber so late merges
+    // looked identical. The WIN overlay (with a real Continue) + fresh late
+    // colors + every-1k milestone pops give the game its ceremony.
 
     function newGame(){
       grid = Array.from({length:SIZE}, () => Array(SIZE).fill(0));
       score = 0;
       gameOverShown = false;
+      winShown = false;
+      lastMilestone = 0;
       addRandomTile(); addRandomTile();
       render();
     }
@@ -123,6 +130,28 @@ Strip.register({
           o.appendChild(sub);
           tileLayer.appendChild(o);
         }
+      } else if(winShown){
+        // the WIN ceremony — banners for 2048 used to be a single buzz
+        const overlay = tileLayer.querySelector(".go-overlay");
+        if(!overlay){
+          const o = document.createElement("div");
+          o.className = "go-overlay";
+          o.style.cssText = `
+            position:absolute; inset:0; background:rgba(0,0,0,.55); border-radius:8px;
+            display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px;
+            color:#FFB347; font-family:var(--font-display); font-size:20px; text-align:center;
+          `;
+          o.textContent = "★ 2048 ★";
+          const sub = document.createElement("div");
+          sub.style.cssText = "font-size:10px; color:var(--ink);";
+          sub.textContent = "keep going — 4096 is on the board";
+          const btn = document.createElement("button");
+          btn.className = "btn accent";
+          btn.textContent = "Continue";
+          btn.addEventListener("click", () => { winShown = false; const ov = tileLayer.querySelector(".go-overlay"); if(ov) ov.remove(); });
+          o.appendChild(sub); o.appendChild(btn);
+          tileLayer.appendChild(o);
+        }
       } else {
         const overlay = tileLayer.querySelector(".go-overlay");
         if(overlay) overlay.remove();
@@ -131,6 +160,8 @@ Strip.register({
 
     let mergedThisMove = false;
     let gameOverShown = false;
+    let winShown = false;      // 2048 overlay shows once per board
+    let lastMilestone = 0;     // every 1k score = a milestone pop
     function slide(row){
       const filtered = row.filter(v => v !== 0);
       for(let i=0;i<filtered.length-1;i++){
@@ -139,7 +170,12 @@ Strip.register({
           score += filtered[i];
           filtered.splice(i+1,1);
           mergedThisMove = true;
-          if(filtered[i] >= 2048) Feedback.buzz("win");
+          if(filtered[i] === 2048 && !winShown){
+            winShown = true;
+            Feedback.buzz("win");
+          } else if(filtered[i] >= 2048){
+            Feedback.buzz("win");
+          }
         }
       }
       while(filtered.length < SIZE) filtered.push(0);
@@ -180,6 +216,22 @@ Strip.register({
         addRandomTile();
         if(mergedThisMove) Feedback.tone("pop");
         else Feedback.haptic("light");
+        // milestone pops every 1k — progress felt, not read
+        if(score >= lastMilestone + 1000){
+          lastMilestone = Math.floor(score / 1000) * 1000;
+          const pop = document.createElement("div");
+          pop.textContent = (lastMilestone / 1000) + "k!";
+          pop.style.cssText = "position:absolute; left:50%; top:38%; transform:translateX(-50%); font-family:var(--font-display); font-size:16px; color:var(--amber); pointer-events:none; z-index:15; animation:s2Float .9s ease-out forwards; text-shadow:0 1px 4px rgba(0,0,0,.6);";
+          boardWrap.appendChild(pop);
+          setTimeout(() => pop.remove(), 950);
+          if(!document.getElementById("s2-kf")){
+            const st = document.createElement("style");
+            st.id = "s2-kf";
+            st.textContent = "@keyframes s2Float{from{opacity:1}to{opacity:0; transform:translate(-50%,-30px)}}";
+            document.head.appendChild(st);
+          }
+          Feedback.tone("ok");
+        }
         render();
         if(!hasMoves()){
           Feedback.buzz("lose");

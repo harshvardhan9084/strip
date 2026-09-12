@@ -14,18 +14,36 @@
  *   Arrow  — cheap, single-target, fast fire rate
  *   Cannon — splash damage, slow fire rate, good vs groups
  *   Frost  — low damage, slows enemies in radius, good for stacking with the others
+ *
+ * Round 19 (AUDIT.md DEEP DIVE 1 — the wave-17 deadend): towers used to be
+ * one-shot placements with fixed stats forever, while enemy HP grew
+ * quadratically and speed grew unbounded — the run mathematically HAD to end
+ * around wave 15–18 no matter how well you played. The fix makes gold a real
+ * progression currency:
+ *   - tap your own tower → upgrade panel: +40% dmg / +6% range / +5% fire
+ *     rate per level, 4 levels, cost = base × 1.6^level, SELL refunds 70%
+ *     of everything invested (rebuilding the route after a sell is a tactic)
+ *   - kill bounty scales with the wave: 4 + ⌊W/2⌋ (was a flat 4 whether the
+ *     enemy had 28 HP or 156)
+ *   - wave-clear bonus scales: 15 + 3W (was a flat 15)
+ *   - enemy speed is capped at 1.5 (was 1.75 and climbing at wave 17)
+ *   - the "Start wave" button previews the next wave's size and speed so
+ *     banking gold vs building is a decision, not a wait
  */
 Strip.register({
   id: "towerdefense",
   label: "GAME",
   title: "Tower Defense",
   tag: "waves",
-  hint: "Place towers, survive the waves",
+  hint: "Place towers · tap a tower to upgrade or sell",
   async mount(container, api){
     let best = await api.getHighscore(); // best = highest wave survived
 
     const COLS = 10, ROWS = 10;
     const CELL = 26;
+    const MAX_LEVEL = 4;      // 4 upgrade steps above the fresh tower
+    const SPEED_CAP = 1.5;    // enemies stop accelerating here (was uncapped)
+    const SELL_REFUND = 0.7;  // 70% of everything invested comes back
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;";
@@ -61,9 +79,32 @@ Strip.register({
     bottomRow.appendChild(waveBtn);
     bottomRow.appendChild(msg);
 
+    // Round 19: the upgrade/sell panel — the single biggest structural fix.
+    // Selecting one of YOUR towers swaps the build row's role: the panel shows
+    // the tower's live stats, its next-upgrade price, and a 70%-refund sell.
+    const panel = document.createElement("div");
+    panel.style.cssText = "display:none; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:6px 10px; font-size:10px; width:min(82vw,"+(COLS*CELL)+"px); box-sizing:border-box;";
+    const panelInfo = document.createElement("div");
+    panelInfo.style.cssText = "flex:1; line-height:1.5;";
+    const upBtn = document.createElement("button");
+    upBtn.className = "btn accent";
+    upBtn.style.cssText = "padding:5px 9px; font-size:11px;";
+    const sellBtn = document.createElement("button");
+    sellBtn.className = "btn";
+    sellBtn.style.cssText = "padding:5px 9px; font-size:11px; color:var(--danger);";
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "btn";
+    closeBtn.textContent = "✕";
+    closeBtn.style.cssText = "padding:5px 8px; font-size:11px;";
+    panel.appendChild(panelInfo);
+    panel.appendChild(upBtn);
+    panel.appendChild(sellBtn);
+    panel.appendChild(closeBtn);
+
     wrap.appendChild(statRow);
     wrap.appendChild(canvas);
     wrap.appendChild(towerRow);
+    wrap.appendChild(panel);
     wrap.appendChild(bottomRow);
     container.appendChild(wrap);
 
@@ -73,12 +114,13 @@ Strip.register({
       frost:  { cost: 25, range: 1.8, dmg: 3,  rate: 500, color: "#56B4E9", splash: 0, slow: 0.5 },
     };
     let selectedType = "arrow";
+    let selectedTower = null; // the tower currently shown in the upgrade panel
 
     Object.entries(TOWER_TYPES).forEach(([key, t]) => {
       const btn = document.createElement("button");
       btn.style.cssText = `padding:6px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer; font-size:10px; color:${t.color};`;
       btn.innerHTML = `${key[0].toUpperCase()+key.slice(1)}<br><span style="color:var(--ink-dim)">${t.cost}g</span>`;
-      btn.addEventListener("click", () => { selectedType = key; updateTowerButtons(); });
+      btn.addEventListener("click", () => { selectedType = key; selectTower(null); updateTowerButtons(); });
       btn._key = key;
       towerRow.appendChild(btn);
     });
@@ -87,6 +129,26 @@ Strip.register({
         btn.style.borderColor = btn._key === selectedType ? "var(--amber)" : "var(--line)";
         btn.style.background = btn._key === selectedType ? "rgba(255,179,71,0.1)" : "var(--panel-2)";
       });
+    }
+
+    // per-level multipliers — dmg ×1.4, range ×1.06, rate ×0.95 per step
+    function towerStats(t){
+      const base = TOWER_TYPES[t.type];
+      const L = t.level;
+      return {
+        dmg: base.dmg * Math.pow(1.4, L),
+        range: base.range * Math.pow(1.06, L),
+        rate: base.rate * Math.pow(0.95, L),
+        splash: base.splash,
+        slow: base.slow,
+        color: base.color,
+      };
+    }
+    function upgradeCost(t){
+      return Math.round(TOWER_TYPES[t.type].cost * Math.pow(1.6, t.level + 1));
+    }
+    function sellValue(t){
+      return Math.round(t.invested * SELL_REFUND);
     }
 
     // grid: 0 = open, 1 = tower
@@ -99,7 +161,10 @@ Strip.register({
       gold = 60; lives = 12; wave = 0;
       enemies = []; towers = []; projectiles = [];
       waveActive = false; gameOver = false;
+      selectTower(null);
       path = bfsPath(grid);
+      waveBtn.textContent = "Start wave";
+      waveBtn.disabled = false;
       msg.textContent = "";
       updateStat();
       render();
@@ -149,7 +214,7 @@ Strip.register({
       if(gold < type.cost) { msg.textContent = "Not enough gold"; Feedback.buzz("error"); return; }
       if(!canPlace(r,c)){ msg.textContent = "Can't block the only path"; Feedback.buzz("error"); return; }
       grid[r][c] = 1;
-      towers.push({ r, c, type: selectedType, cooldown: 0 });
+      towers.push({ r, c, type: selectedType, level: 0, cooldown: 0, invested: type.cost });
       Feedback.tone("place"); Feedback.haptic("medium");
       gold -= type.cost;
       path = bfsPath(grid);
@@ -159,6 +224,35 @@ Strip.register({
       render();
     }
 
+    // selecting a tower opens the panel; selecting null closes it
+    function selectTower(t){
+      selectedTower = t;
+      if(!t){ panel.style.display = "none"; towerRow.style.display = "flex"; return; }
+      towerRow.style.display = "none";
+      panel.style.display = "flex";
+      renderPanel();
+    }
+    function renderPanel(){
+      const t = selectedTower;
+      if(!t) return;
+      const s = towerStats(t);
+      const name = t.type[0].toUpperCase() + t.type.slice(1);
+      const lv = t.level >= MAX_LEVEL ? "MAX" : "Lv " + t.level;
+      if(t.level >= MAX_LEVEL){
+        upBtn.disabled = true; upBtn.style.opacity = 0.4;
+        upBtn.textContent = "MAX";
+      } else {
+        const cost = upgradeCost(t);
+        upBtn.disabled = gold < cost; upBtn.style.opacity = gold < cost ? 0.4 : 1;
+        upBtn.textContent = `Upgrade ${cost}g`;
+      }
+      sellBtn.textContent = `Sell +${sellValue(t)}g`;
+      panelInfo.innerHTML = `<b style="color:${s.color}">${name} ${lv}</b> · dmg ${s.dmg.toFixed(0)} · rng ${s.range.toFixed(1)}<br>` +
+        (t.level >= MAX_LEVEL
+          ? `<span style="color:var(--ink-dim)">fully upgraded</span>`
+          : `<span style="color:var(--ink-dim)">next: dmg ×1.4 · rng +6% · rate +5%</span>`);
+    }
+
     canvas.addEventListener("click", (e) => {
       const rect = canvas.getBoundingClientRect();
       // map into the LOGICAL space (COLS*CELL x ROWS*CELL) — independent of the
@@ -166,8 +260,42 @@ Strip.register({
       const scaleX = (COLS*CELL) / rect.width, scaleY = (ROWS*CELL) / rect.height;
       const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
       const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
-      if(r>=0 && r<ROWS && c>=0 && c<COLS) placeTower(r,c);
+      if(r<0 || r>=ROWS || c<0 || c>=COLS) return;
+      const existing = towers.find(t => t.r === r && t.c === c);
+      if(existing){ selectTower(existing); Feedback.tone("select"); return; }
+      selectTower(null);
+      placeTower(r,c);
     });
+
+    upBtn.addEventListener("click", () => {
+      const t = selectedTower;
+      if(!t || t.level >= MAX_LEVEL) return;
+      const cost = upgradeCost(t);
+      if(gold < cost){ msg.textContent = "Not enough gold"; Feedback.buzz("error"); return; }
+      gold -= cost;
+      t.invested += cost;
+      t.level++;
+      Feedback.buzz("success");
+      msg.textContent = `${t.type} upgraded to Lv ${t.level}`;
+      renderPanel();
+      updateStat();
+      render();
+    });
+    sellBtn.addEventListener("click", () => {
+      const t = selectedTower;
+      if(!t) return;
+      gold += sellValue(t);
+      towers = towers.filter(o => o !== t);
+      grid[t.r][t.c] = 0;
+      path = bfsPath(grid); // the route reopens — enemies stream through the gap
+      enemies.forEach(e => { e.path = path; e.pathIdx = Math.min(e.pathIdx, path.length-1); });
+      selectTower(null);
+      Feedback.tone("thud"); Feedback.haptic("medium");
+      msg.textContent = `Sold for ${sellValue(t)}g`;
+      updateStat();
+      render();
+    });
+    closeBtn.addEventListener("click", () => selectTower(null));
 
     // Range preview: the enemy route used to be invisible and towers showed no
     // reach at all — a first-time player had no way to make an informed
@@ -188,15 +316,21 @@ Strip.register({
 
     function cellCenter(r,c){ return { x: c*CELL + CELL/2, y: r*CELL + CELL/2 }; }
 
+    function waveSpec(w){
+      return {
+        count: 5 + w*2,
+        hp: 20 + w*8,
+        speed: Math.min(SPEED_CAP, 0.9 + w*0.05), // capped — the wall was speed, not just HP
+      };
+    }
+
     function spawnWave(){
       if(waveActive || gameOver) return;
       wave++;
-      const count = 5 + wave*2;
-      const hp = 20 + wave*8;
-      const speed = 0.9 + wave*0.05;
-      for(let i=0;i<count;i++){
+      const spec = waveSpec(wave);
+      for(let i=0;i<spec.count;i++){
         enemies.push({
-          hp, maxHp: hp, speed,
+          hp: spec.hp, maxHp: spec.hp, speed: spec.speed,
           pathIdx: 0, path,
           x: cellCenter(spawnPoint.r, spawnPoint.c).x - i*18,
           y: cellCenter(spawnPoint.r, spawnPoint.c).y,
@@ -210,6 +344,12 @@ Strip.register({
 
     function updateStat(){
       statRow.innerHTML = `<div>GOLD<br><span style="color:var(--amber); font-size:12px;">${gold}</span></div><div>LIVES<br><span style="color:var(--danger); font-size:12px;">${lives}</span></div><div>WAVE<br><span style="color:var(--purple); font-size:12px;">${wave}</span></div><div>BEST<br><span style="color:var(--ink); font-size:12px;">${best}</span></div>`;
+      // next-wave preview on the button itself: banking gold vs building is a
+      // real decision only when you can see what's coming
+      if(!gameOver && !waveActive){
+        const nx = waveSpec(wave + 1);
+        waveBtn.innerHTML = `Start wave ${wave+1}<br><span style="font-size:8px; opacity:.75">${nx.count} foes · ${nx.speed >= 1.25 ? "fast" : "normal"}</span>`;
+      }
     }
 
     function render(){
@@ -234,22 +374,38 @@ Strip.register({
       ctx.fillRect(basePoint.c*CELL+4, basePoint.r*CELL+4, CELL-8, CELL-8);
 
       towers.forEach(t => {
-        const type = TOWER_TYPES[t.type];
+        const s = towerStats(t);
         const {x,y} = cellCenter(t.r,t.c);
         // range ring under every built tower — you can see what you already cover
-        ctx.strokeStyle = type.color + "2e"; // hex alpha: faint but visible on both skins
+        ctx.strokeStyle = s.color + "2e"; // hex alpha: faint but visible on both skins
         ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.arc(x, y, type.range*CELL, 0, Math.PI*2); ctx.stroke();
-        ctx.fillStyle = type.color;
+        ctx.beginPath(); ctx.arc(x, y, s.range*CELL, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = s.color;
         ctx.beginPath();
         ctx.arc(x,y, CELL*0.32, 0, Math.PI*2);
         ctx.fill();
+        // upgrade pips: 0–4 dots under the tower show its level at a glance
+        if(t.level > 0){
+          ctx.fillStyle = "#EDEAE3";
+          for(let i=0;i<t.level;i++){
+            ctx.beginPath();
+            ctx.arc(x - 5 + i*3.4, y + CELL*0.42, 1.1, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
+        if(t === selectedTower){
+          ctx.strokeStyle = "#EDEAE3";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4,3]);
+          ctx.strokeRect(t.c*CELL+1.5, t.r*CELL+1.5, CELL-3, CELL-3);
+          ctx.setLineDash([]);
+        }
       });
 
       // hover ghost: exact reach of the selected type at the hovered cell.
       // Deliberately shown DURING waves too — mid-wave building is the core
       // Tower Defense decision, which is exactly when reach matters most.
-      if(hoverCell && !gameOver){
+      if(hoverCell && !gameOver && !selectedTower){
         const type = TOWER_TYPES[selectedType];
         const {x,y} = cellCenter(hoverCell.r, hoverCell.c);
         const legal = canPlace(hoverCell.r, hoverCell.c) && gold >= type.cost;
@@ -297,6 +453,28 @@ Strip.register({
     }
     let rafId = requestAnimationFrame(gameLoop);
 
+    // Round 19: floating gold numbers — a kill that pays is the dopamine tick
+    // this game was missing (the audit called the flat 4g "pennies"; at least
+    // now the pennies scale and you SEE them land)
+    let floats = [];
+    function addFloat(x, y, text, color){
+      floats.push({ x, y, text, color, t: 900 });
+    }
+    function renderFloats(dt){
+      floats = floats.filter(f => {
+        f.t -= dt;
+        if(f.t <= 0) return false;
+        ctx.globalAlpha = Math.min(1, f.t / 500);
+        ctx.fillStyle = f.color;
+        ctx.font = "bold 9px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(f.text, f.x, f.y - (900 - f.t) * 0.012);
+        ctx.globalAlpha = 1;
+        return true;
+      });
+      ctx.textAlign = "start";
+    }
+
     function update(dt){
       enemies.forEach(e => {
         if(e.pathIdx >= e.path.length - 1){
@@ -328,17 +506,17 @@ Strip.register({
       towers.forEach(t => {
         t.cooldown -= dt;
         if(t.cooldown > 0) return;
-        const type = TOWER_TYPES[t.type];
+        const s = towerStats(t);
         const {x,y} = cellCenter(t.r,t.c);
-        const rangePx = type.range * CELL;
+        const rangePx = s.range * CELL;
         let target = null, bestDist = Infinity;
         enemies.forEach(e => {
           const d = Math.hypot(e.x-x, e.y-y);
           if(d <= rangePx && d < bestDist){ bestDist = d; target = e; }
         });
         if(target){
-          t.cooldown = type.rate;
-          projectiles.push({ x, y, tx: target, dmg: type.dmg, splash: type.splash, slow: type.slow, color: type.color, speed: 6 });
+          t.cooldown = s.rate;
+          projectiles.push({ x, y, tx: target, dmg: s.dmg, splash: s.splash, slow: s.slow, color: s.color, speed: 6 });
         }
       });
 
@@ -366,7 +544,11 @@ Strip.register({
       const dead = enemies.filter(e => e.hp <= 0);
       if(dead.length){
         Feedback.tone("pop");
-        gold += dead.length * 4;
+        // Round 19: bounty scales with the wave — the reward curve finally
+        // lives inside the same quadratic as the difficulty curve
+        const bounty = 4 + Math.floor(wave / 2);
+        gold += dead.length * bounty;
+        dead.forEach(e => addFloat(e.x, e.y, "+" + bounty, "#FFB347"));
         enemies = enemies.filter(e => e.hp > 0);
         updateStat();
       }
@@ -379,7 +561,10 @@ Strip.register({
         // through and ended the run
         if(lives > 0){
           Feedback.buzz("success");
-          gold += 15;
+          const clearBonus = 15 + wave * 3;
+          gold += clearBonus;
+          const base = cellCenter(basePoint.r, basePoint.c);
+          addFloat(base.x, base.y - 10, "+" + clearBonus, "#6FCF97");
           if(wave > best){
             best = wave;
             api.setHighscore(best);
@@ -396,6 +581,7 @@ Strip.register({
       gameOver = true;
       Feedback.buzz("lose");
       waveBtn.disabled = true;
+      selectTower(null);
       msg.textContent = `Base fell at wave ${wave}. Tap Restart.`;
       waveBtn.textContent = "Restart";
       waveBtn.disabled = false;
@@ -404,7 +590,7 @@ Strip.register({
     }
 
     waveBtn.addEventListener("click", () => {
-      if(gameOver){ waveBtn.textContent = "Start wave"; resetGame(); return; }
+      if(gameOver){ resetGame(); return; }
       spawnWave();
     });
 

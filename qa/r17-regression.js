@@ -52,8 +52,14 @@ window.__qa17 = (async () => {
     ok('kingdom: legacy population clamped 6 -> housing cap', /POP4\/4/.test(mounted), mounted);
     ok('kingdom: rest of legacy save preserved', /DAY3/.test(mounted) && /GOLD44/.test(mounted), mounted);
     const adv = [...b.querySelectorAll('button')].find(x => /Advance day/.test(x.textContent));
+    // Round 19 note: Kingdom gained random day events (drought/bandits/etc).
+    // Stub Math.random above the event threshold so this yield pin stays
+    // deterministic — the event layer itself is pinned in qa/r19-regression.js.
+    const realRandom = Math.random;
+    Math.random = () => 0.9;
     adv.click();
     await wait(300);
+    Math.random = realRandom;
     const after = stats(b);
     // 50 + (1 farm * 4) - (4 pop * 1.2) = 49.2 — a double payout would be 53.2
     ok('kingdom: advance pays exactly one farm (49.2, not 53.2)', /FOOD49\.2/.test(after), after);

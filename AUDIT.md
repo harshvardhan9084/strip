@@ -1,7 +1,34 @@
 # AUDIT.md — Round 18 · full compulsion-loop audit of all 50 cartridges
 
-**This run is AUDIT-ONLY.** Nothing in `js/` was changed this round. Every finding below is
-collected here so the next round can fix them one by one, in priority order, without
+> **ROUND 19 STATUS — the fix round ran.** Every P0 deadend and every P1 economy/meta
+> repair below is now IMPLEMENTED and pinned by `qa/r19-regression.js` (10/10 PASS live),
+> with the Round 17 suite still green (6/6) and a 50/50 mount sweep at zero console
+> errors. Fixed this round: **P0 1–4 in full** (TD upgrades/sell/scaling bounties/speed
+> cap/next-wave preview; Blob Merge recycler/spawn-scaling/milestones; Crate Push 20
+> solver-verified levels + level-select grid with PB stars + ALL-CLEAR + seeded daily
+> crate; Trading Post ×1/×10/MAX + auto-traders/caravans/Guild Hall sinks + market
+> events + profit floats/trend arrows/sparklines + milestone toasts), **P1 5–12 in
+> full** (Garden 9-species seed shop/death/compost/sprinkler ladder; Kingdom escalating
+> costs/events/era titles/death recap; Blackjack bank-peak meta/scaling chips/double-down/
+> streak bonus; Lexicle 900+ word guess list + daily-seeded word; Aquarium species album/
+> coins/decor sinks/release escape; Artillery 3-HP duels/near-miss readouts/streak meta;
+> Drop Four & Pong Duel best-streak records (+ Drop Four difficulty tiers & undo, Pong
+> difficulty tiers & match-point cue); Minesweeper 3-field ladder/wins/ALL-CLEAR banner),
+> and the **P2 head of the queue**: 2048 WIN overlay + 4096/8192 colors + milestone pops,
+> Blockfall TETRIS banner + screen kick, Chain Link GOOD/GREAT/EPIC titles, Snake/Flap
+> Dot/Stack Tower/Color Snap difficulty ramps (+ Stack Tower PERFECT streaks with width
+> regen), Bubble Shooter NEXT-bubble preview, Unscramble & Color Lab real bests (streak /
+> fewest-tweaks), Would You Rather vote-reset valve, Spinner top-RPM persistence, Reaction
+> rolling average + honest baseline, Plinko total display. **Deferred to Round 20** (the
+> remaining P2 tail): board-size ladders for Memory Match / Lights Out / Slide Puzzle /
+> Maze / Mini Sudoku / Code Breaker, Trivia 10-question runs, Type Speed accuracy gate,
+> This-or-That profile decision, Random Fact favorites, Etch/Kaleidoscope save-PNG,
+> Breathe daily counter, Tone Pad loop recording, Physics Drop square-collision honesty,
+> Whack-a-Mole multi-mole waves, Breakout brick HP tiers. The audit text below is kept
+> verbatim as the original findings; the fix queue at the bottom is the executed plan.
+
+**This run (Round 18) was AUDIT-ONLY.** Nothing in `js/` was changed that round. Every finding below is
+collected so the fix rounds could burn them down one by one, in priority order, without
 re-deriving any of the analysis.
 
 Method: every game file was read end-to-end with a player's eye, not a code-reviewer's eye.

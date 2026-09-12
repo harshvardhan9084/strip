@@ -142,6 +142,12 @@ Strip.register({
         Feedback.tone("success"); Feedback.haptic("medium");
         score += chain.length * (chain.length - 1);
         q("#cl-score").textContent = score;
+        // Round 19 (S6): an 8-chain used to land exactly like a 3-chain —
+        // length titles give every tier its own little flagpole
+        const n = chain.length;
+        const title = n >= 12 ? "EPIC" : n >= 8 ? "GREAT" : n >= 5 ? "GOOD" : null;
+        if(title) showChainTitle(title, n);
+        if(n >= 8) Feedback.buzz("win");
         if(score > best){
           best = score;
           api.setHighscore(best);
@@ -151,6 +157,22 @@ Strip.register({
       }
       chain = [];
       render();
+    }
+
+    let chainTitleTimer = null;
+    function showChainTitle(text, n){
+      let t = boardWrap.querySelector(".cl-title");
+      if(!t){
+        t = document.createElement("div");
+        t.className = "cl-title";
+        t.style.cssText = "position:absolute; left:0; right:0; top:40%; text-align:center; font-family:var(--font-display); font-size:16px; letter-spacing:2px; pointer-events:none; z-index:10; text-shadow:0 2px 8px rgba(0,0,0,.7);";
+        boardWrap.appendChild(t);
+      }
+      t.textContent = `${text} ×${n}`;
+      t.style.color = n >= 12 ? "#FFB347" : "#8B7FE8";
+      t.style.opacity = "1";
+      clearTimeout(chainTitleTimer);
+      chainTitleTimer = setTimeout(() => { t.style.opacity = "0"; t.style.transition = "opacity .5s"; }, 850);
     }
 
     function applyGravity(){

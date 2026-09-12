@@ -40,6 +40,7 @@ Strip.register({
     }
 
     let snake, dir, nextDir, food, score, running, tickId;
+    let currentTick = 160; // live tick — ramps down as the score climbs
 
     function idx(r,c){ return r*SIZE+c; }
 
@@ -110,6 +111,14 @@ Strip.register({
         Feedback.tone("pop"); Feedback.haptic("light");
         q("#sn-score").textContent = score;
         placeFood();
+        // Round 19 (S3): the genre's escalation IS the speed ramp — every 5
+        // food the tick drops 12 ms toward a 90 ms floor
+        const target = Math.max(90, 160 - Math.floor(score / 5) * 12);
+        if(target !== currentTick){
+          currentTick = target;
+          clearInterval(tickId);
+          tickId = setInterval(step, currentTick);
+        }
         if(!running) return; // board filled — win() already cleaned up
       } else {
         snake.pop();
@@ -163,7 +172,8 @@ Strip.register({
 
     startBtn.addEventListener("click", () => {
       newGame();
-      tickId = setInterval(step, 160);
+      currentTick = 160;
+      tickId = setInterval(step, currentTick);
     });
 
     snake = [[7,7],[7,6],[7,5]];

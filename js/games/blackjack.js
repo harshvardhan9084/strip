@@ -18,6 +18,12 @@ Strip.register({
     let deck = [], player = [], dealer = [], phase = "bet"; // bet | play | done
     let holeRevealed = false;
     let settleTimer = null;
+    let streak = saved && Number.isFinite(saved.streak) ? saved.streak : 0;
+
+    // Round 19 (AUDIT.md — Blackjack P1): the deck's most session-sticky game
+    // had NO highscore hook at all — bank peak now feeds the meta for free;
+    // chips scale with the bank so a 1,000-chip bank isn't 20+ taps (S4);
+    // double-down adds the classic decision; a 5-win streak pays a bonus.
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
@@ -41,23 +47,37 @@ Strip.register({
     table.appendChild(playerRow);
 
     const betRow = document.createElement("div");
-    betRow.style.cssText = "display:flex; gap:8px;";
+    betRow.style.cssText = "display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:290px;";
     wrap.appendChild(betRow);
 
-    CHIPS.forEach(v => {
-      const b = document.createElement("button");
-      b.className = "btn";
-      b.textContent = "+" + v;
-      b.style.minWidth = "48px";
-      b.addEventListener("click", () => {
-        if(phase !== "bet") return;
-        if(bet + v > bank){ msgEl.textContent = "not enough chips"; return; }
-        bet += v;
-        Feedback.tone("tap"); Feedback.haptic("light");
-        render();
+    // denominations scale with the bank — richer players think in bigger chips
+    function chipValues(){
+      const v = [10, 25, 50];
+      if(bank >= 400) v.push(100);
+      if(bank >= 2000) v.push(500);
+      return v;
+    }
+    let chipBtns = [];
+    function rebuildChips(){
+      chipBtns.forEach(b => b.remove());
+      chipBtns = [];
+      chipValues().forEach(v => {
+        const b = document.createElement("button");
+        b.className = "btn";
+        b.textContent = "+" + v;
+        b.style.minWidth = "44px";
+        b.addEventListener("click", () => {
+          if(phase !== "bet") return;
+          if(bet + v > bank){ msgEl.textContent = "not enough chips"; return; }
+          bet += v;
+          Feedback.tone("tap"); Feedback.haptic("light");
+          render();
+        });
+        chipBtns.push(b);
+        betRow.insertBefore(b, clearBtn);
       });
-      betRow.appendChild(b);
-    });
+    }
+
 
     const clearBtn = document.createElement("button");
     clearBtn.className = "btn";
@@ -86,6 +106,12 @@ Strip.register({
     standBtn.textContent = "Stand";
     standBtn.addEventListener("click", stand);
     actionRow.appendChild(standBtn);
+
+    const doubleBtn = document.createElement("button");
+    doubleBtn.className = "btn purple";
+    doubleBtn.textContent = "Double";
+    doubleBtn.addEventListener("click", doubleDown);
+    actionRow.appendChild(doubleBtn);
 
     const brokeNote = document.createElement("div");
     brokeNote.style.cssText = "font-size:10px; color:var(--ink-dim); text-align:center;";
@@ -140,13 +166,16 @@ Strip.register({
     }
 
     function render(msg){
-      bankRow.innerHTML = `BANK <span style="color:var(--amber)">${bank}</span> · BET <span style="color:var(--purple)">${bet}</span>`;
+      bankRow.innerHTML = `BANK <span style="color:var(--amber)">${bank}</span> · BET <span style="color:var(--purple)">${bet}</span>` +
+        (streak > 1 ? ` · <span style="color:#6FCF97">streak ×${streak}</span>` : "");
       renderRow(dealerRow, dealer, !holeRevealed && dealer.length);
       renderRow(playerRow, player, false);
+      rebuildChips();
       dealBtn.disabled = phase !== "bet" || bet <= 0;
       hitBtn.disabled = phase !== "play";
       standBtn.disabled = phase !== "play";
-      [dealBtn, hitBtn, standBtn].forEach(b => { b.style.opacity = b.disabled ? ".45" : "1"; });
+      doubleBtn.disabled = phase !== "play" || player.length !== 2 || bank < bet * 2;
+      [dealBtn, hitBtn, standBtn, doubleBtn].forEach(b => { b.style.opacity = b.disabled ? ".45" : "1"; });
       const pv = player.length ? handValue(player) : 0;
       msgEl.textContent = msg || (phase === "play" ? `you: ${pv}` : phase === "bet" ? (bet > 0 ? `betting ${bet} — press Deal` : "place a chip") : "");
     }
@@ -186,8 +215,22 @@ Strip.register({
       }
     }
 
-    function stand(){
+    function doubleDown(){
+      if(phase !== "play" || player.length !== 2 || bank < bet * 2) return;
+      // the classic gamble: exactly one more card, stake doubled, then stand
+      player.push(draw());
+      const pv = handValue(player);
+      if(pv > 21){
+        holeRevealed = true;
+        settle(-bet * 2, "doubled and busted at " + pv);
+      } else {
+        stand(2); // double stakes flow through the normal dealer resolution
+      }
+    }
+
+    function stand(stakeMult){
       if(phase !== "play") return;
+      stakeMult = stakeMult || 1;
       holeRevealed = true;
       // dealer draws to 17 and stands on ALL 17s including soft (S17 — the
       // player-friendly standard; H17 would have the dealer hit soft 17)
@@ -196,23 +239,39 @@ Strip.register({
         render("dealer draws…");
       }
       const dv = handValue(dealer), pv = handValue(player);
-      if(dv > 21) settle(bet, "dealer busts at " + dv + " — you win!");
-      else if(dv > pv) settle(-bet, "dealer " + dv + " beats your " + pv);
-      else if(dv < pv) settle(bet, "you win " + pv + " vs " + dv + "!");
+      const stake = bet * stakeMult;
+      if(dv > 21) settle(stake, "dealer busts at " + dv + " — you win!");
+      else if(dv > pv) settle(-stake, "dealer " + dv + " beats your " + pv);
+      else if(dv < pv) settle(stake, "you win " + pv + " vs " + dv + "!");
       else settle(0, "push — bet returned");
     }
 
     function settle(delta, msg){
       phase = "done";
       bank += delta;
-      if(delta > 0) Feedback.buzz("win");
-      else if(delta < 0) Feedback.buzz("lose");
-      else Feedback.tone("ok"); // a push is neither a win nor a loss — neutral
-      api.save({ bank });
+      if(delta > 0){
+        Feedback.buzz("win");
+        streak++;
+        // the streak meter pays: every 5th consecutive win tips a bonus
+        if(streak > 0 && streak % 5 === 0){
+          bank += 50;
+          msg += " · 5-STREAK BONUS +50";
+          Feedback.buzz("win");
+        }
+      } else if(delta < 0){
+        Feedback.buzz("lose");
+        streak = 0;
+      } else {
+        Feedback.tone("ok"); // a push is neither a win nor a loss — neutral
+      }
+      // the meta finally sees this game: bank peak is the highscore (max-wins
+      // store, so every settle just reports and the store keeps the peak)
+      api.setHighscore(Math.max(0, bank));
+      api.save({ bank, streak });
       settleTimer = setTimeout(() => {
         phase = "bet";
         bet = Math.min(bet, bank);
-        if(bank < 10) bank += 200;
+        if(bank < 10){ bank += 200; streak = 0; }
         render();
       }, 1600);
       render(msg + (bank < 10 ? " · restaked 200" : ""));

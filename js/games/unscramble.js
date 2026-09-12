@@ -47,6 +47,9 @@ Strip.register({
     container.appendChild(wrap);
 
     let word, scrambled, chosen, solvedCount = 0;
+    let runStreak = 0; // consecutive solves; a skip or a wrong word breaks it
+    // Round 19 (S7 fix): BEST was lifetime SOLVED mirrored back (always equal
+    // — meaningless). Now it's a real streak record.
 
     function shuffle(arr){
       const a = arr.slice();
@@ -109,20 +112,22 @@ Strip.register({
       if(guess === word){
         Feedback.buzz("success");
         solvedCount++;
+        runStreak++;
         q("#us-score").textContent = solvedCount;
-        api.setHighscore(solvedCount).then(v => {
+        api.setHighscore(runStreak).then(v => {
           best = v;
           q("#us-best").textContent = best;
         });
         setTimeout(newWord, 500);
       } else {
         Feedback.tone("fail"); Feedback.haptic("medium");
+        runStreak = 0;
         setTimeout(() => { chosen = []; renderLetters(); renderAnswer(); }, 400);
       }
     }
 
     clearBtn.addEventListener("click", () => { chosen = []; renderLetters(); renderAnswer(); });
-    skipBtn.addEventListener("click", newWord);
+    skipBtn.addEventListener("click", () => { runStreak = 0; newWord(); });
 
     newWord();
   }

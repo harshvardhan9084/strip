@@ -1099,3 +1099,69 @@ WEEK RIPPLE toast.
   adoption-time todayId (which is tomorrow's pick after a day flip).
 - Comment hygiene on the `online` hatch (IDB reads don't need the network).
 - sw v15 → v16. Final sweep clean, console clean.
+
+## Round 19 — AUDIT.md executed: every P0 deadend + P1 economy repair + P2 head fixed
+
+- **Tower Defense** (the wave-17 wall): tap your own tower → upgrade panel
+  (+40% dmg / +6% range / +5% rate per level, 4 levels, cost base×1.6^lvl,
+  SELL refunds 70% of everything invested and re-opens the BFS route);
+  kill bounty 4+⌊W/2⌋, clear bonus 15+3W, enemy speed capped 1.5,
+  next-wave preview on the Start button; upgrade pips under towers.
+- **Blob Merge** (the 1-2-3-4 plateau): RECYCLER — drag a blob off-board to
+  bank (stage+1)² and clear the cell (singletons are no longer dead
+  weight); spawn scaling (15% junk at stage k−3..k−2 once best ≥ 3);
+  NEW MAX milestone banners + float chips; maxStageEver persisted.
+- **Crate Push** ("only 5 levels"): 20 levels — 15 new boards ALL verified
+  solvable by a BFS/push-A* solver (scripts/verify_game_levels.js re-checks
+  the shipped array; finale = 9-push A* proof); solver-derived pars with
+  ★ stars; level-select grid with per-level PBs; ALL-CLEAR ceremony
+  (total moves + star tally); seeded DAILY CRATE with a streak.
+- **Trading Post** (100-click printer, gold with no purpose): ×1/×10/MAX
+  bulk trades; sinks with depth — auto-traders (≤5, 3g/s each), caravans
+  (250/1000g, 30s, bandit risk, Guild t2 → 21s/7%), Guild Hall 5k/25k/100k
+  ladder (Broker +10% sells / Cartographer / Guild Master ×2 traders);
+  market events (festival/rush/blut/glut, ~2min cadence); ▲▼ trend arrows,
+  profit floats, 30-tick price sparklines, milestone toasts (1k/10k/100k/1M);
+  mean-reverting price wobble breaks the pure-sine certainty.
+- **Garden**: 9-species seed shop with price/yield/grow-time tradeoffs,
+  species album counter, plant DEATH + compost (+3), sprinkler ladder
+  (300g/1200g) as the deep coin sink.
+- **Kingdom**: escalating build costs (×1.35/built), random day events
+  (drought/bandits/traders/blessed harvest/wanderers), era titles
+  (Hamlet→Metropolis) with fanfare, death RECAP card ("lasted N days,
+  peaked at P — a Town").
+- **Blackjack**: bank-peak highscore (meta hook), chip denominations scale
+  with bank (+100 at 400, +500 at 2000), Double Down, 5-win-streak bonus.
+- **Lexicle**: 900+ word GUESS dictionary (ARISE/ADIEU/IRATE accepted —
+  the audit's live-proven BLOCKING), daily-seeded word + once-per-day
+  streak, free-play mode preserved.
+- **Aquarium**: 8 species with rarity+value (grown fish pay once), species
+  album, coins from growth, decor sinks (plant/castle/gems), two-tap
+  RELEASE makes room (the terminal-8 escape), full-tank fry-fund payout.
+- **Artillery**: 3-HP duels with hull pips, near-miss readouts
+  ("34px SHORT — add power"), win-streak highscore.
+- **Drop Four / Pong Duel**: best-streak recorded via setHighscore (defeats
+  no longer erase history); Drop Four easy/normal/hard AI + Undo; Pong
+  chill/classic/feral AI speeds + MATCH POINT pulse + hot-ball tint.
+- **Minesweeper**: 3-field ladder (8×8/10 → 12×10/24 → 16×14/40) with
+  per-size bests (rookie feeds the inverted store), wins + streak,
+  FIELD CLEARED banner with NEW BEST flag.
+- **P2 head**: 2048 WIN overlay (Continue) + 4096/8192 colors + 1k pops;
+  Blockfall TETRIS banner + screen kick (+TRIPLE); Chain Link
+  GOOD/GREAT/EPIC titles; Snake/Flap Dot/Stack Tower/Color Snap ramps
+  (160→90ms, gap 90→70 & speed 2.2→3.0, 2.6→4.6 px/f + PERFECT ×N width
+  regen, 1600→600ms Stroop); Bubble Shooter NEXT-bubble preview;
+  Unscramble streak-best & Color Lab fewest-tweaks-best (dead bests fixed);
+  Would You Rather vote-reset valve; Spinner top-RPM record; Reaction
+  last-5 average + ~250ms baseline; Plinko TOTAL displayed.
+- **QA**: `qa/r19-regression.js` (NEW) pins 10 invariants live — TD
+  upgrade panel + cost ladder, blob recycle, sokoban 20-level grid +
+  daily, tradingpost ×10 one-click trade, kingdom event layer, lexicle
+  ARISE acceptance, minesweeper ladder rebuild → **10/10 PASS**.
+  `qa/r17-regression.js` still green (6/6, kingdom advance now stubs
+  Math.random above the event threshold). 50/50 mount sweep, zero console
+  errors. All files node --check clean. sw v17 → v18.
+- Deferred to Round 20 (P2 tail): size ladders (Memory/LightsOut/Slide/
+  Maze/Sudoku/CodeBreaker), Trivia runs, TypeSpeed accuracy, This-or-That
+  profile, RandomFact favorites, Etch/Kaleido save-PNG, Breathe counter,
+  TonePad loop, PhysicsDrop collision, WhackMole waves, Breakout HP tiers.

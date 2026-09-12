@@ -174,8 +174,39 @@ Strip.register({
           restartGravity();
         }
         statUpdate();
-        Feedback.buzz("win");
+        // Round 19 (S6): a TETRIS is the genre's biggest dopamine event and it
+        // used to score silently — now the banner names it and the screen kicks
+        if(cleared === 4){
+          Feedback.buzz("win");
+          Feedback.haptic([15, 40, 25]);
+          showBanner("TETRIS!", "#FFB347");
+          kickScreen();
+        } else {
+          Feedback.buzz("win");
+          if(cleared === 3) showBanner("TRIPLE", "#8B7FE8");
+        }
       }
+    }
+
+    // one shared banner owner — new call replaces the old text, never stacks
+    let bannerTimer = null;
+    function showBanner(text, color){
+      let b = boardWrap.querySelector(".bf-banner");
+      if(!b){
+        b = document.createElement("div");
+        b.className = "bf-banner";
+        b.style.cssText = "position:absolute; left:0; right:0; top:34%; text-align:center; font-family:var(--font-display); font-size:19px; letter-spacing:2px; pointer-events:none; z-index:10; text-shadow:0 2px 8px rgba(0,0,0,.7);";
+        boardWrap.appendChild(b);
+      }
+      b.textContent = text;
+      b.style.color = color || "#EDEAE3";
+      b.style.opacity = "1";
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(() => { b.style.opacity = "0"; b.style.transition = "opacity .5s"; }, 900);
+    }
+    function kickScreen(){
+      boardWrap.style.transform = "translateY(3px)";
+      setTimeout(() => { boardWrap.style.transform = ""; }, 90);
     }
 
     function gravity(){

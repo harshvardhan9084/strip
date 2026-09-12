@@ -25,11 +25,14 @@ Strip.register({
       day: 1, gold: 20, food: 30, population: 4, // 4 == 1 house x POP_CAP_PER_HOUSE — the old 6/4 violated the game's own housing cap on every fresh boot
       farms: 1, mines: 0, houses: 1,
       assign: { farm: 1, mine: 0 }, // 1 == farms built; the old default assigned 2 workers to 1 farm
+      peakPop: 4, collapsed: false,
     });
     const saved = await api.load();
     const state = saved ? Object.assign(mkState(), saved) : mkState();
     // assign must never alias anything nested in `saved` either
     state.assign = Object.assign({ farm: 1, mine: 0 }, state.assign);
+    if(!Number.isFinite(state.peakPop)) state.peakPop = state.population;
+    state.collapsed = !!state.collapsed;
     // MIGRATION CLAMP: old saves predate the cap fixes — a legacy save can
     // carry population 6 with 1 house (POP 6/4) and 2 farmers on 1 farm.
     // The old code left those on screen until famine and even paid double
@@ -39,8 +42,21 @@ Strip.register({
     state.assign.farm = Math.min(state.assign.farm, state.farms, state.population);
     state.assign.mine = Math.min(state.assign.mine, state.mines, state.population - state.assign.farm);
     let best = await api.getHighscore(); // best = longest survived day count
-    const BUILD_COST = { farms: 15, mines: 20, houses: 25 };
+    const BUILD_BASE = { farms: 15, mines: 20, houses: 25 };
+    // Round 19 (AUDIT.md — Kingdom P1): flat build costs exhausted gold's
+    // purpose around day 10, after which mines printed a dead currency. Costs
+    // now escalate ×1.35 per built, so the Nth farm genuinely costs a plan.
+    const buildCost = (key) => Math.round(BUILD_BASE[key] * Math.pow(1.35, state[key]));
     const FARM_YIELD = 4, MINE_YIELD = 3, FOOD_UPKEEP_PER_POP = 1.2;
+    // era goals — the progression ladder the audit said was missing
+    const ERAS = [
+      { pop: 4,  title: "Hamlet" },
+      { pop: 10, title: "Village" },
+      { pop: 18, title: "Town" },
+      { pop: 30, title: "City" },
+      { pop: 50, title: "Metropolis" },
+    ];
+    function eraFor(pop){ let e = ERAS[0]; for(const x of ERAS){ if(pop >= x.pop) e = x; } return e; }
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:300px;";
@@ -61,10 +77,20 @@ Strip.register({
     note.style.cssText = "font-size:11px; color:var(--ink-dim); min-height:16px; text-align:center;";
     wrap.appendChild(note);
 
+    // era line — the audit's missing progression ladder, visible at a glance
+    const eraEl = document.createElement("div");
+    eraEl.style.cssText = "font-size:10px; color:var(--purple); min-height:14px; text-align:center;";
+    wrap.appendChild(eraEl);
+
     const advanceBtn = document.createElement("button");
     advanceBtn.className = "btn accent";
     advanceBtn.textContent = "Advance day →";
     wrap.appendChild(advanceBtn);
+
+    // collapse recap overlay — mounted over the assign box, shown on death
+    const recap = document.createElement("div");
+    recap.style.cssText = "display:none; position:relative; margin-top:-2px; width:100%; background:var(--panel-2); border:1px solid var(--danger); border-radius:12px; padding:14px 10px; flex-direction:column; align-items:center; gap:8px;";
+    wrap.appendChild(recap);
 
     const resetBtn = document.createElement("button");
     resetBtn.className = "btn";
@@ -81,6 +107,7 @@ Strip.register({
     function fmt(n){ return Math.round(n*10)/10; }
 
     function renderStats(){
+      const era = eraFor(state.population);
       statRow.innerHTML = `
         <div>DAY<br><span style="color:var(--ink); font-size:12px;">${state.day}</span></div>
         <div>GOLD<br><span style="color:var(--amber); font-size:12px;">${fmt(state.gold)}</span></div>
@@ -88,9 +115,11 @@ Strip.register({
         <div>POP<br><span style="color:var(--purple); font-size:12px;">${state.population}/${state.houses*POP_CAP_PER_HOUSE}</span></div>
         <div>BEST<br><span style="color:var(--ink-dim); font-size:12px;">${best}</span></div>
       `;
+      eraEl.textContent = `the ${era.title} of day ${state.day} · next era at pop ${ERAS[Math.min(ERAS.indexOf(era)+1, ERAS.length-1)].pop}`;
     }
 
     function renderAssign(){
+      if(state.collapsed) { assignBox.innerHTML = ""; return; } // the dead assign no one
       assignBox.innerHTML = `<div style="font-size:10px; color:var(--ink-dim); margin-bottom:2px;">WORKERS · ${idleWorkers()} idle</div>`;
       [["farm","🌾 Farms",state.farms],["mine","⛏ Mines",state.mines]].forEach(([key,label,built]) => {
         const row = document.createElement("div");
@@ -131,18 +160,20 @@ Strip.register({
 
     function renderBuild(){
       buildRow.innerHTML = "";
+      if(state.collapsed) return; // a dead kingdom builds nothing
       [["farms","🌾 Farm"],["mines","⛏ Mine"],["houses","🏠 House"]].forEach(([key,label]) => {
         const btn = document.createElement("button");
         btn.className = "btn purple";
         btn.style.fontSize = "11px";
-        const c = BUILD_COST[key];
+        const c = buildCost(key);
         btn.textContent = `${label} (${c}g)`;
         btn.disabled = state.gold < c;
         btn.style.opacity = btn.disabled ? 0.5 : 1;
         btn.addEventListener("click", () => {
-          if(state.gold < c) return;
+          const cost = buildCost(key);
+          if(state.gold < cost) return;
           Feedback.tone("place"); Feedback.haptic("medium");
-          state.gold -= c;
+          state.gold -= cost;
           state[key]++;
           persist();
           renderAll();
@@ -152,6 +183,7 @@ Strip.register({
     }
 
     function advance(){
+      if(state.collapsed) return; // the kingdom is dead until re-founded
       // CLAMP FIRST, then compute yields — the old order paid the yield for
       // over-cap assignments (a legacy 2-farmers-on-1-farm save earned double
       // on its first Advance before the clamp silently ate the extra worker)
@@ -173,7 +205,6 @@ Strip.register({
         Feedback.buzz("error");
         note.textContent = `Famine! Lost ${starved} population`;
       } else {
-        note.textContent = "";
         // growth: surplus food attracts new population, capped by housing
         if(state.food > state.population * 3 && state.population < state.houses * POP_CAP_PER_HOUSE){
           state.population++;
@@ -181,17 +212,59 @@ Strip.register({
         }
       }
 
+      // Round 19: random events — the audit's "no threat after equilibrium"
+      // fix. The day can now surprise you in both directions.
+      const prevEra = eraFor(state.population);
+      if(Math.random() < 0.28){
+        const roll = Math.random();
+        if(roll < 0.22 && state.food > 4){
+          const lost = Math.ceil(state.food * 0.2);
+          state.food -= lost;
+          note.textContent = `☀ Drought — ${lost} food spoiled`;
+        } else if(roll < 0.44 && state.gold > 6){
+          const lost = Math.max(4, Math.ceil(state.gold * 0.3));
+          state.gold -= lost;
+          note.textContent = `🏴 Bandits! — ${lost} gold stolen`;
+        } else if(roll < 0.66){
+          const gain = 3 + state.assign.mine * 2;
+          state.gold += gain;
+          note.textContent = `🧳 Traders passed — +${gain} gold`;
+        } else if(roll < 0.85){
+          state.food += farmYield;
+          note.textContent = `🌾 Blessed harvest — +${farmYield} food`;
+        } else if(state.population < state.houses * POP_CAP_PER_HOUSE){
+          state.population++;
+          note.textContent = `🚶 Wanderers joined — +1 population`;
+        } else {
+          note.textContent = `🚶 Wanderers passed by — no room to stay`;
+        }
+        Feedback.tone("ok");
+      } else if(!note.textContent.startsWith("Famine")){
+        note.textContent = "";
+      }
+
+      state.peakPop = Math.max(state.peakPop, state.population);
       state.day++;
+
+      // era fanfare — crossing a population threshold is the game's milestone
+      const newEra = eraFor(state.population);
+      if(newEra !== prevEra && !state.collapsed){
+        Feedback.buzz("win");
+        note.textContent = `👑 Your settlement is now a ${newEra.title}!`;
+      }
+
       if(state.population <= 0){
-        note.textContent = "Your kingdom has collapsed. Starting fresh.";
+        // collapse now freezes the run behind a RECAP CARD — the one dramatic
+        // moment this game can produce used to reset with a one-line note (S8)
+        state.collapsed = true;
         Feedback.buzz("lose");
-        api.setHighscore(state.day).then(v => { best = v; renderAll(); });
-        resetState();
+        api.setHighscore(state.day - 1 >= 0 ? state.day - 1 : 0).then(v => { best = v; });
+        showRecap();
       } else if(state.day > best){
         best = state.day;
         api.setHighscore(best);
         Feedback.tone("success"); Feedback.haptic("medium");
-      } else {
+      } else if(!state.collapsed){
         Feedback.tone("tap"); Feedback.haptic("light");
       }
 
@@ -199,8 +272,41 @@ Strip.register({
       renderAll();
     }
 
+    // the tombstone: "your kingdom lasted 34 days" with the run's shape on it
+    function showRecap(){
+      recap.innerHTML = "";
+      const t = document.createElement("div");
+      t.style.cssText = "font-family:var(--font-display); font-size:15px; color:var(--danger); letter-spacing:1px;";
+      t.textContent = "THE KINGDOM HAS FALLEN";
+      const era = eraFor(state.peakPop);
+      const s = document.createElement("div");
+      s.style.cssText = "font-size:11px; color:var(--ink); line-height:1.9; text-align:center;";
+      s.innerHTML = `it lasted <b style="color:var(--amber)">${state.day - 1} days</b><br>peaked at <b style="color:var(--purple)">${state.peakPop} people</b> — a ${era.title}<br>best reign: <b>${best} days</b>`;
+      const b = document.createElement("button");
+      b.className = "btn accent";
+      b.textContent = "Found a new kingdom";
+      b.addEventListener("click", () => {
+        state.collapsed = false;
+        recap.style.display = "none";
+        resetState();
+        persist();
+        renderAll();
+      });
+      recap.appendChild(t); recap.appendChild(s); recap.appendChild(b);
+      recap.style.display = "flex";
+    }
+
     function renderAll(){
       renderStats();
+      if(state.collapsed){
+        showRecap();
+        advanceBtn.disabled = true;
+        advanceBtn.style.opacity = 0.4;
+      } else {
+        if(recap.style.display === "flex"){ recap.style.display = "none"; }
+        advanceBtn.disabled = false;
+        advanceBtn.style.opacity = 1;
+      }
       renderAssign();
       renderBuild();
     }
@@ -221,11 +327,14 @@ Strip.register({
 
     advanceBtn.addEventListener("click", advance);
     resetBtn.addEventListener("click", () => {
+      state.collapsed = false;
+      recap.style.display = "none";
       resetState();
       persist();
       renderAll();
     });
 
+    // a legacy save can mount already-collapsed (crashed mid-recap) — show it
     renderAll();
   }
 });
