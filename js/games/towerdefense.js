@@ -169,6 +169,23 @@ Strip.register({
       if(r>=0 && r<ROWS && c>=0 && c<COLS) placeTower(r,c);
     });
 
+    // Range preview: the enemy route used to be invisible and towers showed no
+    // reach at all — a first-time player had no way to make an informed
+    // placement (my own QA run leaked 7 lives to a tower that could never
+    // fire). The BFS route is now drawn as a dotted trail, every built tower
+    // wears a range ring, and on hover the selected tower type previews its
+    // exact reach (and whether the spot is legal) before you commit gold.
+    let hoverCell = null;
+    canvas.addEventListener("pointermove", (e) => {
+      if(e.pointerType !== "mouse") return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = (COLS*CELL) / rect.width, scaleY = (ROWS*CELL) / rect.height;
+      const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+      const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
+      hoverCell = (r>=0 && r<ROWS && c>=0 && c<COLS) ? { r, c } : null;
+    });
+    canvas.addEventListener("pointerleave", () => { hoverCell = null; });
+
     function cellCenter(r,c){ return { x: c*CELL + CELL/2, y: r*CELL + CELL/2 }; }
 
     function spawnWave(){
@@ -202,8 +219,14 @@ Strip.register({
         ctx.fillRect(c*CELL, r*CELL, CELL, CELL);
       }
       if(path){
-        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        ctx.fillStyle = "rgba(255,255,255,0.055)";
         path.forEach(p => ctx.fillRect(p.c*CELL, p.r*CELL, CELL, CELL));
+        // dotted centerline: readable at a glance without shouting
+        ctx.fillStyle = "rgba(237,234,227,0.16)";
+        path.forEach(p => {
+          const {x,y} = cellCenter(p.r, p.c);
+          ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
+        });
       }
       ctx.fillStyle = "#6FCF97";
       ctx.fillRect(spawnPoint.c*CELL+4, spawnPoint.r*CELL+4, CELL-8, CELL-8);
@@ -213,11 +236,37 @@ Strip.register({
       towers.forEach(t => {
         const type = TOWER_TYPES[t.type];
         const {x,y} = cellCenter(t.r,t.c);
+        // range ring under every built tower — you can see what you already cover
+        ctx.strokeStyle = type.color + "2e"; // hex alpha: faint but visible on both skins
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, type.range*CELL, 0, Math.PI*2); ctx.stroke();
         ctx.fillStyle = type.color;
         ctx.beginPath();
         ctx.arc(x,y, CELL*0.32, 0, Math.PI*2);
         ctx.fill();
       });
+
+      // hover ghost: exact reach of the selected type at the hovered cell.
+      // Deliberately shown DURING waves too — mid-wave building is the core
+      // Tower Defense decision, which is exactly when reach matters most.
+      if(hoverCell && !gameOver){
+        const type = TOWER_TYPES[selectedType];
+        const {x,y} = cellCenter(hoverCell.r, hoverCell.c);
+        const legal = canPlace(hoverCell.r, hoverCell.c) && gold >= type.cost;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = legal ? type.color + "88" : "rgba(232,99,127,0.5)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(x, y, type.range*CELL, 0, Math.PI*2); ctx.stroke();
+        // splash towers preview their blast radius too — splash is a cannon's
+        // whole selling point, so the ghost shows the inner damage circle
+        if(type.splash > 0){
+          ctx.setLineDash([2, 4]);
+          ctx.beginPath(); ctx.arc(x, y, type.splash*CELL, 0, Math.PI*2); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        ctx.fillStyle = legal ? type.color + "44" : "rgba(232,99,127,0.14)";
+        ctx.beginPath(); ctx.arc(x, y, CELL*0.32, 0, Math.PI*2); ctx.fill();
+      }
 
       enemies.forEach(e => {
         ctx.fillStyle = "#fff";

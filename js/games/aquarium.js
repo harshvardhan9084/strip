@@ -85,7 +85,16 @@ Strip.register({
     }, 20000);
 
     tank.addEventListener("click", (e) => {
-      if(state.food <= 0) return;
+      if(state.food <= 0){
+        // dead-tap honesty: say why nothing happened instead of staying silent
+        const out = document.createElement("div");
+        out.textContent = "no food left";
+        out.style.cssText = "position:absolute; left:50%; top:12px; transform:translateX(-50%); font-size:11px; color:var(--danger); pointer-events:none; animation:aq-float .8s ease forwards;";
+        tank.appendChild(out);
+        setTimeout(() => out.remove(), 850);
+        Feedback.haptic("light");
+        return;
+      }
       Feedback.tone("pop"); Feedback.haptic("light");
       state.food--;
       q("#aq-food").textContent = state.food;
@@ -108,6 +117,14 @@ Strip.register({
       renderFish();
       persist();
     });
+
+    // own keyframes — never borrow another cartridge's <style> node
+    if(!document.getElementById("aq-keyframes")){
+      const style = document.createElement("style");
+      style.id = "aq-keyframes";
+      style.textContent = `@keyframes aq-float{ from{opacity:1; transform:translate(-50%,0);} to{opacity:0; transform:translate(-50%,-22px);} }`;
+      document.head.appendChild(style);
+    }
 
     function persist(){
       state.lastSeen = Date.now();

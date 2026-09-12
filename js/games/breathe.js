@@ -79,6 +79,11 @@ Strip.register({
     }
 
     toggleBtn.addEventListener("click", () => running ? stop() : start());
+    // the label says "Tap to begin" ON the stage — so the stage itself must
+    // honor it. Tapping the circle/stage now toggles exactly like the button
+    // (the old stage was inert, which made the label a lie).
+    stage.style.cursor = "pointer";
+    stage.addEventListener("click", () => running ? stop() : start());
 
     return () => clearTimeout(timeoutId);
   }

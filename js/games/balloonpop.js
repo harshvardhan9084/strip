@@ -114,6 +114,7 @@ Strip.register({
     }
 
     function endGame(){
+      if(!running) return; // guard: End button and countdown can both call this
       running = false;
       Feedback.tone("toggle");
       clearTimeout(spawnTimer);
@@ -132,13 +133,19 @@ Strip.register({
       score = 0; timeLeft = 60; running = true;
       q("#bp-score").textContent = 0;
       q("#bp-time").textContent = 60;
-      startBtn.disabled = true;
-      startBtn.textContent = "Popping…";
+      startBtn.disabled = false;
+      startBtn.textContent = "End round";
       spawnLoop();
       countdownTimer = setInterval(tickCountdown, 1000);
     }
 
-    startBtn.addEventListener("click", start);
+    startBtn.addEventListener("click", () => {
+      // one button, honest states: idle = Start, mid-round = quit early (the
+      // old 60s round had NO exit — scrolling away was the only escape),
+      // finished = Play again
+      if(running) endGame();
+      else start();
+    });
 
     return () => {
       clearTimeout(spawnTimer);

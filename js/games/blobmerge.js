@@ -12,7 +12,13 @@ Strip.register({
     let best = await api.getHighscore();
     const COLS = 4, ROWS = 5;
     const CELL = 56;
-    const STAGE_COLORS = ["#7A5A22","#9A6A1E","#C07E1A","#FFB347","#8B7FE8","#5D54A0","#E8637F"];
+    // 10 stages of paint: the merge chain now has a stated GOAL (a stage-8
+    // MEGA BLOB) instead of an unreachable "no moves" endstate — with the
+    // corrected merge rule a full board always holds a mergeable pair
+    // (pigeonhole over the stage ladder), so the old game-over was dead code
+    // and the game had no target at all.
+    const STAGE_COLORS = ["#7A5A22","#9A6A1E","#C07E1A","#FFB347","#8B7FE8","#5D54A0","#E8637F","#56B4E9","#6FCF97","#F2A65A"];
+    const WIN_STAGE = 7; // 0-indexed → the number shown on the blob is stage+1
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
@@ -21,6 +27,13 @@ Strip.register({
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
     statRow.innerHTML = `<div>SCORE <span id="bm-score" style="color:var(--amber)">0</span></div><div>BEST <span id="bm-best" style="color:var(--purple)">${best}</span></div>`;
     wrap.appendChild(statRow);
+
+    // goal line: states the actual objective + carries the MEGA BLOB win note
+    const noteEl = document.createElement("div");
+    noteEl.id = "bm-note";
+    noteEl.style.cssText = "font-size:11px; color:var(--amber); min-height:15px; text-align:center; letter-spacing:.4px;";
+    noteEl.textContent = "goal — grow a blob to 8";
+    wrap.appendChild(noteEl);
 
     const board = document.createElement("div");
     board.style.cssText = `position:relative; width:${COLS*CELL}px; height:${ROWS*CELL}px; background:var(--panel-2); border-radius:12px; touch-action:none;`;
@@ -34,11 +47,12 @@ Strip.register({
     container.appendChild(wrap);
 
     let grid, score;
-    let dragCleanup = null; // removes the window drag listeners if the card unmounts mid-drag
+    let winShown = false; // MEGA BLOB banner shows once per board
 
     function newGame(){
       grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
       score = 0;
+      winShown = false;
       for(let i=0;i<4;i++) addBlob();
       render();
       q("#bm-score").textContent = 0;
@@ -78,35 +92,41 @@ Strip.register({
     }
 
     function attachDrag(el){
-      let startX, startY, origLeft, origTop;
+      let startX, startY, origLeft, origTop, heldPointer = null;
+      // Pointer Events + capture, one handler set per element. History: the
+      // original shared ONE module-level dragCleanup across all blobs, so a
+      // second grab stripped the first blob's listeners mid-drag and leaked
+      // its onUp on window forever (a later touchend could teleport an
+      // unrelated blob with stale cell data). The intermediate fix still let
+      // window-level events wake BOTH held blobs — releasing finger B also
+      // committed finger A's drag. Pointer capture ends the whole class:
+      // after setPointerCapture, move/up events fire ONLY on the capturing
+      // element for THAT pointerId — two thumbs drag two blobs in perfect
+      // isolation, and there are no window listeners left to leak on unmount.
 
       function onDown(e){
-        const t = e.touches ? e.touches[0] : e;
-        startX = t.clientX; startY = t.clientY;
+        if(el._held) return; // this blob is already mid-drag
+        el._held = true;
+        heldPointer = e.pointerId;
+        try{ el.setPointerCapture(e.pointerId); }catch(err){}
+        startX = e.clientX; startY = e.clientY;
         origLeft = parseFloat(el.style.left);
         origTop = parseFloat(el.style.top);
         el.style.zIndex = 10;
         el.style.transition = "none";
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("touchmove", onMove, {passive:false});
-        window.addEventListener("mouseup", onUp);
-        window.addEventListener("touchend", onUp);
-        // so an unmount mid-drag can't leak the window listeners
-        dragCleanup = () => {
-          window.removeEventListener("mousemove", onMove);
-          window.removeEventListener("touchmove", onMove);
-          window.removeEventListener("mouseup", onUp);
-          window.removeEventListener("touchend", onUp);
-        };
       }
       function onMove(e){
-        if(e.cancelable) e.preventDefault();
-        const t = e.touches ? e.touches[0] : e;
-        el.style.left = (origLeft + t.clientX - startX) + "px";
-        el.style.top = (origTop + t.clientY - startY) + "px";
+        if(!el._held || e.pointerId !== heldPointer) return;
+        if(!el.isConnected) return; // render() can replace nodes mid-drag — a detached blob has no cells
+        e.preventDefault();
+        el.style.left = (origLeft + e.clientX - startX) + "px";
+        el.style.top = (origTop + e.clientY - startY) + "px";
       }
-      function onUp(){
-        if(dragCleanup){ dragCleanup(); dragCleanup = null; }
+      function onUp(e){
+        if(!el._held || (e.pointerId !== undefined && e.pointerId !== heldPointer)) return;
+        el._held = false;
+        heldPointer = null;
+        if(!el.isConnected){ return; } // detached mid-drag: nothing to commit, nothing to snap
         el.style.zIndex = 1;
 
         const r = +el.dataset.r, c = +el.dataset.c;
@@ -120,22 +140,31 @@ Strip.register({
           const d = (cellLeft-curLeft)**2 + (cellTop-curTop)**2;
           if(d < bestDist){ bestDist = d; targetRow = rr; targetCol = cc; }
         }
-        const moved = tryMove(r, c, targetRow, targetCol);
+        // pointercancel = the gesture was taken away (incoming call, browser
+        // gesture, element churn) — a cancel is not a drop, so snap home
+        // instead of committing whatever position the finger last touched
+        const cancelled = e.type === "pointercancel";
+        const moved = cancelled ? false : tryMove(r, c, targetRow, targetCol);
         if(!moved){
-          // snap back with a visible bounce so a failed merge is never silent —
-          // this is the direct fix for drops that looked like they "did nothing"
+          // snap back with a visible bounce so a failed merge (or a canceled
+          // gesture) is never silent — this is the direct fix for drops that
+          // looked like they "did nothing"
           el.style.transition = "left .18s cubic-bezier(.34,1.56,.64,1), top .18s cubic-bezier(.34,1.56,.64,1)";
           el.style.left = (c*CELL+4) + "px";
           el.style.top = (r*CELL+4) + "px";
-          Feedback.haptic("medium");
-          Feedback.tone("pop");
+          if(!cancelled){
+            Feedback.haptic("medium");
+            Feedback.tone("pop");
+          }
         } else {
           el.style.transition = "left .15s ease, top .15s ease";
         }
       }
 
-      el.addEventListener("mousedown", onDown);
-      el.addEventListener("touchstart", onDown, {passive:true});
+      el.addEventListener("pointerdown", onDown);
+      el.addEventListener("pointermove", onMove);
+      el.addEventListener("pointerup", onUp);
+      el.addEventListener("pointercancel", onUp);
     }
 
     function tryMove(r, c, tr, tc){
@@ -159,6 +188,14 @@ Strip.register({
           api.setHighscore(best);
           q("#bm-best").textContent = best;
         }
+        // the goal: grow any blob to MEGA (stage 8 shown). Announce once per
+        // blob — the board stays playable and bigger is still possible
+        if(source.stage + 1 === WIN_STAGE + 1 && !winShown){
+          winShown = true;
+          Feedback.buzz("win");
+          noteEl.textContent = "★ MEGA BLOB grown — keep merging for a bigger one";
+          setTimeout(() => { if(noteEl.isConnected) noteEl.textContent = "goal — grow a blob to 8"; }, 5000);
+        }
         addBlob();
         success = true;
       }
@@ -172,12 +209,17 @@ Strip.register({
     }
 
     function anyMergePossible(){
+      // A merge is legal between ANY two same-stage blobs — dragging is
+      // distance-free, not adjacency-based — and any empty cell lets a blob
+      // relocate. So the true "no moves" state is: board full AND no two
+      // blobs share a stage. The old adjacency scan declared game over while
+      // a legal long-range merge still existed (premature restart).
       for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
         const b = grid[r][c];
-        if(!b) return true;
-        const neighbors = [[r+1,c],[r-1,c],[r,c+1],[r,c-1]];
-        for(const [nr,nc] of neighbors){
-          if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc]&&grid[nr][nc].stage===b.stage) return true;
+        if(!b) return true; // an empty cell always leaves repositioning room
+        for(let r2=r;r2<ROWS;r2++) for(let c2=(r2===r?c+1:0);c2<COLS;c2++){
+          const o = grid[r2][c2];
+          if(o && o.stage === b.stage) return true;
         }
       }
       return false;
@@ -187,7 +229,9 @@ Strip.register({
     newGame();
 
     return () => {
-      if(dragCleanup) dragCleanup();
+      // no window listeners exist anymore — pointer capture keeps every drag
+      // on its own element, and removing the element from the DOM ends its
+      // event flow. Nothing to clean up, nothing can leak.
     };
   }
 });

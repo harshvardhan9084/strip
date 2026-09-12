@@ -42,6 +42,18 @@ Strip.register({
     input.autocapitalize = "off";
     input.autocomplete = "off";
     input.spellcheck = false;
+    // honesty guard: a pasted phrase lands in one input event and scores an
+    // absurd WPM (observed 420000 in testing) that then sits on the BEST line
+    // forever. Typing is the entire point of the cartridge — block paste and
+    // say so, instead of silently accepting a meaningless record.
+    input.addEventListener("paste", (e) => {
+      e.preventDefault();
+      Feedback.buzz("error");
+      input.placeholder = "No pasting — type it out!";
+      setTimeout(() => { input.placeholder = "Tap here and start typing…"; }, 1800);
+    });
+    input.addEventListener("drop", (e) => e.preventDefault());
+    input.addEventListener("contextmenu", (e) => e.preventDefault());
     input.style.cssText = `
       width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--line);
       background:var(--bg); color:var(--ink); font-size:14px;

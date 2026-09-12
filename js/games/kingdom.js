@@ -15,20 +15,32 @@ Strip.register({
   tag: "turns",
   hint: "Assign workers, advance the day",
   async mount(container, api){
-    const DEFAULT = {
-      day: 1, gold: 20, food: 30, population: 6,
+    // Factory, not a shared template. The old DEFAULT object got ALIASED as
+    // state on a fresh (save-less) mount, so playing mutated the template —
+    // and "New kingdom"'s Object.assign(state, DEFAULT) then restored the
+    // MUTATED values: gold/food/population/buildings never actually reset.
+    // Every state now comes from a fresh object; resets call the factory.
+    const POP_CAP_PER_HOUSE = 4; // declared early so the factory's own defaults provably respect the cap
+    const mkState = () => ({
+      day: 1, gold: 20, food: 30, population: 4, // 4 == 1 house x POP_CAP_PER_HOUSE — the old 6/4 violated the game's own housing cap on every fresh boot
       farms: 1, mines: 0, houses: 1,
-      assign: { farm: 2, mine: 0 },
-    };
+      assign: { farm: 1, mine: 0 }, // 1 == farms built; the old default assigned 2 workers to 1 farm
+    });
     const saved = await api.load();
-    const state = saved ? Object.assign({}, DEFAULT, saved) : DEFAULT;
-    // deep-copy nested defaults on a first mount — Object.assign is shallow,
-    // and state.assign must never alias the local template object
-    state.assign = Object.assign({}, DEFAULT.assign, state.assign);
+    const state = saved ? Object.assign(mkState(), saved) : mkState();
+    // assign must never alias anything nested in `saved` either
+    state.assign = Object.assign({ farm: 1, mine: 0 }, state.assign);
+    // MIGRATION CLAMP: old saves predate the cap fixes — a legacy save can
+    // carry population 6 with 1 house (POP 6/4) and 2 farmers on 1 farm.
+    // The old code left those on screen until famine and even paid double
+    // farm yield for the phantom worker on the first Advance. Sanitize to the
+    // CURRENT rules at mount so every save, old or new, obeys the same game.
+    state.population = Math.min(state.population, state.houses * POP_CAP_PER_HOUSE);
+    state.assign.farm = Math.min(state.assign.farm, state.farms, state.population);
+    state.assign.mine = Math.min(state.assign.mine, state.mines, state.population - state.assign.farm);
     let best = await api.getHighscore(); // best = longest survived day count
     const BUILD_COST = { farms: 15, mines: 20, houses: 25 };
     const FARM_YIELD = 4, MINE_YIELD = 3, FOOD_UPKEEP_PER_POP = 1.2;
-    const POP_CAP_PER_HOUSE = 4;
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:300px;";
@@ -101,6 +113,16 @@ Strip.register({
           const cap = key === "farm" ? state.farms : state.mines;
           if(state.assign[key] < cap && idleWorkers() > 0){ state.assign[key]++; renderAssign(); }
         });
+        // honest disabled state — the old buttons stayed clickable and silently
+        // no-op'd at the cap, which read like the game was broken
+        const capNow = key === "farm" ? state.farms : state.mines;
+        const canPlus = state.assign[key] < capNow && idleWorkers() > 0;
+        const canMinus = state.assign[key] > 0;
+        plus.disabled = !canPlus;
+        minus.disabled = !canMinus;
+        plus.style.opacity = canPlus ? 1 : 0.35;
+        minus.style.opacity = canMinus ? 1 : 0.35;
+        if(!canPlus) plus.title = state.assign[key] >= capNow ? "Fully staffed — build more " + label.toLowerCase() + " to assign" : "No idle workers";
         controls.appendChild(minus); controls.appendChild(val); controls.appendChild(plus);
         row.appendChild(controls);
         assignBox.appendChild(row);
@@ -130,6 +152,12 @@ Strip.register({
     }
 
     function advance(){
+      // CLAMP FIRST, then compute yields — the old order paid the yield for
+      // over-cap assignments (a legacy 2-farmers-on-1-farm save earned double
+      // on its first Advance before the clamp silently ate the extra worker)
+      state.assign.farm = Math.min(state.assign.farm, state.population, state.farms);
+      state.assign.mine = Math.min(state.assign.mine, state.population - state.assign.farm, state.mines);
+
       const farmYield = state.assign.farm * FARM_YIELD;
       const mineYield = state.assign.mine * MINE_YIELD;
       const upkeep = state.population * FOOD_UPKEEP_PER_POP;
@@ -152,9 +180,6 @@ Strip.register({
           state.food -= 5;
         }
       }
-
-      state.assign.farm = Math.min(state.assign.farm, state.population, state.farms);
-      state.assign.mine = Math.min(state.assign.mine, state.population - state.assign.farm, state.mines);
 
       state.day++;
       if(state.population <= 0){
@@ -186,9 +211,12 @@ Strip.register({
     // copied DEFAULT.assign by reference, so every later assignment mutated the
     // shared template and worker allocations leaked across resets.
     function resetState(){
-      Object.assign(state, DEFAULT);
-      state.assign = { farm: 2, mine: 0 };
-      state.day = 1;
+      // rebuild from the FACTORY — Object.assign(state, DEFAULT) restored the
+      // mutated template itself when a fresh mount had aliased it, so gold,
+      // food, population and buildings silently survived "New kingdom".
+      // (mkState() already carries day 1 + the correct assign split.)
+      Object.assign(state, mkState());
+      state.assign = { farm: 1, mine: 0 }; // fresh nested object — never alias the factory's
     }
 
     advanceBtn.addEventListener("click", advance);

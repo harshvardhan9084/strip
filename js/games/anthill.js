@@ -147,7 +147,17 @@ Strip.register({
       `;
       row.addEventListener("click", () => {
         const c = cost(role);
-        if(state.food < c) return;
+        if(state.food < c){
+          // honest feedback instead of a silent no-op — the old button just
+          // did nothing, which read like the game was broken
+          row.style.borderColor = "var(--danger)";
+          spawnFloat(`need ${fmt(c)} food`, row);
+          Feedback.buzz("error");
+          // the card may unmount (scroll away) within the flash window —
+          // refresh() must never touch lookups on a dead card
+          setTimeout(() => { if(container.isConnected) refresh(); }, 700);
+          return;
+        }
         state.food -= c;
         state[role]++;
         if(role === "farmers") state.fertility = 1 + state.farmers * 0.03;
@@ -202,7 +212,13 @@ Strip.register({
     }
 
     function collectVault(){
-      if(state.vault < 1) return;
+      if(state.vault < 1){
+        // an empty-vault tap used to be a dead tap — tell the player why
+        // nothing happened (production fills it while you're away)
+        spawnFloat(state.vault > 0 ? "collects at 1+" : "vault is empty — foragers fill it", vaultBox);
+        Feedback.haptic("light");
+        return;
+      }
       const amount = state.vault;
       state.food += amount;
       state.lifetimeFood += amount;
