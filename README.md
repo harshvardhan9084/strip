@@ -50,21 +50,28 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
   what stays in your best — beat it raw tomorrow (puzzle timers/move-count games keep
   their normal encoding; the twist only ever doubles straightforward higher-is-better
   scores). The tag and the Trophy Case both share the pick — Web Share on phones,
-  copy-to-clipboard elsewhere. A new pick lands at your local midnight, even
+  copy-to-clipboard elsewhere. The Trophy Case recaps your week — which picks you
+  played, and the ones you let slip. A new pick lands at your local midnight, even
   mid-session.
 - **Daily nudge** (Settings, off by default): while Strip is open, a local
   notification pings you when tomorrow's pick lands; tapping it jumps to the pick.
   Honest scope: nothing is scheduled once the app is closed — there's no push
   server, and enabling it asks your browser's permission like any well-behaved
-  site should.
+  site should. If you later revoke that permission in the browser, Settings says
+  so instead of pretending the nudge still works.
 - **Cartridge drawer** (grid icon): the deck's table of contents. Jump straight to any
   cartridge, filter by name, and star the ones you keep coming back to. Favorites and
   recents are remembered on your device. Today's pick carries a little ◆ in the list.
 - **Trophy Case** (cup icon): achievements for exploring — your first cartridge, 10,
   25, all 50; a day with 30 visits; pinning 5 favorites; holding a highscore you went
-  back to; playing the Daily Pick. Purely local, no account, no leaderboards, no
-  streak-shaming. A cartridge you have already explored gets a small glowing dot in
-  the drawer.
+  back to; playing the Daily Pick; 7- and 30-day pick streaks (WEEK RIPPLE and
+  MOON CYCLE — earned retroactively if your streak already counts). Purely local, no
+  account, no leaderboards, no streak-shaming. A cartridge you have already explored
+  gets a small glowing dot in the drawer.
+- **Score sparkline**: the cartridge you're on wears a tiny chart of your last plays
+  and your best, straight from the high-score history Strip keeps anyway. Puzzle
+  games that count moves or seconds show real values plus a visible "FEWER WINS"
+  note, so a downward line reads correctly.
 - **CRT skins**: Settings → CRT skin. Amber (default), Green phosphor, or Violet.
 One tap re-tints the entire console — glows, panels, browser chrome, and (for installed
 PWAs) the launch splash / titlebar color follow along. Games keep their own colors;

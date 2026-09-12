@@ -20,6 +20,7 @@
   function openPanel(){
     lastFocus = document.activeElement;
     overlay.classList.add("show");
+    syncNudgeHealth();
     focusInto(closeBtn);
   }
   function closePanel(){
@@ -62,6 +63,28 @@
   });
 
   let nudgePending = false;
+
+  // Round 15 stabilization (judge move): a user can grant, then later revoke
+  // notification permission in the BROWSER's site settings — the stored
+  // dailyNudge stays true but no nudge can ever fire again. The toggle alone
+  // would keep claiming everything is fine, so the sheet says so honestly:
+  // the note appears (kept preference, paused delivery) whenever the sheet is
+  // visible and the mismatch exists. Covers BOTH revocation paths the browser
+  // offers: "denied" (block) and "default" ("reset permissions" returns to
+  // ask — maybeNudge silently skips that state too, so staying silent here
+  // would recreate exactly the dishonesty this note exists to kill).
+  // Re-checked on every settings change and on open, since the browser fires
+  // no event for permission changes.
+  const nudgeNote = document.getElementById("nudge-note");
+  function syncNudgeHealth(){
+    if(!nudgeNote) return;
+    const paused = !!Settings.get().dailyNudge &&
+      ("Notification" in window) &&
+      Notification.permission !== "granted" &&
+      !nudgePending; // a prompt in flight legitimately sits on "default"
+    nudgeNote.hidden = !paused;
+  }
+
   function maybeGrantNudge(toggle){
     if(!("Notification" in window)){
       toggle.checked = false;
@@ -149,6 +172,6 @@
   });
 
   // reflect settings changes made anywhere (e.g. the lock button) back into the panel toggles
-  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); });
-  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); });
+  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncNudgeHealth(); });
+  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncNudgeHealth(); });
 })();

@@ -180,6 +180,10 @@
       // today's pick — runs on every scroll frame but no-ops once the DOM
       // already matches (daily.js keeps both branches cheap)
       if(window.Daily) Daily.badge(centerEntry.el, centerEntry.mod.id);
+      // Score sparkline (Round 15): the centered cartridge wears a chart of
+      // its recent plays. Internally TTL-cached per element — one IndexedDB
+      // read at most every 15s per card, no-op when the chip already matches.
+      if(window.Sparkline) Sparkline.badge(centerEntry.el, centerEntry.mod);
     }
 
     cards.forEach((entry, i) => {

@@ -855,3 +855,125 @@ The critic caught a real landmine the round's own E2E had dodged:
   Pages serving v11.
 - Round 15 per critic: stabilization (DST-boundary streak, permission-revoked
   nudge honesty) + next feature surface.
+
+### Round 15 — per-game depth (sparkline), streak milestones, weekly recap; QA caught a real offline bug
+
+**QA first (deck stable, one real bug found):**
+- 50/50 mount sweep clean (56 cards incl. batch growth), zero console errors
+  across the whole session, prune window correct, drawer/trophies/daily live.
+- **Offline QA catch (Round 15's real find):** reloading ANY URL with a query
+  string while offline (`/index.html?x=1`) served offline.html even though the
+  whole shell was cached — `caches.match(req)` matches the query exactly, and
+  only bare `./` + `./index.html` are precached. Previous rounds' "offline
+  verified" claims were true only for exact precached URLs. Fixed in the SW
+  navigate fallback: exact match → precached shell (`./index.html` / `./`) →
+  offline.html last. Live-verified offline: query-URL reload AND root reload
+  both boot the full deck now. sw v12 → v13 (two bumps this round: features,
+  then this fix).
+
+**Features (judge's Round-15 brief):**
+- **Score sparkline** (js/sparkline.js, new): the centered cartridge wears a
+  chip charting its last ≤12 plays from StripDB's history ring, + "BEST n".
+  Inverted-encoding games are DECODED to real moves/seconds first (lightsout
+  stored 99995 → "BEST 5", tooltip "a dip is good"); <2 points renders
+  nothing; 15s TTL refetch shows a fresh point after playing; wiped records
+  remove the chip (verified full lifecycle: seed → chip → wipe → gone).
+  New StripDB.getScoreRecord(id) (null = never played, distinct from best 0).
+  One hook in app.js syncViewport beside Daily.badge.
+- **Streak milestones**: WEEK RIPPLE (7-day) + MOON CYCLE (30-day) trophies on
+  the Daily module's authoritative streak; unlock live on the crossing play
+  AND retroactively at boot (applyDailySync now re-evaluates) — verified: a
+  seeded 7-day streak unlocked WEEK RIPPLE on first boot after update;
+  30-dispatch unlocked MOON CYCLE live.
+- **Weekly pick recap** (trophy panel, under the LED grid): "THIS WEEK — n OF 7
+  PICKS PLAYED" + the week's pick titles (played = amber glow, missed = dim
+  dotted-underline). Fed by a new pickLog ring in __daily__ ({d,id} per
+  resolved day, cap 35) — days before this shipped are skipped honestly, and
+  today's entry is corrected to the real deterministic pick at every boot
+  (verified: a fake seeded pick got overwritten by the resolver).
+  Pre-log weeks show "the pick log starts today" instead of fake data.
+
+**Stabilization (judge moves):**
+- Streak boundary matrix, now against the EXACT production code: the streak
+  rule is extracted pure (computeStreak) and recordPlay calls it; daysAgoKey
+  gained an optional ref date (test seam, production callers unchanged).
+  34/34 assertions pass in three browser sessions launched under
+  TZ=America/New_York (16: fall-back Nov 1 2026, spring-forward Mar 14 2027,
+  same-day re-entry, broken chain, first-ever), TZ=Pacific/Chatham (10:
+  +12:45 offset, NZ DST Sep 27 2026 / Apr 4 2027, 7-day ring), TZ=Asia/
+  Calcutta (8: +5:30 midnight edges, 30-day ring). Exported as
+  Daily._internals (documented test surface, not dead code).
+- Permission-revoked-after-grant: Settings now says so honestly — a note
+  under the Daily nudge row (shown on open + every settings change) when the
+  stored preference is on but browser permission is "denied": toggle stays
+  checked (preference kept), copy explains delivery is paused. Verified with
+  a stubbed denied Notification.
+- Settings-store localStorage mirror: deliberately NOT added — the exposure
+  is cosmetic (hint may re-show once after a transient IDB failure), the
+  judge said "if it ever bites for real", and a second source of truth adds
+  real risk. Revisit if observed outside test orchestration.
+
+**Styling pass:** sparkline pill (dim translucent bg, glowing polyline,
+reduced-motion coverage, pointer-events:none so it can't steal taps), recap
+box (dashed border, amber played chips, dotted-underline missed chips),
+setting-note (amber-dim left border), all new pieces on the shell palette
+via the --glow/--accent2 variables so the CRT skins tint them for free.
+
+**Verified live:** sparkline on linear (Stack Tower BEST 21, trend line
+matches seeded data) + inverted (Lights Out BEST 5) + thin (1 point → no
+chip) + wipe (chip removed); recap 7/7 and 6/7-with-missed renderings; both
+milestones; nudge note toggle; offline query+root reloads on v13; 50/50
+sweep; console clean. Screenshots: sparkline chip, trophy panel with recap,
+WEEK RIPPLE toast.
+
+### Round 15 fix pass — judge verdict 7.5/10 → every finding closed
+
+- **[CRITICAL] ungated boot persist** (could write defaults+pickLog over a
+  real record when a transient IndexedDB failure made load() resolve null):
+  daily.js now hydrates via NEW StripDB.loadStateChecked (tri-state:
+  {status:"ok", data|null} vs {status:"error"}) and a `hydrated` gate makes
+  EVERY persist() a no-op until the store provably answers — init's
+  logPick+persist, recordPlay, the boot streak reset, and midnight rollover
+  all route through it. A genuinely fresh player (ok + null) still writes.
+  Live-verified: tri-state contract (absent→ok/null, present→ok/data),
+  healthy boot gate up, seeded streak survives reload, WEEK RIPPLE retro
+  unlock still fires post-gate with visited data intact (superset growth,
+  not clobber).
+- **[MAJOR] sparkline rebuilt every scroll frame** (contradicting its own
+  no-op claims; restarted the entrance animation per frame): chip is now
+  IDEMPOTENT per data signature (id|best|history-length|last-point —
+  append-only history makes that triple complete). Same-node identity
+  asserted across 6 scroll frames; signature visible in dataset.sig.
+  Plus in-flight lock + 30s failure backoff (a slow/erroring read can't
+  stack one fetch per frame). Comments rewritten to describe reality.
+- **[MINOR] evaluate() could run mid-hydration** (strip:daily-sync
+  registers first): gated behind trophies' hydrateDone with a deferred
+  flush AFTER the saved-merge — no partial-record persist, no duplicate
+  WEEK RIPPLE toast.
+- **[MINOR] nudge note covered "denied" only**: now shown for ANY
+  non-granted permission (Chrome's "reset permissions" returns to
+  "default" — the silent-no-fire state the note exists to expose),
+  prompt-in-flight excepted. Copy covers both paths. Verified with a
+  stubbed default-permission Notification.
+- **[MINOR] "dip is good" disclosure was hover-only** (unreachable on a
+  pointer-events:none element): inverted games now wear a VISIBLE
+  "· FEWER WINS" note in the chip (verified: "BEST 6 · FEWER WINS");
+  README wording matches the visible text.
+- **[NIT] recap head/chips mismatch**: partial-log weeks now say
+  "Pick log covers N of the 7 days — older days predate it." (verified).
+- **[NIT] recap a11y**: recap is role=group + aria-label, line is
+  role=list, chips are role=listitem (verified computed attributes).
+- **[NIT] SHELL_CACHE unbounded via unique query URLs**: navigate handler
+  no longer caches navigations with query strings (precache + bare-path
+  navigations only; the offline fallback still serves the shell for any
+  in-scope URL). Offline query-URL reload re-verified on final code.
+- **[NIT] milestone wording**: "for streaks earned before these existed"
+  corrected to "still live at upgrade" (a broken-before-upgrade streak
+  isn't provable from the live mirror; plays[] ring only reaches ~5 weeks,
+  so a 30-day reconstruction is impossible from data we keep — noted as a
+  next-round candidate only for the 7-day case).
+- logPick dedupe is a full scan now (backward clock/TZ jumps can't
+  duplicate a day key).
+- Final re-verification on fresh code: 50/50 sweep clean, console clean,
+  sparkline lifecycle (linear/inverted/thin/wipe) intact, offline v13
+  query+root reloads boot the full deck.

@@ -90,6 +90,26 @@ window.StripDB = (function(){
     });
   }
 
+  // Tri-state read: { status:"ok", data } when the store answered (data null
+  // = genuinely ABSENT, e.g. a fresh player) vs { status:"error" } when the
+  // read itself failed. Callers that WRITE what they read back must know the
+  // difference — a module that falls back to defaults on a transient IndexedDB
+  // hiccup and then persists would overwrite a real record it never saw
+  // (Round 14 observed this live with reload racing an in-flight write).
+  function loadStateChecked(id){
+    return tx(STATE_STORE, "readonly").then(store => {
+      if(!store){
+        const rec = useFallback().get(STATE_STORE).get(id);
+        return { status: "ok", data: rec ? rec.data : null };
+      }
+      return new Promise((resolve) => {
+        const req = store.get(id);
+        req.onsuccess = () => resolve({ status: "ok", data: req.result ? req.result.data : null });
+        req.onerror = () => resolve({ status: "error", data: null });
+      });
+    }).catch(() => ({ status: "error", data: null }));
+  }
+
   // ---- highscores (separate store, capped history so size stays bounded) ----
   function getHighscore(id){
     return tx(SCORE_STORE, "readonly").then(store => {
@@ -127,6 +147,26 @@ window.StripDB = (function(){
           putReq.onerror = () => resolve(record.best);
         };
         getReq.onerror = () => resolve(score);
+      });
+    });
+  }
+
+  // Full record (best + history) — the sparkline (Round 15) charts the last N
+  // plays, not just the peak. Returns null when the game has no record at all
+  // (getHighscore's `0` default can't distinguish "never played" from a
+  // genuine stored zero, and the sparkline must not render for either).
+  function getScoreRecord(id){
+    return tx(SCORE_STORE, "readonly").then(store => {
+      if(!store){
+        const rec = useFallback().get(SCORE_STORE).get(id);
+        return rec ? { best: rec.best, history: (rec.history || []).slice() } : null;
+      }
+      return new Promise((resolve) => {
+        const req = store.get(id);
+        req.onsuccess = () => resolve(req.result
+          ? { best: req.result.best, history: (req.result.history || []).slice() }
+          : null);
+        req.onerror = () => resolve(null);
       });
     });
   }
@@ -195,5 +235,5 @@ window.StripDB = (function(){
     });
   }
 
-  return { saveState, loadState, getHighscore, setHighscore, clearHighscore, estimateUsage, clearAll };
+  return { saveState, loadState, loadStateChecked, getHighscore, getScoreRecord, setHighscore, clearHighscore, estimateUsage, clearAll };
 })();

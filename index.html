@@ -105,6 +105,12 @@ try{
         </div>
         <input type="checkbox" class="setting-toggle" data-key="dailyNudge">
       </label>
+      <!-- Round 15: shown when the stored preference is on but the browser
+           no longer grants notification permission (revoked OR reset to
+           ask) — the toggle alone would keep claiming everything is fine -->
+      <div class="setting-note" id="nudge-note" hidden>
+        Notifications were revoked or reset in the browser's site settings — the nudge is paused until they're allowed again. Your preference is kept.
+      </div>
 
       <div class="settings-divider"></div>
 
@@ -206,6 +212,7 @@ try{
   <script src="js/games/wouldyourather.js"></script>
   <script src="js/games/xox.js"></script>
 <script src="js/daily.js"></script>
+<script src="js/sparkline.js"></script>
 <script src="js/app.js"></script>
 <script src="js/settings-ui.js"></script>
 <script src="js/drawer.js"></script>
