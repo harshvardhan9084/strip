@@ -39,6 +39,12 @@ window.Trophies = (function(){
       desc:"30 cartridge visits in a single day.", need:30, metric:"dayVisits" },
     { id:"night-shift", medal:"☾", name:"NIGHT SHIFT",
       desc:"Browse the deck between midnight and 5 AM. We won't tell." },
+    // Round 16 pair: the morning mirror of NIGHT SHIFT, and a long-haul
+    // cumulative goal that's provable from the visits counter alone
+    { id:"early-bird", medal:"☀", name:"EARLY BIRD",
+      desc:"Browse the deck between 5 and 8 AM. The quiet hours are the good hours." },
+    { id:"regular", medal:"⚓", name:"REGULAR",
+      desc:"100 total cartridge visits. The deck knows you now.", need:100, metric:"totalVisits" },
     { id:"record-breaker", medal:"♛", name:"RECORD BREAKER",
       desc:"Revisit a cartridge where you already hold a highscore." },
     { id:"daily-driver", medal:"◉", name:"DAILY DRIVER",
@@ -142,9 +148,14 @@ window.Trophies = (function(){
         const h = new Date().getHours();
         ok = h < 5;
       }
+      else if(def.id === "early-bird"){
+        const h = new Date().getHours();
+        ok = h >= 5 && h < 8;
+      }
       else if(def.id === "record-breaker") ok = !!ctx.holdsRecord;
       else if(def.id === "daily-driver") ok = !!state.dailyPlayed;
       else if(def.metric === "dailyStreak") ok = state.dailyStreak >= def.need;
+      else if(def.metric === "totalVisits") ok = state.visitsTotal >= def.need;
       else if(def.metric === "favs") ok = state.favCount >= def.need;
       else if(def.metric === "dayVisits") ok = (state.dayVisits[dayKey()] || 0) >= def.need;
       else if(def.metric === "visited") ok = state.visited.length >= def.need;
@@ -222,6 +233,7 @@ window.Trophies = (function(){
     wrap.appendChild(week);
 
     renderWeeklyRecap(wrap, st);
+    renderMonthCalendar(wrap, st);
 
     const shareBtn = document.createElement("button");
     shareBtn.type = "button";
@@ -311,6 +323,103 @@ window.Trophies = (function(){
         named.map(d => (Strip.all().find(m => m.id === d.pickId) || {}).title || d.pickId)
           .join(", ") + "." : ""));
     wrap.appendChild(recap);
+  }
+
+  // Round 16: month calendar — the whole current month on one grid, fed by
+  // the plays ring the app keeps anyway (no new state). The ring is
+  // append-only and complete since Round 14, but CAPPED at PLAYS_CAP
+  // entries, so days before its oldest entry are "not on record" — rendered
+  // as faint dotted cells and disclosed in a note, never as a miss (same
+  // honesty contract as the weekly recap's log-coverage note).
+  const CAL_MONTHS = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE",
+    "JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+  const CAL_MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"];
+  function renderMonthCalendar(wrap, st){
+    const cal = document.createElement("div");
+    cal.className = "daily-cal";
+    cal.setAttribute("role", "group");
+
+    const now = new Date();
+    const y = now.getFullYear(), m = now.getMonth();
+    const played = new Set(st.plays || []);
+    const firstKnown = (st.plays && st.plays.length) ? st.plays[0] : null;
+    const dkNow = (function(){ const d = new Date();
+      return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); })();
+
+    let playedSoFar = 0;
+    for(let d = 1; d <= now.getDate(); d++){
+      if(played.has(y + "-" + String(m+1).padStart(2,"0") + "-" + String(d).padStart(2,"0"))) playedSoFar++;
+    }
+
+    const head = document.createElement("div");
+    head.className = "daily-cal-head";
+    const headMonth = document.createElement("span");
+    headMonth.textContent = CAL_MONTHS[m] + " " + y;
+    const headCount = document.createElement("span");
+    headCount.className = "daily-cal-count";
+    headCount.textContent = playedSoFar + " OF " + now.getDate() + " DAYS";
+    head.appendChild(headMonth); head.appendChild(headCount);
+    cal.appendChild(head);
+
+    const grid = document.createElement("div");
+    grid.className = "daily-cal-grid";
+    "SMTWTFS".split("").forEach(L => {
+      const w = document.createElement("div");
+      w.className = "daily-cal-wd";
+      w.textContent = L;
+      w.setAttribute("aria-hidden", "true");
+      grid.appendChild(w);
+    });
+    const lead = new Date(y, m, 1).getDay(); // 0 = Sunday — matches the header row
+    for(let i = 0; i < lead; i++){
+      const blank = document.createElement("div");
+      blank.className = "daily-cal-blank";
+      blank.setAttribute("aria-hidden", "true");
+      grid.appendChild(blank);
+    }
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    for(let d = 1; d <= daysInMonth; d++){
+      const key = y + "-" + String(m+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+      const cell = document.createElement("div");
+      let cls = "daily-cal-cell";
+      let dayState;
+      if(played.has(key)) dayState = "played";
+      else if(key > dkNow) dayState = "ahead";
+      else if(!firstKnown || key < firstKnown) dayState = "unlogged"; // nothing provable — never claimed as a miss
+      else dayState = "missed";
+      if(dayState === "played") cls += " on";
+      else cls += " " + dayState;
+      if(key === dkNow) cls += " today";
+      cell.className = cls;
+      // tooltip for pointer users; the grid's one-sentence aria-label (below)
+      // is the screen-reader surface — same contract as the LED week grid
+      cell.title = CAL_MONTHS_SHORT[m] + " " + d + " — " + dayState;
+      grid.appendChild(cell);
+    }
+    grid.setAttribute("role", "img");
+    grid.setAttribute("aria-label",
+      CAL_MONTHS[m] + " " + y + ": played the daily pick on " + playedSoFar +
+      " of " + now.getDate() + " days so far" +
+      (st.playedToday ? ", including today." : ". Today is still open."));
+    cal.appendChild(grid);
+
+    // the ring cap means the month's first days can predate the log — say so
+    // once, under the grid, instead of rendering fake gaps. ONLY when the log
+    // starts INSIDE this month (a prior-month start proves the whole current
+    // month — a note there would claim gaps that don't exist; live-caught in
+    // Round 16 QA)
+    if(firstKnown &&
+       firstKnown.slice(0, 7) === (y + "-" + String(m+1).padStart(2,"0")) &&
+       Number(firstKnown.slice(8, 10)) > 1){
+      const note = document.createElement("div");
+      note.className = "daily-cal-note";
+      const fm = Number(firstKnown.split("-")[1]), fd = Number(firstKnown.split("-")[2]);
+      note.textContent = "Play log starts " + CAL_MONTHS_SHORT[fm-1] + " " + fd +
+        " — earlier days this month aren't on record.";
+      cal.appendChild(note);
+    }
+    wrap.appendChild(cal);
   }
 
   function renderGrid(){

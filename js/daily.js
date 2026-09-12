@@ -118,6 +118,91 @@ window.Daily = (function(){
     StripDB.saveState(STORE_ID, state).catch(() => {});
   }
 
+  // ---------- one-shot hydration re-probe (Round 16, judge move) ----------
+  // A failed boot read used to sentence the session to in-memory-only until
+  // the next full reload. But the failure is almost always transient (an
+  // IndexedDB hiccup, a reload racing a write — both observed live), so we
+  // arm exactly two escape hatches and disarm BOTH on the first store answer:
+  //   1. one delayed probe (~5s after boot) — recovers a short hiccup inside
+  //      the same visit, shrinking the gated window to seconds;
+  //   2. one probe per visibility GAIN — recovers the "tab slept through it"
+  //      case when the player comes back. No polling, no timers beyond the
+  //      single 5s shot.
+  let reProbeArmed = false;
+  let reProbeTimer = null;
+  function armHydrationReprobe(){
+    if(reProbeArmed || hydrated) return;
+    reProbeArmed = true;
+    const onVisible = () => {
+      if(document.hidden || hydrated) return;
+      reProbe();
+    };
+    window.addEventListener("visibilitychange", onVisible);
+    reProbeTimer = setTimeout(() => { reProbe(); }, 5000);
+    async function reProbe(){
+      if(hydrated) return;
+      let res = null;
+      try{ res = await StripDB.loadStateChecked(STORE_ID); }catch(e){ res = null; }
+      if(hydrated) return;               // another probe won the race
+      if(!res || res.status !== "ok") return; // still down — try again on the next visibility gain
+      clearTimeout(reProbeTimer);
+      window.removeEventListener("visibilitychange", onVisible);
+      reProbeArmed = false;
+      adoptProvenRecord(res.data);
+    }
+  }
+
+  // First store answer after a gated boot: merge the disk record with the
+  // session's in-memory state WITHOUT losing either side. The disk record is
+  // authoritative for everything BEFORE today; the in-memory state is the
+  // only place a play made during the gated window exists (its persist()
+  // no-oped by design), so that one play is re-derived ON TOP of the disk
+  // record instead of clobbering it.
+  function adoptProvenRecord(data){
+    hydrated = true; // synchronous first — the anti-double-adopt guard below relies on it
+    const dk = dayKey();
+    const gatedPlayToday = state.lastPlayed === dk;
+
+    state = { lastPlayed: null, streak: 0, best: 0, plays: [], pickLog: [] };
+    if(data && typeof data === "object"){
+      Object.assign(state, data);
+      if(typeof state.streak !== "number") state.streak = 0;
+      if(typeof state.best !== "number") state.best = 0;
+      if(!Array.isArray(state.plays)) state.plays = [];
+      if(!Array.isArray(state.pickLog)) state.pickLog = [];
+    }
+
+    if(gatedPlayToday && state.lastPlayed !== dk){
+      // disk record predates the gated play — re-derive it (the pure rule
+      // does the DST-safe math; within a session at most ONE play can exist,
+      // the once-per-day guard in recordPlay sees to that)
+      const yesterday = daysAgoKey(1);
+      state.streak = computeStreak(state.lastPlayed, dk, yesterday, state.streak);
+      state.lastPlayed = dk;
+      state.best = Math.max(state.best, state.streak);
+      if(state.plays[state.plays.length - 1] !== dk) state.plays.push(dk);
+      if(state.plays.length > PLAYS_CAP) state.plays = state.plays.slice(-PLAYS_CAP);
+      // trophies missed this play while we were gated — re-announce it
+      window.dispatchEvent(new CustomEvent("strip:daily-played", {
+        detail: { id: todayId, streak: state.streak }
+      }));
+    }
+    // a gated boot may have missed today's pickLog entry
+    logPick(dk, todayId);
+    // same broken-streak display rule as init: a disk record from before a
+    // gap keeps its streak number on disk; display resets without erasing
+    if(state.lastPlayed && state.lastPlayed !== dk && state.lastPlayed !== daysAgoKey(1)){
+      state.streak = 0;
+    }
+    persist();
+    updateChip();
+    repairTwistDamage();
+    // authoritative numbers again — the trophy panel's mirror must agree
+    window.dispatchEvent(new CustomEvent("strip:daily-sync", {
+      detail: { streak: state.streak, best: state.best, id: todayId, lastPlayed: state.lastPlayed }
+    }));
+  }
+
   // ---------- play detection + streak ----------
   function recordPlay(){
     const dk = dayKey();
@@ -263,9 +348,12 @@ window.Daily = (function(){
     chip.classList.toggle("done", done);
     // compact: glyph always, streak number once it means something
     chip.textContent = done ? "◎✓" : "◎" + (state.streak > 1 ? " " + state.streak : "");
-    // tooltip must not go stale after playing (critic MAJOR-2 companion)
+    // tooltip must not go stale after playing (critic MAJOR-2 companion);
+    // Round 16: the all-time best rides along once it means something
     const title = todayMod ? (todayMod.title || todayId) : "";
-    chip.title = "Today's pick: " + title + (state.streak ? " · streak " + state.streak : "");
+    chip.title = "Today's pick: " + title +
+      (state.streak ? " · streak " + state.streak : "") +
+      (state.best > 1 ? " · best " + state.best : "");
   }
 
   // ---------- share (Round 14) ----------
@@ -400,6 +488,8 @@ window.Daily = (function(){
     if(res && res.status === "ok"){
       hydrated = true;
       saved = res.data;
+    } else {
+      armHydrationReprobe(); // gate stays down for now — recovery probes armed
     }
     if(saved && typeof saved === "object"){
       state = Object.assign(state, saved);

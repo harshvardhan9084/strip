@@ -996,3 +996,57 @@ WEEK RIPPLE toast.
   (a)); retroactive milestones honor only streaks still live at upgrade;
   a sub-15s round shows a stale chip until TTL + next scroll frame.
 - Pushed as the Round 15 finale follow-up commit.
+
+---
+
+## Round 16 — hydration re-probe, month calendar, two new trophies
+
+### Status at round start
+
+- Rounds 1–15 complete, 50 cartridges, critic 9.0/10 @ 4597c4e, Pages on sw v13.
+- QA this round (fresh profile, no-cache server, rotated port): 50/50 mount
+  sweep clean, zero console errors, daily hydrated, trophy panel live →
+  deck STABLE → feature round implementing the Round 15 judge's named moves.
+
+### Shipped
+
+- **One-shot hydration re-probe (judge move a)**: a failed boot read no longer
+  sentences the session to in-memory-only. Two escape hatches, both disarmed
+  on the first store answer: one delayed probe (~5s — recovers a short hiccup
+  inside the same visit) and one probe per visibility GAIN. On recovery,
+  adoptProvenRecord() merges WITHOUT losing either side: the disk record is
+  authoritative for everything before today; a play made during the gated
+  window is re-derived ON TOP of it via the pure computeStreak rule, then
+  re-announced (strip:daily-played + strip:daily-sync) so the Trophy Case
+  mirror heals. Both branches live-proven: restart (disk lastPlayed null →
+  streak 1, disk best kept) and chain-extension (disk lastPlayed yesterday,
+  streak 2 → 3). The gate provably STAYS down while reads fail (stub consumed
+  the boot + timer attempts; only the visibility probe recovered).
+- **Month calendar (judge move c)**: the current month on one grid in the
+  Daily Ritual block, fed by the existing plays[] ring — no new state. Played
+  days glow amber, today wears the dashed secondary ring, future days are
+  faint dotted, days older than the log's oldest entry are "not on record"
+  (never rendered as misses), with an honest coverage note when the log
+  starts mid-month. Two-sided head: month left, "n OF m DAYS" in the
+  secondary accent right. role=img + one-sentence aria; tooltips for pointer
+  users — same contract as the LED week row.
+- **Two new trophies (11 → 13)**: EARLY BIRD (browse between 5 and 8 AM —
+  the morning mirror of NIGHT SHIFT) and REGULAR (100 total visits, provable
+  from the visits counter alone). Live-proven: EARLY BIRD in a TZ=Etc/GMT+3
+  session (local hour 5), REGULAR via seeded visitsTotal.
+- **Styling pass**: calendar styles ride the shell palette vars — green-skin
+  screenshot proves all three CRT skins tint it; today-ring, glow fills,
+  dotted unlogged cells, hover brightness (hover:hover gated).
+- **Chip tooltip** now carries the all-time best alongside the streak.
+- sw v13 → v14 (both caches). README updated.
+
+### Verification
+
+- Calendar states ×4 (prior-month log start / empty ring / mid-month log
+  start / filled month) — including a live-caught honesty bug: the coverage
+  note originally fired when the log started in a PRIOR month (claiming gaps
+  that don't exist); condition corrected to mid-month starts only.
+- Re-probe: gated boot → in-memory play → adoption preserves it; disk best
+  preserved; plays merged; chip ◎✓; trophies mirror updated; disk persisted.
+- Offline reload of a query URL on v14 boots the full deck from the SW.
+- 50/50 sweep clean, console clean on final code.
