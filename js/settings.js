@@ -19,6 +19,7 @@ window.Settings = (function(){
     haptics: true,
     sound: true,
     theme: "amber",   // "amber" | "green" | "violet" — CRT skin engine (Round 11)
+    dailyNudge: false, // Round 14: opt-in local notification on the day flip
   };
 
   const THEME_META_COLORS = {

@@ -838,3 +838,88 @@ html.reduce-motion .drawer-item-daily{ animation:none !important; }
 @media (prefers-reduced-motion: reduce){
   .cart-daily-tag, .drawer-item-daily{ animation:none !important; }
 }
+
+/* ================================================================
+   Round 14 — Daily Ritual: share, stats grid, twist, nudge
+   ================================================================ */
+
+/* ---------- the card tag is now a real share BUTTON ---------- */
+button.cart-daily-tag{
+  cursor:pointer;
+  font-family:var(--font-display); /* buttons don't inherit font */
+}
+.cart-daily-tag .cart-daily-x{
+  color:rgb(var(--accent2-rgb));       /* the ×2 pops in the secondary accent */
+  text-shadow:0 0 6px rgba(var(--accent2-rgb),.6);
+  margin-left:4px;
+}
+.cart-daily-tag svg{ margin-left:5px; opacity:.85; vertical-align:-1px; }
+.cart-daily-tag:active{ transform:scale(.93); }
+@media (hover:hover){
+  button.cart-daily-tag:hover{
+    border-color:var(--amber);
+    box-shadow:0 0 16px rgba(var(--glow-rgb),.4);
+  }
+}
+
+/* ---------- DAILY RITUAL block (trophy panel, above the trophy grid) ---------- */
+.daily-stats{
+  border:1px solid var(--line); border-radius:14px;
+  background:linear-gradient(135deg, rgba(var(--glow-rgb),.07), var(--panel-2) 72%);
+  padding:12px 14px 14px;
+  flex:none;
+}
+.daily-stats-head{
+  display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+}
+.daily-stats-label{
+  font-family:var(--font-display); font-size:9px; color:var(--amber);
+  letter-spacing:.14em; text-shadow:0 0 10px rgba(var(--glow-rgb),.4);
+}
+.daily-stats-num{ font-size:10px; color:var(--ink-dim); letter-spacing:.03em; white-space:nowrap; }
+
+/* the last-7-days row — LED-matrix cells, filled = played */
+.daily-week{
+  display:grid; grid-template-columns:repeat(7, 1fr); gap:6px;
+  margin:11px 0 12px;
+}
+.daily-day{
+  aspect-ratio:1; border-radius:8px;
+  border:1px solid var(--line); background:rgba(0,0,0,.28);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-size:8px; color:var(--ink-dim);
+  letter-spacing:.05em;
+  transition:background .25s ease, box-shadow .25s ease, border-color .25s ease, color .25s ease;
+}
+.daily-day.on{
+  border-color:var(--amber-dim); color:var(--amber);
+  background:rgba(var(--glow-rgb),.13);
+  box-shadow:0 0 8px rgba(var(--glow-rgb),.22), inset 0 0 6px rgba(var(--glow-rgb),.12);
+}
+.daily-day.today{ border-style:dashed; border-color:rgba(var(--accent2-rgb),.6); }
+.daily-day.today.on{ border-style:solid; }
+
+.daily-share-btn{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:9px 10px; border-radius:10px; cursor:pointer;
+  border:1px solid var(--amber-dim); background:rgba(var(--glow-rgb),.07);
+  color:var(--amber);
+  font-family:var(--font-display); font-size:9px; letter-spacing:.12em;
+  transition:border-color .15s ease, box-shadow .2s ease, transform .12s cubic-bezier(.34,1.56,.64,1), background .15s ease;
+}
+.daily-share-btn:active{ transform:scale(.97); }
+.daily-share-btn svg{ flex:none; }
+
+/* ---------- focus rings for the new interactive pieces ---------- */
+.cart-daily-tag:focus-visible, .daily-share-btn:focus-visible{
+  outline:2px solid var(--amber); outline-offset:2px;
+}
+
+/* ---------- desktop hover polish ---------- */
+@media (hover:hover){
+  .daily-share-btn:hover{
+    border-color:var(--amber);
+    box-shadow:0 0 12px rgba(var(--glow-rgb),.28);
+    background:rgba(var(--glow-rgb),.12);
+  }
+}

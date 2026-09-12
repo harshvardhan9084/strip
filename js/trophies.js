@@ -145,12 +145,78 @@ window.Trophies = (function(){
     return d.getFullYear() + "." + String(d.getMonth()+1).padStart(2,"0") + "." + String(d.getDate()).padStart(2,"0");
   }
 
+  // ---------- Daily Ritual block (Round 14) ----------
+  // Lazy-reads Daily.getState() at render time (same pattern as the drawer's
+  // visited dots — always fresh, no event plumbing needed for a static panel).
+  function renderDailyStats(){
+    if(!window.Daily || !Daily.getState) return;
+    const st = Daily.getState();
+
+    const wrap = document.createElement("div");
+    wrap.className = "daily-stats";
+
+    const head = document.createElement("div");
+    head.className = "daily-stats-head";
+    const label = document.createElement("span");
+    label.className = "daily-stats-label";
+    label.textContent = "DAILY RITUAL";
+    const num = document.createElement("span");
+    num.className = "daily-stats-num";
+    num.textContent = "◉ " + st.streak + "-day streak · best " + st.best;
+    head.appendChild(label); head.appendChild(num);
+    wrap.appendChild(head);
+
+    // last 7 days — today last, oldest first, day initials from real dates
+    const week = document.createElement("div");
+    week.className = "daily-week";
+    const initials = ["S","M","T","W","T","F","S"];
+    let playedCount = 0;
+    for(let i = 6; i >= 0; i--){
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+      const on = st.plays.indexOf(key) !== -1;
+      if(on) playedCount++;
+      const cell = document.createElement("div");
+      cell.className = "daily-day" + (on ? " on" : "") + (i === 0 ? " today" : "");
+      cell.title = key + (on ? " — played" : " — missed");
+      const letter = document.createElement("span");
+      letter.textContent = initials[d.getDay()];
+      letter.setAttribute("aria-hidden", "true");
+      cell.appendChild(letter);
+      week.appendChild(cell);
+    }
+    week.setAttribute("role", "img");
+    week.setAttribute("aria-label", "Last 7 days: played the daily pick on " + playedCount +
+      (playedCount === 1 ? " day" : " days") + " of 7. Today " +
+      (st.playedToday ? "is done." : "is still open."));
+    wrap.appendChild(week);
+
+    const shareBtn = document.createElement("button");
+    shareBtn.type = "button";
+    shareBtn.className = "daily-share-btn";
+    shareBtn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="6" cy="12" r="2.2"/><circle cx="17.5" cy="5.5" r="2.2"/><circle cx="17.5" cy="18.5" r="2.2"/><path d="M8 10.9 15.5 6.6M8 13.1 15.5 17.4"/></svg>' +
+      "<span>Share today's pick</span>";
+    shareBtn.setAttribute("aria-label", "Share today's pick: " + st.title);
+    shareBtn.addEventListener("click", () => {
+      try{ Feedback.tone("select"); Feedback.haptic("light"); }catch(e){}
+      Daily.share();
+    });
+    wrap.appendChild(shareBtn);
+
+    gridEl.appendChild(wrap);
+  }
+
   function renderGrid(){
     gridEl.innerHTML = "";
     const unlockedCount = Object.keys(state.unlocked).length;
     subEl.textContent = unlockedCount + " / " + DEFS.length + " unlocked · " +
       state.visited.length + "/50 cartridges explored · " + state.visitsTotal + " visits" +
       (state.dailyStreak > 0 ? " · daily streak " + state.dailyStreak : "");
+    // Round 14: the Daily Ritual block (streak + last-7-days + share) leads
+    // the panel — it is the one trophy-adjacent thing players use daily.
+    renderDailyStats();
     for(const def of DEFS){
       const ts = state.unlocked[def.id];
       const item = document.createElement("div");

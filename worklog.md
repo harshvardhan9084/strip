@@ -717,3 +717,77 @@ Every finding was implemented and re-verified live; sw bumped v8 -> v9.
   with Escape/Enter/Space, not just pointer/scroll; the Settings install
   button is visible from load whenever the app isn't installed, so
   iOS/Firefox users can finally reach the manual-install note.
+
+---
+
+## Round 14 — Daily Ritual: share, stats, ×2 twist, honest nudge (2026-09-12)
+
+**Input:** Round 13 closed at critic 9.0/10 with five named next moves. Round 14
+implements four of them (share + streak stats, rollover polish, hint focus
+contract, honest re-engagement) plus the "today's twist" option of move 5.
+
+**Shipped:**
+- **Share the pick** (js/daily.js): the card's "TODAY'S PICK" tag is now a real
+  BUTTON — tap = share (Web Share first; clipboard fallback writes the pick
+  title + streak + URL and raises the HUD mini-toast "Copied to clipboard";
+  real write failures surface an honest "copy failed" toast). The Trophy Case
+  has a full-width "Share today's pick" button using the same path. AbortError
+  (user closed the share sheet) is not an error.
+- **Daily Ritual block** (js/trophies.js): leads the Trophy Case with the
+  current/best streak and a last-7-days LED grid (real day initials, filled =
+  played, today dashed in the secondary accent) + share button. Data comes from
+  a new plays[] date ring persisted in __daily__ (cap 35, ~5 weeks) via
+  Daily.getState(), lazy-read at render time (same pattern as the drawer's
+  visited dots). Week grid carries role=img + a full sentence aria-label.
+- **TODAY'S TWIST ×2**: the pick's cartridge counts DOUBLE toward its highscore
+  all day. One hook in app.js makeApi.setHighscore routes every game's save
+  through Daily.twistScore — zero game-code changes. The ×2 tag next to the
+  doubled best makes the inflation read as the event it is. Non-pick
+  games/days pass through untouched.
+- **Rollover polish** (judge move 2): checkDayRollover now (a) strips stale
+  .cart-daily-tag nodes proactively instead of waiting for a scroll frame,
+  (b) fires strip:daily-rollover so an OPEN drawer re-renders and moves the ◆
+  immediately, and (c) replaces the 30-minute poll with one setTimeout armed
+  for the next local midnight (+2s), re-armed on every flip.
+- **Hint focus contract** (judge move 3): the first-run dialog focuses itself
+  on show (rAF-deferred past the fade-in) and restores the pre-modal focus on
+  dismiss.
+- **Daily nudge** (judge move 4, honest scope): Settings row (off by default)
+  → Notification.requestPermission() from the toggle gesture, persisted only
+  on grant; denied/unsupported revert the toggle with an explanatory toast.
+  On a real day flip with the app open + permission granted, a local
+  notification announces the new pick; tapping it focuses and jumps
+  (page-created notification + n.onclick — no SW dependency). NO scheduling
+  when the PWA is closed; the settings copy says so.
+- **Styling pass** (css 840→925): ×2 rendered in the secondary accent with
+  glow; share-icon inside the tag; LED grid cells w/ filled glow + dashed
+  today; DAILY RITUAL panel with gradient wash; share button w/ hover/active/
+  focus-visible states; :focus-visible added for tag + share button; hover
+  states gated behind (hover:hover). sw v9→v10 (both caches).
+
+**Verified live (agent-browser, fresh profile, no-cache server):**
+- chip jump → settle: plays ring 0→1, chip "◎✓", tag is a button with
+  "TODAY'S PICK ×2" + aria; reload persistence keeps ring/streak/done state.
+- share: clipboard recorder captured exactly "Today's Strip pick: Stack
+  Tower\n<url>"; headless denied the real write → honest failure toast shown
+  (both fallback branches exercised).
+- Trophy Case: 7 cells, last "on today", "◉ 1-day streak · best 1",
+  share button present, week aria sentence correct, DAILY DRIVER unlocked.
+- ×2 twist E2E through REAL gameplay: stacktower (today's pick) played to
+  game over — score 3 → best stored/shown 6.
+- nudge: headless denies → toggle reverts, nothing persisted, "Blocked —
+  allow notifications in browser settings" toast.
+- simulated midnight (Date shifted −2 days): pick changed, planted stale tag
+  removed, chip aria updated, OPEN drawer's ◆ moved Stack Tower → Gravity
+  Drop live, re-arm survived; real date restored → pick restored.
+- hint: focus moved into the dialog on show, Escape dismisses, focus restored,
+  hintSeen persisted.
+- 50/50 mount+cleanup sweep clean; zero console errors; offline reload on
+  v10 serves the full deck; 375px panel fits (345px, no h-scroll).
+
+**Honest residual:** the granted-permission nudge path could not be exercised
+in headless (no prompt UI) — it shares the toggle-persist + maybeNudge branches
+verified by review; desktop-Chrome Web Share path not testable headless
+(clipboard path verified instead); after a restore-from-future flip the
+centered card re-tags only on the next scroll frame (badge() is scroll-frame
+driven by design, matches Round 13 behavior).

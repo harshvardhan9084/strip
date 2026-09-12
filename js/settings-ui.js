@@ -44,9 +44,48 @@
 
   toggles.forEach(t => {
     t.addEventListener("change", () => {
+      // Daily nudge (Round 14): enabling needs a real user gesture for
+      // Notification.requestPermission(), so this change handler IS the
+      // gesture — run the permission flow and only persist on a grant.
+      if(t.dataset.key === "dailyNudge" && t.checked){
+        maybeGrantNudge(t);
+        return;
+      }
       Settings.set({ [t.dataset.key]: t.checked });
     });
   });
+
+  function maybeGrantNudge(toggle){
+    if(!("Notification" in window)){
+      toggle.checked = false;
+      showToast("Notifications unsupported in this browser");
+      Feedback.tone("error");
+      return;
+    }
+    if(Notification.permission === "granted"){
+      Settings.set({ dailyNudge: true });
+      showToast("Daily nudge on");
+      Feedback.tone("success");
+      return;
+    }
+    if(Notification.permission === "denied"){
+      toggle.checked = false;
+      showToast("Blocked — allow notifications in browser settings");
+      Feedback.tone("error");
+      return;
+    }
+    Notification.requestPermission().then(perm => {
+      if(perm === "granted"){
+        Settings.set({ dailyNudge: true });
+        showToast("Daily nudge on");
+        Feedback.tone("success");
+      } else {
+        toggle.checked = false;
+        showToast("Blocked — allow notifications in browser settings");
+        Feedback.tone("error");
+      }
+    }).catch(() => { toggle.checked = false; });
+  }
 
   // CRT skin picker — one settings key, instant repaint via html[data-theme]
   function syncThemeBtns(settings){
@@ -64,11 +103,15 @@
   });
 
   let toastTimer = null;
-  function showLockToast(locked){
-    lockToast.textContent = locked ? "Scroll locked" : "Scroll unlocked";
+  // the HUD mini-toast is generic (daily.js "Copied to clipboard" uses it too)
+  function showToast(text){
+    lockToast.textContent = text;
     lockToast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => lockToast.classList.remove("show"), 1400);
+    toastTimer = setTimeout(() => lockToast.classList.remove("show"), 1600);
+  }
+  function showLockToast(locked){
+    showToast(locked ? "Scroll locked" : "Scroll unlocked");
   }
 
   lockBtn.addEventListener("click", () => {

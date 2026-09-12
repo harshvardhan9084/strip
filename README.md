@@ -45,9 +45,17 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
 
 - **Daily Pick** (◎ chip in the HUD): one cartridge a day, the same one for everyone,
   picked from the date itself — no server, no account. The chip jumps straight to it;
-  the card wears a glowing "TODAY'S PICK" tag while you're on it; play it to grow your
-  streak (shown on the chip, best kept forever) and unlock the DAILY DRIVER trophy.
-  Come back tomorrow for a new pick.
+  the card wears a glowing "TODAY'S PICK ×2" tag — a real share button, and a promise:
+  on the pick's cartridge, highscores count DOUBLE until midnight (the ×2 twist is
+  wired into the save API, so every game gets it without changing a line of game
+  code). Play it to grow your streak and unlock the DAILY DRIVER trophy. The tag and
+  the Trophy Case both share the pick — Web Share on phones, copy-to-clipboard
+  elsewhere. A new pick lands at your local midnight, even mid-session.
+- **Daily nudge** (Settings, off by default): while Strip is open, a local
+  notification pings you when tomorrow's pick lands; tapping it jumps to the pick.
+  Honest scope: nothing is scheduled once the app is closed — there's no push
+  server, and enabling it asks your browser's permission like any well-behaved
+  site should.
 - **Cartridge drawer** (grid icon): the deck's table of contents. Jump straight to any
   cartridge, filter by name, and star the ones you keep coming back to. Favorites and
   recents are remembered on your device. Today's pick carries a little ◆ in the list.

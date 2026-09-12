@@ -19,7 +19,15 @@
       save(obj){ return StripDB.saveState(id, obj); },      // returns a Promise
       load(){ return StripDB.loadState(id); },              // returns a Promise<data|null>
       getHighscore(){ return StripDB.getHighscore(id); },   // returns a Promise<number>
-      setHighscore(score){ return StripDB.setHighscore(id, score); } // returns a Promise<number> (new best)
+      // Round 14 "today's twist": the Daily Pick's cartridge counts DOUBLE
+      // toward its highscore for the whole day. One central hook in the api
+      // factory — every game gets the event without touching its own code,
+      // and the pick's card wears the ×2 tag so the doubled best reads as
+      // intentional. Non-pick days/games pass straight through.
+      setHighscore(score){
+        const boosted = (window.Daily && Daily.twistScore) ? Daily.twistScore(id, score) : score;
+        return StripDB.setHighscore(id, boosted);
+      } // returns a Promise<number> (new best)
     };
   }
 
