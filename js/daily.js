@@ -321,7 +321,11 @@ window.Daily = (function(){
     }
     state.twistRepairDone = true;
     persist();
-    if(repaired) console.info("Daily: repaired " + repaired + " twist-corrupted highscore(s)");
+    if(repaired){
+      console.info("Daily: repaired " + repaired + " twist-corrupted highscore(s)");
+      // players who lost a best deserve to know why it reset (critic move 3)
+      hudToast("Repaired " + repaired + " corrupted best" + (repaired > 1 ? "s" : ""));
+    }
   }
   function jumpToPick(){
     if(todayMod && window.StripShell) StripShell.jumpToModule(todayMod);

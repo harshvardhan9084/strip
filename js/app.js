@@ -195,6 +195,13 @@
     }
   }
 
+  // Daily rollover (midnight flip): re-run the viewport sync immediately so
+  // the CENTERED card re-tags in the same frame when it IS the new pick —
+  // otherwise yesterday's stripped tag would only return on the next scroll
+  // frame (Round 14 critic move 4). Everything here is idempotent at a
+  // standing scroll position.
+  window.addEventListener("strip:daily-rollover", () => { syncViewport(); });
+
   function pruneDistantMounts(centerIdx){
     cards.forEach((entry, i) => {
       if(Math.abs(i - centerIdx) > 2) unmountCard(entry);

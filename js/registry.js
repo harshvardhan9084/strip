@@ -26,6 +26,19 @@ window.Strip = (function(){
       console.error("Strip.register: invalid module", mod);
       return;
     }
+    // Round 14 tripwire: games that store an INVERTED score (setHighscore(
+    // CEILING - moves) so the store's max-wins semantics work) MUST declare
+    // scoreEncoding:"inverted", or the Daily ×2 twist doubles their ceiling
+    // encoding and their decoded best goes permanently negative. The 7
+    // current carriers are annotated; this warns the next author who wires
+    // one by hand instead of silently corrupting saves.
+    if(mod.scoreEncoding !== "inverted"){
+      let src = "";
+      try{ src = Function.prototype.toString.call(mod.mount); }catch(e){}
+      if(/setHighscore\(\s*[^()]*\s-\s/.test(src)){
+        console.warn('Strip.register: "' + mod.id + '" appears to save an inverted score (setHighscore(CEILING - x)) without declaring scoreEncoding:"inverted" — the Daily ×2 twist would corrupt its best.');
+      }
+    }
     modules.push(mod);
   }
 

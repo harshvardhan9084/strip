@@ -837,3 +837,21 @@ The critic caught a real landmine the round's own E2E had dodged:
   in-flight IndexedDB writes and transiently break the NEXT boot's hydration
   (settings re-showed the hint once) — the daily store is now guarded against
   the destructive path; settings' exposure is cosmetic-only.
+
+### Round 14 finale — critic re-verdict 9.0/10; all five next moves absorbed same-round
+
+- clearHighscore absent-key now resolves FALSE (get-first-then-delete; repair
+  log can't over-count) — verified `clearHighscore('nonexistent') === false`.
+- Registry tripwire: Strip.register warns when a game's mount source saves
+  `setHighscore(CEILING − x)` without declaring scoreEncoding:"inverted" —
+  the next hand-wired inverted game can't silently corrupt saves. Current
+  deck boots with zero warnings (all 7 carriers declared).
+- Repair is now player-visible: "Repaired 1 corrupted best" HUD toast
+  (verified live alongside the wipe).
+- Flip-time re-tag: app.js re-runs syncViewport on strip:daily-rollover, so a
+  centered card that IS the new pick re-tags in the same frame — verified
+  tag → strip-on-away → instant re-tag on flip-back, no scroll needed.
+- Final: 50/50 mount sweep clean, console clean, pushed 08fe242 + finale;
+  Pages serving v11.
+- Round 15 per critic: stabilization (DST-boundary streak, permission-revoked
+  nudge honesty) + next feature surface.

@@ -144,9 +144,16 @@ window.StripDB = (function(){
         return had;
       }
       return new Promise((resolve) => {
-        const req = store.delete(id);
-        req.onsuccess = () => resolve(true);
-        req.onerror = () => resolve(false);
+        // get-first so an ABSENT record resolves false (delete on a missing
+        // key succeeds silently — the repair log would over-count)
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          if(getReq.result === undefined){ resolve(false); return; }
+          const delReq = store.delete(id);
+          delReq.onsuccess = () => resolve(true);
+          delReq.onerror = () => resolve(false);
+        };
+        getReq.onerror = () => resolve(false);
       });
     }).catch(() => false);
   }
