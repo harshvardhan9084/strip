@@ -124,7 +124,11 @@ html,body{
 /* ---------- Lock toast ---------- */
 #lock-toast{
   position:fixed; top:70px; left:50%; transform:translateX(-50%) translateY(-8px);
-  z-index:60; pointer-events:none;
+  /* 350: must clear the bottom sheets (200) AND the hint overlay (300) —
+     the nudge/share feedback fires while a sheet is open, and rendering it
+     BEHIND the backdrop made it invisible exactly when it mattered
+     (Round 14 critic MAJOR) */
+  z-index:350; pointer-events:none;
   background:var(--panel-2); border:1px solid var(--amber-dim); color:var(--amber);
   font-family:var(--font-display); font-size:10px; letter-spacing:.05em;
   padding:9px 16px; border-radius:20px;
@@ -846,7 +850,7 @@ html.reduce-motion .drawer-item-daily{ animation:none !important; }
 /* ---------- the card tag is now a real share BUTTON ---------- */
 button.cart-daily-tag{
   cursor:pointer;
-  font-family:var(--font-display); /* buttons don't inherit font */
+  /* font-family/size already set on .cart-daily-tag above */
 }
 .cart-daily-tag .cart-daily-x{
   color:rgb(var(--accent2-rgb));       /* the ×2 pops in the secondary accent */

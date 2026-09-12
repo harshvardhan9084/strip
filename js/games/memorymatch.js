@@ -1,5 +1,6 @@
 Strip.register({
   id: "memorymatch",
+  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves|seconds; NEVER double it (twist)
   label: "PUZZLE",
   title: "Memory Match",
   tag: "4×3",

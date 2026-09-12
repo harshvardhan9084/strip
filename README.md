@@ -46,11 +46,12 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
 - **Daily Pick** (◎ chip in the HUD): one cartridge a day, the same one for everyone,
   picked from the date itself — no server, no account. The chip jumps straight to it;
   the card wears a glowing "TODAY'S PICK ×2" tag — a real share button, and a promise:
-  on the pick's cartridge, highscores count DOUBLE until midnight (the ×2 twist is
-  wired into the save API, so every game gets it without changing a line of game
-  code). Play it to grow your streak and unlock the DAILY DRIVER trophy. The tag and
-  the Trophy Case both share the pick — Web Share on phones, copy-to-clipboard
-  elsewhere. A new pick lands at your local midnight, even mid-session.
+  runs on today's pick earn DOUBLE toward your best score, and the doubled value is
+  what stays in your best — beat it raw tomorrow (puzzle timers/move-count games keep
+  their normal encoding; the twist only ever doubles straightforward higher-is-better
+  scores). The tag and the Trophy Case both share the pick — Web Share on phones,
+  copy-to-clipboard elsewhere. A new pick lands at your local midnight, even
+  mid-session.
 - **Daily nudge** (Settings, off by default): while Strip is open, a local
   notification pings you when tomorrow's pick lands; tapping it jumps to the pick.
   Honest scope: nothing is scheduled once the app is closed — there's no push

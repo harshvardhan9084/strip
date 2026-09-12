@@ -232,6 +232,25 @@
 
   document.addEventListener("DOMContentLoaded", init);
 
+  // ---- HUD mini-toast: ONE owner, ONE timer ----
+  // The lock button, the Daily nudge flow, and the share fallback all surface
+  // short messages on #lock-toast. Each used to run its own hide-timer, so a
+  // stale timer from one caller would prematurely hide another's message
+  // (Round 14 critic MINOR). Everything now goes through here. Also raised
+  // above the bottom sheets (z-index 300) — the nudge toggle only exists
+  // INSIDE the settings sheet, so its feedback rendered behind the backdrop.
+  const hudToastEl = document.getElementById("lock-toast");
+  let hudToastTimer = null;
+  window.HudToast = {
+    show(text, ms){
+      if(!hudToastEl) return;
+      hudToastEl.textContent = text;
+      hudToastEl.classList.add("show");
+      clearTimeout(hudToastTimer);
+      hudToastTimer = setTimeout(() => hudToastEl.classList.remove("show"), ms || 1600);
+    }
+  };
+
   // Shell API for the cartridge drawer (js/drawer.js): jump straight to a
   // specific cartridge instead of blind-scrolling through the deck.
   window.StripShell = {

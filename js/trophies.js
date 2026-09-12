@@ -390,6 +390,11 @@ window.Trophies = (function(){
     window.addEventListener("strip:fav-changed", onFavChanged, { passive:true });
     window.addEventListener("strip:daily-played", onDailyPlayed, { passive:true });
     window.addEventListener("strip:daily-sync", onDailySync, { passive:true });
+    // Round 14 fix: an open panel must not go stale across midnight — same
+    // live-refresh contract the drawer holds (streak/playedToday/LED grid)
+    window.addEventListener("strip:daily-rollover", () => {
+      if(overlay && overlay.classList.contains("open")) renderGrid();
+    }, { passive:true });
 
     const saved = await load();
     if(saved && typeof saved === "object"){

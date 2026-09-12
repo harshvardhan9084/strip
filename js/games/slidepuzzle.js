@@ -1,5 +1,6 @@
 Strip.register({
   id: "slidepuzzle",
+  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves|seconds; NEVER double it (twist)
   label: "PUZZLE",
   title: "Slide Puzzle",
   tag: "4×4",

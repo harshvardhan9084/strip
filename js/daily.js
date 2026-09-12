@@ -183,8 +183,8 @@ window.Daily = (function(){
         tag.type = "button";
         tag.className = "cart-daily-tag";
         const title = todayMod ? (todayMod.title || todayId) : "";
-        tag.setAttribute("aria-label", "Today's pick · highscores ×2 today. Tap to share.");
-        tag.title = "Today's pick — everything scores ×2 today. Tap to share.";
+        tag.setAttribute("aria-label", "Today's pick · highscores ×2 today, and the doubled score stays in your best. Tap to share.");
+        tag.title = "Today's pick — runs today count ×2 toward your best (the doubled value stays after today). Tap to share.";
         tag.innerHTML = "TODAY'S PICK <span class=\"cart-daily-x\">×2</span>" + SHARE_ICON;
         tag.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -231,6 +231,8 @@ window.Daily = (function(){
   // (same element the lock button uses), never an alert().
   function shareText(){
     const st = getState();
+    // location-based URL: on GitHub Pages this is the app's public URL; a
+    // localhost dev server shares its own URL, which is fine for testing.
     return "Today's Strip pick: " + st.title +
       (st.streak > 1 ? " — day " + st.streak + " of my streak" : "") +
       "\n" + location.origin + location.pathname;
@@ -255,9 +257,10 @@ window.Daily = (function(){
       }
     }
   }
-  // the HUD's small toast element (id kept from the lock feature — it has
-  // always been a generic mini-toast, settings-ui just sets text on it)
+  // the HUD's small toast — ONE owner (window.HudToast in app.js) so the
+  // lock button, the nudge flow, and share can't cut each other's timers off
   function hudToast(msg){
+    if(window.HudToast){ HudToast.show(msg); return; }
     const t = document.getElementById("lock-toast");
     if(!t) return;
     t.textContent = msg;
@@ -281,11 +284,44 @@ window.Daily = (function(){
   // TODAY'S TWIST: today's pick counts double toward its highscore. app.js's
   // makeApi routes every game's setHighscore through here — the pick's card
   // wears the ×2 tag, so the inflated number reads as the event it is.
+  // Guards (Round 14 critic): (1) non-finite scores pass through untouched —
+  // Math.max(best, NaN) would poison the record forever; (2) games that store
+  // an INVERTED encoding (score = CEILING - moves/seconds, so max-wins still
+  // works — lightsout/maze/memorymatch/slidepuzzle/minisudoku at 100000,
+  // minesweeper at 9999, codebreaker at 100) must NEVER be doubled: the
+  // doubled store value decodes to a negative "best" that no legitimate
+  // future win can restore (max() keeps the bigger, i.e. worse, number).
+  // Each of those games declares scoreEncoding/scoreCeiling at registration.
   function isTwistDay(id){
     return !!id && id === todayId && dayKey() === currentDay;
   }
   function twistScore(id, score){
-    return isTwistDay(id) ? score * 2 : score;
+    if(!isTwistDay(id)) return score;
+    if(!Number.isFinite(score)) return score;
+    const mod = Strip.all().find(m => m.id === id);
+    if(mod && mod.scoreEncoding === "inverted") return score;
+    return score * 2;
+  }
+  // One-time repair for records corrupted between the Round 14 deploy and the
+  // critic fix (a few hours' window): an inverted game whose stored best
+  // exceeds its declared ceiling could only get there by being doubled.
+  // Fresh start beats a permanently negative best. Runs once, then flags.
+  async function repairTwistDamage(){
+    if(state.twistRepairDone) return;
+    let repaired = 0;
+    for(const m of Strip.all()){
+      if(m.scoreEncoding !== "inverted" || !Number.isFinite(m.scoreCeiling)) continue;
+      try{
+        const hs = await StripDB.getHighscore(m.id);
+        if(hs > m.scoreCeiling){
+          await StripDB.clearHighscore(m.id);
+          repaired++;
+        }
+      }catch(e){}
+    }
+    state.twistRepairDone = true;
+    persist();
+    if(repaired) console.info("Daily: repaired " + repaired + " twist-corrupted highscore(s)");
   }
   function jumpToPick(){
     if(todayMod && window.StripShell) StripShell.jumpToModule(todayMod);
@@ -307,13 +343,21 @@ window.Daily = (function(){
   // ---------- boot ----------
   async function init(){
     await Settings.whenReady();
+    let hydrateOk = false;
     const saved = await load();
     if(saved && typeof saved === "object"){
       state = Object.assign(state, saved);
       if(typeof state.streak !== "number") state.streak = 0;
       if(typeof state.best !== "number") state.best = 0;
       if(!Array.isArray(state.plays)) state.plays = []; // pre-Round-14 records
+      hydrateOk = true;
     }
+    // Repair ONLY on a proven hydration. If load() failed transiently (an
+    // IndexedDB hiccup / write interrupted by a reload — observed live during
+    // Round 14 QA), `saved` is null and `state` holds DEFAULTS: persisting
+    // the repair flag now would overwrite the player's real history with
+    // empty numbers. Skip, and let the next healthy boot repair instead.
+    if(hydrateOk) repairTwistDamage();
     // yesterday's player who missed a day keeps the stale streak number in
     // the persisted record; display resets to 0 without erasing history
     const yesterday = daysAgoKey(1);

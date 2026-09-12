@@ -38,7 +38,13 @@
   if(window.FocusTrap) FocusTrap.attach(overlay, () => overlay.classList.contains("show"));
 
   function syncToggles(settings){
-    toggles.forEach(t => { t.checked = !!settings[t.dataset.key]; });
+    toggles.forEach(t => {
+      // a nudge permission request is in flight — don't clobber the checkbox
+      // the user is deciding on (any other Settings.set would syncToggles
+      // back to the stale persisted value mid-prompt; Round 14 critic)
+      if(t.dataset.key === "dailyNudge" && nudgePending) return;
+      t.checked = !!settings[t.dataset.key];
+    });
     lockBtn.setAttribute("aria-pressed", settings.lockScroll ? "true" : "false");
   }
 
@@ -55,6 +61,7 @@
     });
   });
 
+  let nudgePending = false;
   function maybeGrantNudge(toggle){
     if(!("Notification" in window)){
       toggle.checked = false;
@@ -74,17 +81,23 @@
       Feedback.tone("error");
       return;
     }
+    // pending window: syncToggles leaves this checkbox alone, and if the
+    // user UN-checks it while the prompt is open, that uncheck wins —
+    // the late grant must not override the user's newest action
+    nudgePending = true;
     Notification.requestPermission().then(perm => {
-      if(perm === "granted"){
+      nudgePending = false;
+      if(perm === "granted" && toggle.checked){
         Settings.set({ dailyNudge: true });
         showToast("Daily nudge on");
         Feedback.tone("success");
-      } else {
+      } else if(perm !== "granted"){
         toggle.checked = false;
         showToast("Blocked — allow notifications in browser settings");
         Feedback.tone("error");
       }
-    }).catch(() => { toggle.checked = false; });
+      // granted but user unchecked mid-prompt: persist nothing, stay silent
+    }).catch(() => { nudgePending = false; toggle.checked = false; });
   }
 
   // CRT skin picker — one settings key, instant repaint via html[data-theme]
@@ -103,8 +116,10 @@
   });
 
   let toastTimer = null;
-  // the HUD mini-toast is generic (daily.js "Copied to clipboard" uses it too)
+  // One owner, one timer (Round 14 critic): the HUD toast lives in app.js —
+  // delegate so lock/nudge/share messages can't cut each other off.
   function showToast(text){
+    if(window.HudToast){ HudToast.show(text); return; }
     lockToast.textContent = text;
     lockToast.classList.add("show");
     clearTimeout(toastTimer);

@@ -131,6 +131,26 @@ window.StripDB = (function(){
     });
   }
 
+  // Remove a game's highscore record entirely (best + history). Used by the
+  // Round 14 twist repair: setHighscore's max() can never LOWER a record,
+  // so wiping a corrupted entry needs a real delete. Resolves true if a
+  // record was removed.
+  function clearHighscore(id){
+    return tx(SCORE_STORE, "readwrite").then(store => {
+      if(!store){
+        const map = useFallback().get(SCORE_STORE);
+        const had = map.has(id);
+        map.delete(id);
+        return had;
+      }
+      return new Promise((resolve) => {
+        const req = store.delete(id);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+      });
+    }).catch(() => false);
+  }
+
   // rough total footprint estimate, for a future "storage used" display if wanted
   function estimateUsage(){
     if(navigator.storage && navigator.storage.estimate){
@@ -168,5 +188,5 @@ window.StripDB = (function(){
     });
   }
 
-  return { saveState, loadState, getHighscore, setHighscore, estimateUsage, clearAll };
+  return { saveState, loadState, getHighscore, setHighscore, clearHighscore, estimateUsage, clearAll };
 })();

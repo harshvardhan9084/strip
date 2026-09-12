@@ -1,5 +1,6 @@
 Strip.register({
   id: "minesweeper",
+  scoreEncoding: "inverted", scoreCeiling: 9999, // stores 9999 - seconds; NEVER double it (twist)
   label: "PUZZLE",
   title: "Minesweeper",
   tag: "8×8",

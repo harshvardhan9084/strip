@@ -1,5 +1,6 @@
 Strip.register({
   id: "codebreaker",
+  scoreEncoding: "inverted", scoreCeiling: 100, // stores 100 - rows; NEVER double it (twist)
   label: "LOGIC",
   title: "Code Breaker",
   tag: "mastermind",

@@ -791,3 +791,49 @@ verified by review; desktop-Chrome Web Share path not testable headless
 (clipboard path verified instead); after a restore-from-future flip the
 centered card re-tags only on the next scroll frame (badge() is scroll-frame
 driven by design, matches Round 13 behavior).
+
+### Round 14 fix pass (same day, critic verdict 7.5/10 → fixes applied)
+
+The critic caught a real landmine the round's own E2E had dodged:
+
+- [CRITICAL FIXED] ×2 twist corrupted INVERTED-encoding games: 7 cartridges
+  store `CEILING − metric` (lightsout/slidepuzzle/memorymatch/maze/minisudoku
+  at 100000−moves|seconds, minesweeper 9999−seconds, codebreaker 100−rows) so
+  the store's max-wins semantics work; doubling the stored value decodes to a
+  permanently negative "best" (e.g. memorymatch in 30 moves → −99960 forever).
+  Fix: those games now declare `scoreEncoding:"inverted"` + `scoreCeiling` at
+  registration; `Daily.twistScore` refuses to double them (and refuses
+  non-finite scores — `Math.max(best, NaN)` would poison a record). Proven
+  live: hunting fake dates found a real inverted pick day (minesweeper, −10d)
+  → scores pass through un-doubled while the same-day linear reference still
+  doubles. One-time boot repair (`repairTwistDamage`) wipes impossible records
+  (best > declared ceiling) via new `StripDB.clearHighscore`; a legit 99950
+  lightsout record survives it.
+- [CRITICAL'S SIBLING FIXED + observed live] repairTwistDamage used to run
+  even when hydration FAILED (saved=null after a reload raced an in-flight
+  IndexedDB write — reproduced during QA), persisting DEFAULTS+flag over the
+  player's real history. Repair now only runs on a proven hydration.
+- [MAJOR FIXED] #lock-toast (z-index 60) rendered BEHIND every bottom sheet
+  (200) — the nudge toggle only exists inside the settings sheet, so its own
+  feedback was invisible. Toast raised to 350 (above sheets AND the 300 hint
+  overlay); verified computed 350 vs 200 while the sheet is open.
+- [MINOR FIXED] two owners, two timers on one toast element → single owner
+  `window.HudToast` in app.js; lock button, nudge flow, and share fallback all
+  delegate (lock/nudge messages re-verified firing through it).
+- [MINOR FIXED] nudge async permission window: `nudgePending` guard —
+  syncToggles skips the pending checkbox (no clobber by concurrent
+  Settings.set), and an uncheck during the prompt wins over the late grant
+  (grant only persists if the toggle is still checked).
+- [MINOR FIXED] twist persistence is now disclosed honestly: tag tooltip/aria
+  say the doubled value STAYS in your best; README no longer claims "until
+  midnight" and notes inverted-encoding games keep their normal encoding.
+- [NIT FIXED] trophies panel listens to strip:daily-rollover (open panel
+  re-renders live — proven by node-identity: a fresh .daily-stats node replaces
+  the old one on a fake-midnight flip); redundant `button.cart-daily-tag`
+  font-family rule removed; shareText dev-URL comment added.
+- sw v10→v11. Re-verified: 50/50 mount sweep clean, console clean, seeded
+  3-day history survives boot with chip done, legit/corrupt repair behavior
+  exact. Known test-infra note: `location.reload()` inside an eval can race
+  in-flight IndexedDB writes and transiently break the NEXT boot's hydration
+  (settings re-showed the hint once) — the daily store is now guarded against
+  the destructive path; settings' exposure is cosmetic-only.
