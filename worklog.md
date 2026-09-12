@@ -1050,3 +1050,34 @@ WEEK RIPPLE toast.
   preserved; plays merged; chip ◎✓; trophies mirror updated; disk persisted.
 - Offline reload of a query URL on v14 boots the full deck from the SW.
 - 50/50 sweep clean, console clean on final code.
+
+### Round 16 judge: 8.7/10 → fix pass closes all 6 findings + 2 moves
+
+- **[MAJOR] day-flip adoption** (the merge compared against ADOPTION-time
+  dayKey(); a 23:59 play adopted at 00:00 was silently dropped, and the
+  display rule then persisted streak=0 over it). Rewritten as a key-vs-key
+  rule: the in-memory play's own key is snapshotted and re-derived whenever
+  it is NEWER than the disk's lastPlayed (ISO keys are lexicographic — one
+  rule covers same-day, midnight-crossing, and TZ shifts), with
+  daysAgoKey(1, playDay) anchoring "yesterday" to the PLAY's day. The gated
+  session's missing pickLog entry is reconstructed deterministically
+  (pickFor(playDay)), and the re-announce carries the play-day's pick id.
+  Live-proven on a fake-clock harness (boot −24h → gated play on Sep 11 →
+  shift to real Sep 12 → visibility probe): play survives (streak 5, best 7
+  kept, plays [09,10,11], pickLog healed, disk persisted, chip ◎ 5); the
+  same-day branches re-regressed (2+1=3 through the new code).
+- **[MINOR] today-is-"missed"**: the calendar grew a fifth state — "open"
+  (dotted, dashed today ring, "still open" tooltip) — so TODAY is never
+  rendered as a miss while it can still be played; the LED week row's
+  tooltip aligned in the same pass.
+- **[NIT]s closed**: README "dashed ring until you've played it"; REGULAR
+  retroactivity disclosed; the three divergent dayKey copies in trophies.js
+  folded into the local dayKey(); dead pre-updateChip chip.title removed.
+- **Judge moves**: monthCellState extracted PURE and exported via
+  Trophies._internals (documented test surface, same pattern as
+  Daily._internals) — 12/12 assertion matrix PASS live (state coverage ×8,
+  Dec/Jan boundary, eviction-gap, prior-month start, empty ring); the
+  re-probe gained an `online` hatch (offline window → connectivity back is
+  the natural retry), disarmed with the others on first store answer.
+- sw v14 → v15. Final: 50/50 sweep clean, console clean, offline v15 boots
+  the full deck.

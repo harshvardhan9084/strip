@@ -52,8 +52,9 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
   scores). The tag and the Trophy Case both share the pick — Web Share on phones,
   copy-to-clipboard elsewhere. The Trophy Case recaps your week — which picks you
   played, and the ones you let slip — and lays the whole month out on a calendar
-  (played days glow, today wears a dashed ring, and days older than the play log
-  are honestly marked "not on record" instead of faked). A new pick lands at your
+  (played days glow, today wears a dashed ring until you've played it, and days
+  older than the play log are honestly marked "not on record" instead of faked).
+  A new pick lands at your
   local midnight, even mid-session.
 - **Daily nudge** (Settings, off by default): while Strip is open, a local
   notification pings you when tomorrow's pick lands; tapping it jumps to the pick.
@@ -68,7 +69,9 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
   25, all 50; a day with 30 visits; 100 total visits (REGULAR); browsing in the small
   hours (NIGHT SHIFT and its morning mirror EARLY BIRD); pinning 5 favorites; holding
   a highscore you went back to; playing the Daily Pick; 7- and 30-day pick streaks
-  (WEEK RIPPLE and MOON CYCLE — earned retroactively if your streak already counts).
+  (WEEK RIPPLE and MOON CYCLE — earned retroactively if your streak already counts;
+  REGULAR is retroactive the same way — the timestamp is when the app first
+  noticed, not the moment you crossed 100).
   Purely local, no
   account, no leaderboards, no streak-shaming. A cartridge you have already explored
   gets a small glowing dot in the drawer.

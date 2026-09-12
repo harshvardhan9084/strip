@@ -1055,6 +1055,7 @@ html.reduce-motion .cart-sparkline{ animation:none !important; }
 .daily-cal-cell.today{ border-style:dashed; border-color:rgba(var(--accent2-rgb),.7); }
 .daily-cal-cell.today.on{ border-style:solid; }
 .daily-cal-cell.missed{ opacity:.72; }
+.daily-cal-cell.open{ opacity:.85; border-style:dotted; background:transparent; }
 .daily-cal-cell.ahead{ opacity:.32; border-style:dotted; background:transparent; }
 .daily-cal-cell.unlogged{ opacity:.45; border-style:dotted; background:transparent; }
 .daily-cal-note{
