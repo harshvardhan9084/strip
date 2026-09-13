@@ -5,7 +5,9 @@
  * chosen deterministically from the date so every device in the world sees
  * the same cartridge (same deck version, same pick — no server needed).
  *
- *   - HUD chip "◎ DAILY" jumps straight to the pick; gets a ✓ once played
+ *   - HUD chip "◎ DAILY" teleports to the pick behind a CONFIRM sheet
+ *     (Round 21: the jump used to be instant — one stray tap abandoned a
+ *     mounted run); gets a ✓ once played
  *   - the pick's card wears a "TODAY'S PICK ×2" tag — a real share button
  *   - playing it (strip settles on it) extends a daily streak, persisted
  *     as a plays[] date ring (last N days, feeds the trophy panel grid)
@@ -375,9 +377,9 @@ window.Daily = (function(){
     chip = document.getElementById("daily-chip");
     if(!chip) return;
     const title = todayMod ? (todayMod.title || todayId) : "";
-    chip.setAttribute("aria-label", "Today's pick: " + title + " — jump to it");
+    chip.setAttribute("aria-label", "Today's pick: " + title + " — teleport to it");
     chip.addEventListener("click", () => {
-      if(todayMod && window.StripShell) StripShell.jumpToModule(todayMod);
+      requestTeleport();
       try{ Feedback.haptic("light"); }catch(e){}
     });
     updateChip(); // owns chip.title too — a pre-title here would go stale (judge NIT)
@@ -500,8 +502,75 @@ window.Daily = (function(){
       hudToast("Repaired " + repaired + " corrupted best" + (repaired > 1 ? "s" : ""));
     }
   }
+  // ---------- teleport confirm (Round 21) ----------
+  // The ◎ chip and the nudge notification used to TELEPORT the player to
+  // the pick with zero ceremony — one accidental tap yanked them out of
+  // whatever they were doing (jumping far from a card unmounts it, so any
+  // in-progress board was simply gone). Now the jump opens a small sheet
+  // first: it names the pick, shows what the trip is worth today, and only
+  // TELEPORT commits. Destructive-feeling navigation gets a door handle —
+  // the same contract as the data-wipe confirms in settings.
+  let tpSheet = null, tpLastFocus = null;
+  function buildTpSheet(){
+    if(tpSheet) return;
+    tpSheet = document.createElement("div");
+    tpSheet.id = "daily-teleport";
+    tpSheet.setAttribute("role", "dialog");
+    tpSheet.setAttribute("aria-modal", "true");
+    tpSheet.setAttribute("aria-label", "Teleport to today's pick");
+    tpSheet.style.cssText = "display:none; position:fixed; inset:0; z-index:220; background:rgba(7,11,18,.8); align-items:center; justify-content:center;";
+    tpSheet.innerHTML =
+      '<div id="daily-teleport-card" style="background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; width:min(300px, 86vw); text-align:center; box-shadow:0 18px 50px rgba(0,0,0,.55);">' +
+        '<div style="font-family:var(--font-display); font-size:10px; letter-spacing:3px; color:var(--amber); margin-bottom:10px;">◎ TELEPORT</div>' +
+        '<div id="daily-teleport-title" style="font-size:17px; font-weight:700; color:var(--ink); margin-bottom:6px;"></div>' +
+        '<div id="daily-teleport-sub" style="font-size:11px; color:var(--ink-dim); line-height:1.6; margin-bottom:16px;"></div>' +
+        '<div style="display:flex; gap:8px;">' +
+          '<button id="daily-teleport-stay" class="btn" type="button" style="flex:1;">Stay</button>' +
+          '<button id="daily-teleport-go" class="btn accent" type="button" style="flex:1;">Teleport</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(tpSheet);
+    tpSheet.addEventListener("click", (e) => { if(e.target === tpSheet) closeTpSheet(false); });
+    tpSheet.querySelector("#daily-teleport-stay").addEventListener("click", () => closeTpSheet(false));
+    tpSheet.querySelector("#daily-teleport-go").addEventListener("click", () => closeTpSheet(true));
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape" && tpSheet && tpSheet.style.display === "flex") closeTpSheet(false);
+    });
+    if(window.FocusTrap) FocusTrap.attach(tpSheet, () => !!(tpSheet && tpSheet.style.display === "flex"));
+  }
+  function closeTpSheet(commit){
+    if(!tpSheet || tpSheet.style.display !== "flex") return;
+    tpSheet.style.display = "none";
+    if(tpLastFocus && tpLastFocus.focus) tpLastFocus.focus({ preventScroll: true });
+    tpLastFocus = null;
+    if(commit){
+      try{ Feedback.tone("swap"); Feedback.haptic("medium"); }catch(e){}
+      if(todayMod && window.StripShell) StripShell.jumpToModule(todayMod);
+    } else {
+      try{ Feedback.tone("toggle"); }catch(e){}
+    }
+  }
+  function requestTeleport(){
+    if(!todayMod){
+      hudToast("Today's pick is still loading");
+      return;
+    }
+    buildTpSheet();
+    const done = state.lastPlayed === dayKey();
+    tpSheet.querySelector("#daily-teleport-title").textContent = todayMod.title || todayId;
+    tpSheet.querySelector("#daily-teleport-sub").innerHTML =
+      "Jump the strip straight to today's pick?" +
+      (done
+        ? " Already played today — the streak is safe."
+        : " Playing it keeps your <span style='color:var(--amber)'>" + (state.streak ? (state.streak + 1) + "-day streak" : "streak") + "</span> alive · bests count <span style='color:var(--amber)'>×2</span> today.");
+    tpLastFocus = document.activeElement;
+    tpSheet.style.display = "flex";
+    try{ Feedback.tone("toggle"); Feedback.haptic("light"); }catch(e){}
+    const go = tpSheet.querySelector("#daily-teleport-go");
+    requestAnimationFrame(() => requestAnimationFrame(() => { if(go) go.focus({ preventScroll: true }); }));
+  }
   function jumpToPick(){
-    if(todayMod && window.StripShell) StripShell.jumpToModule(todayMod);
+    requestTeleport();
   }
 
   // ---------- drawer marker ----------
@@ -590,6 +659,15 @@ window.Daily = (function(){
     isTwistDay,
     twistScore,
     jumpToPick,
-    _internals: { dayKey, daysAgoKey, computeStreak, pickFor, isHydrated: () => hydrated },
+    _internals: { dayKey, daysAgoKey, computeStreak, pickFor, isHydrated: () => hydrated,
+      // Round 21 QA seam: the teleport-confirm sheet is the production
+      // surface, driven end-to-end (open → assert still here → commit).
+      teleport: {
+        request: requestTeleport,
+        isOpen: () => !!(tpSheet && tpSheet.style.display === "flex"),
+        title: () => (tpSheet && tpSheet.querySelector("#daily-teleport-title") || {}).textContent || "",
+        commit: () => { const b = tpSheet && tpSheet.querySelector("#daily-teleport-go"); if(b) b.click(); },
+        stay: () => { const b = tpSheet && tpSheet.querySelector("#daily-teleport-stay"); if(b) b.click(); },
+      } },
   };
 })();

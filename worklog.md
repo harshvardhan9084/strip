@@ -1287,3 +1287,94 @@ landscape screens (no breakage at 390×726).
    needs a tiny Strip-level event, not per-game edits.
 3. Real-device pass (carry-over, 4th round): DST streak flip on hardware;
    live permission-revoked check.
+
+---
+
+## Round 21 — "The User's Seven" (user-directed fixes + Perfect Ring; ICE console)
+
+### ① Current project status description/assessment
+
+- Recovered from worklog: Round 20 shipped at judge 9.3/10, 50 cartridges, repo @ 956d7df,
+  sw v19. The user confirmed the round ("You did well") and issued Round 21 as another
+  full-dedication UI/UX + controls pass with SEVEN named directives: (1) same dedication
+  again, (2) Fullscreen first in settings, (3) Minesweeper + Garden glitches, (4) build
+  "Perfect Ring" with click-to-begin, (5) change the main app theme color, (6) another
+  Blob Merge improvement, (7) Garden economy, (8) confirmation on the daily-pick teleport.
+- Every directive shipped. The deck is now 51 cartridges. Emotion framework applied
+  throughout: the teleport confirm protects investment (no more losing a mounted run to
+  one stray tap), Blob Merge gained a chain-multiplier rush loop + silent-verb sound fix,
+  Garden's return-to-bloom offline growth is the idle-genre dopamine hook, and Perfect
+  Ring is a pure tap-to-retry compulsion engine.
+
+### ② Current goals / completed modifications / verification results
+
+- **Fullscreen first (user ask)**: Settings → CONTROLS now reads Fullscreen → Volume →
+  Nav arrows → Haptic strength. QA pin asserts the row order.
+- **ICE console (user ask — new main theme color)**: fourth CRT skin (`data-theme="ice"`),
+  frost-blue phosphor #54D9EC on ocean-black #070B12 chassis, mint secondary. ICE is the
+  new DEFAULT via a one-time settingsVersion-2 migration (legacy passive "amber" moves to
+  ICE; explicit green/violet untouched; explicit amber after migration always wins).
+  Pre-paint head script extended (no flash on cold boot), theme-color meta, manifest.json
+  recolored, manifest blob-swap logic follows the new default, ICE swatch listed first.
+- **Teleport confirmation (user ask)**: the ◎ DAILY chip (and the nudge notification)
+  now open a confirm sheet — "◎ TELEPORT / <pick title> / streak + ×2 context" with
+  Stay/Teleport; Escape and backdrop = stay; focus moves in and back out; jump only on
+  commit. Previously the jump was instant and unmounted whatever you were playing.
+- **Minesweeper glitches (user ask)**: (1) REAL BUG — the tap-to-chord read
+  `revealed[r*W + c]` where `c` was the BUTTON ELEMENT (shadowed column): the index was a
+  string, chord never fired on tap, tapping numbers silently no-opped. Fixed to `col`.
+  (2) REAL BUG — switching field size mid-run never cleared the timer: the new board's
+  clock ran before the first dig. Now cleared. (3) Loss-board legibility: the detonated
+  cell burns bright red, other mines glow dim, wrong flags show the classic ✗.
+- **Garden glitches + economy (user ask)**: (1) NaN/legacy state sanitize (undefined
+  lastSeen/lastWater/health used to freeze plants with a "NaN%" bar forever). (2)
+  Sprinklers now water OFFLINE and kept plants grow while away (the 300g promise was a
+  lie offline — plants died in 7 minutes of absence); no-sprinkler decay teeth stay.
+  (3) Removed the hidden health>60 growth gate — "Growing" now means growing; labels
+  honest (Needs water / Weak · growing / Ready!). (4) Replant friction killed: harvest &
+  compost auto-open the seed picker; picker closes on backdrop tap; coin floats on
+  harvest/compost/water-all. (5) ECONOMY: sink ladder extended ~3× — plots to 8
+  (150g/600g), GOLDEN WATERING CAN 2500g (one-tap water-all; the 8-plot chore was the
+  late-game tax), GREENHOUSE ladder 800/2000/5000g (+10% growth each, permanent
+  multiplier). Total sinks ≈ 13.5k coins; end-game coins have a "next" again.
+- **Blob Merge again (user ask)**: (1) board PERSISTS (grid/score/maxStage/winShown) —
+  scrolling away no longer silently resets a run; restore validated, newGame persists.
+  (2) COMBO CHAIN — merges within 2.5s stack ×2..×5 (score × mult, float shows "+N ×C",
+  COMBO chip in the stat row, recycle breaks the chain — chain-or-spend is a real tempo
+  decision). (3) The core verb makes SOUND now (stage+combo-pitched chirp; it was
+  completely silent before), grab scale, spawn pop-in, merge bounce, 3D blob shading +
+  high-stage aura. (4) Jam ceremony — stuck boards announce the reshuffle instead of a
+  silent wipe.
+- **Perfect Ring (user ask — NEW cartridge #51)**: orbit-dot timing game. Click/tap/space
+  to begin (dim ring + pulsing TAP TO BEGIN); tap inside the target arc = hit, orbit
+  REVERSES + speeds up + arc shrinks + relocates; dead-center 40% = PERFECT +2 with float
+  + rising pitch; every-10 milestone fanfare; tap outside or a full pass through the arc
+  ends the run; over-state shows score + NEW BEST + tap-to-retry (one-tap compulsion
+  loop). dt-normalized rAF, keyboard parity via StripShell.isActive, best feeds the XP
+  engine through the standard api. index.html wired (51 scripts), README updated.
+- **VERIFICATION**: qa/r21-regression.js NEW — 32/32 PASS live (registry 51, fullscreen
+  row order, ICE default + explicit-amber round-trip, teleport sheet open/stay/commit
+  semantics, minesweeper clock-kill on real switch, garden NaN-seed mount + new sinks +
+  honest labels, blob seed→restore→survives-remount, ring click-to-begin→miss→retry).
+  Harness hardening that the pins forced (documented for future rounds): centerOn now
+  requires a SETTLED scroll across two polls (a mid-flight match raced the smooth
+  scroll), and seeds park at card 0 first + read-back verify (a still-mounted copy's
+  cleanup persist() can clobber a fresh seed). r20 34/34, r19 10/10, 51/51 mount sweep
+  zero console errors, all files node --check clean. Screenshot-verified: ICE HUD +
+  settings + skins row (ICE first, pressed), teleport sheet, ring idle (TAP TO BEGIN) +
+  over state, garden sink ladder + sanitized bars, blob depth shading + persisted score.
+- Known-honest notes: the r21 QA run leaves test saves in the local store (QA-only
+  device state, not shipped). Same-pill difficulty click intentionally early-returns
+  (no timer reset — it's not a switch).
+
+### ③ Unresolved issues / risks + priority recommendations for next round (Round 22)
+
+1. P2 tail carried (4th round): size ladders (Memory/LightsOut/Slide/Maze/Sudoku/
+   CodeBreaker), Trivia runs, WhackMole waves, Breakout HP tiers, Etch/Kaleido save-PNG,
+   TonePad loop, Breathe counter.
+2. Per-game win/lose XP hooks (a tiny Strip-level event) — depth rewards, not browsing.
+3. Real-device pass (5th carry-over): DST streak flip on hardware; permission-revoked.
+4. Blob combo could show a countdown ring on the chip (micro-polish); Perfect Ring could
+   use a one-time "how to" pulse on first idle (hint line already carries it).
+Risks: none blocking. The ICE migration is the riskiest change shipped this round and is
+both idempotent and choice-preserving by design (settingsVersion 2 gate).

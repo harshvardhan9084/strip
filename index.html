@@ -3,20 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B0B0F">
+<meta name="theme-color" content="#070B12">
 <script>
-/* CRT skin pre-paint (Round 12): apply the saved theme before first paint so
-   green/violet users never see an amber flash. Settings hydrates from
-   IndexedDB asynchronously; this reads the synchronous localStorage mirror
-   that js/settings.js keeps in step. Full failure-safe: no localStorage,
-   no JSON, or unknown value -> default amber, nothing thrown. */
+/* CRT skin pre-paint (Round 12, Round 21): apply the saved theme before first
+   paint so non-default users never see a flash of the wrong console. Settings
+   hydrates from IndexedDB asynchronously; this reads the synchronous
+   localStorage mirror that js/settings.js keeps in step. Round 21: ICE joins
+   the skin family as the DEFAULT console color (one-time migration in
+   settings.js moves legacy default-amber players over; an explicit AMBER
+   pick is stored with settingsVersion 2 and always wins). Full failure-safe:
+   no localStorage, no JSON, or unknown value -> default ICE, nothing thrown. */
 try{
   (function(){
-    var t = localStorage.getItem("strip-theme");
-    if(t === "green" || t === "violet"){
+    var t = localStorage.getItem("strip-theme") || "ice";
+    if(t === "green" || t === "violet" || t === "ice" || t === "amber"){
       document.documentElement.setAttribute("data-theme", t);
       var m = document.querySelector('meta[name="theme-color"]');
-      if(m) m.setAttribute("content", t === "green" ? "#090F0B" : "#0E0A14");
+      var bg = { green: "#090F0B", violet: "#0E0A14", ice: "#070B12", amber: "#0B0B0F" }[t];
+      if(m && bg) m.setAttribute("content", bg);
     }
   })();
 }catch(e){}
@@ -121,8 +125,19 @@ try{
 
       <div class="settings-divider"></div>
 
-      <!-- Round 20 — CONTROLS: feel of the console itself -->
+      <!-- Round 20 — CONTROLS: feel of the console itself.
+             Round 21 order fix: Fullscreen leads the section — it's the
+             one-tap immersion switch and the most wanted control in the
+             list (user ask), so it reads first instead of hiding last. -->
       <div class="settings-section-label">CONTROLS</div>
+
+      <div class="setting-row setting-row-col">
+        <div class="setting-text">
+          <div class="setting-label">Fullscreen</div>
+          <div class="setting-desc">Edge-to-edge play — hide the browser chrome</div>
+        </div>
+        <button id="fullscreen-btn" class="btn accent small-btn" type="button">Enter</button>
+      </div>
 
       <div class="setting-row setting-row-col">
         <div class="setting-text">
@@ -155,14 +170,6 @@ try{
         </div>
       </div>
 
-      <div class="setting-row setting-row-col">
-        <div class="setting-text">
-          <div class="setting-label">Fullscreen</div>
-          <div class="setting-desc">Edge-to-edge play — hide the browser chrome</div>
-        </div>
-        <button id="fullscreen-btn" class="btn accent small-btn" type="button">Enter</button>
-      </div>
-
       <div class="settings-divider"></div>
 
       <!-- CRT skin picker (Round 11) -->
@@ -172,7 +179,12 @@ try{
           <div class="setting-desc">Phosphor tint for the whole console. Pure palette swap — nothing else changes.</div>
         </div>
         <div class="theme-options" role="group" aria-label="CRT skin">
-          <button type="button" class="theme-seg-btn" data-theme-value="amber" aria-pressed="true">
+          <!-- Round 21: ICE is the new default console color — the deck's
+               fourth phosphor. Listed first; AMBER keeps its loyalists. -->
+          <button type="button" class="theme-seg-btn" data-theme-value="ice" aria-pressed="true">
+            <span class="theme-swatch ice" aria-hidden="true"></span>ICE
+          </button>
+          <button type="button" class="theme-seg-btn" data-theme-value="amber" aria-pressed="false">
             <span class="theme-swatch amber" aria-hidden="true"></span>AMBER
           </button>
           <button type="button" class="theme-seg-btn" data-theme-value="green" aria-pressed="false">
@@ -253,6 +265,7 @@ try{
   <script src="js/games/memorymatch.js"></script>
   <script src="js/games/minesweeper.js"></script>
   <script src="js/games/minisudoku.js"></script>
+  <script src="js/games/perfectring.js"></script>
   <script src="js/games/physicsdrop.js"></script>
   <script src="js/games/plinko.js"></script>
   <script src="js/games/pongduel.js"></script>

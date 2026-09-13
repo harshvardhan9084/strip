@@ -18,7 +18,12 @@ window.Settings = (function(){
     reduceMotion: false,
     haptics: true,
     sound: true,
-    theme: "amber",   // "amber" | "green" | "violet" — CRT skin engine (Round 11)
+    // Round 21: ICE is the new default skin. A one-time migration below
+    // moves legacy players whose stored settings still say "amber" — but
+    // only if they never explicitly re-picked a skin after the migration
+    // (settingsVersion gates that). "amber" | "green" | "violet" | "ice".
+    theme: "ice",
+    settingsVersion: 2,
     dailyNudge: false, // Round 14: opt-in local notification on the day flip
     // Round 20 — controls & feel:
     volume: 0.8,          // master loudness 0..1 (Feedback master gain)
@@ -27,6 +32,7 @@ window.Settings = (function(){
   };
 
   const THEME_META_COLORS = {
+    ice:    "#070B12",
     amber:  "#0B0B0F",
     green:  "#090F0B",
     violet: "#0E0A14",
@@ -49,9 +55,11 @@ window.Settings = (function(){
     if(!link) return;
     const origHref = link.dataset.origHref || link.getAttribute("href");
 
-    if(theme === "amber" || !THEME_META_COLORS[theme]){
+    if(theme === "ice" || !THEME_META_COLORS[theme]){
       // default skin: restore the real manifest so install semantics stay
-      // 100% conventional (same-origin file, stable id resolution)
+      // 100% conventional (same-origin file, stable id resolution).
+      // Round 21: the default is ICE now, and the static manifest.json ships
+      // ICE's theme_color to match.
       if(manifestBlobURL){ URL.revokeObjectURL(manifestBlobURL); manifestBlobURL = null; }
       if(link.getAttribute("href") !== origHref) link.href = origHref;
       return;
@@ -98,7 +106,7 @@ window.Settings = (function(){
     document.documentElement.classList.toggle("scroll-locked", !!current.lockScroll);
     // CRT skin: one attribute swap re-tints every glow/veil via the --*-rgb
     // custom properties; the browser UI chrome follows via theme-color meta.
-    const theme = THEME_META_COLORS[current.theme] ? current.theme : "amber";
+    const theme = THEME_META_COLORS[current.theme] ? current.theme : "ice";
     document.documentElement.dataset.theme = theme;
     const meta = document.querySelector('meta[name="theme-color"]');
     if(meta) meta.setAttribute("content", THEME_META_COLORS[theme]);
@@ -110,9 +118,22 @@ window.Settings = (function(){
     let saved = null;
     try{ saved = await StripDB.loadState(SETTINGS_ID); }catch(e){}
     current = Object.assign({}, DEFAULTS, saved || {});
+    // Round 21 — one-time ICE migration. Every pre-R21 save either lacks
+    // settingsVersion or has version 1, and its theme is whatever the old
+    // DEFAULTS spread wrote ("amber") — a passive default, not a choice.
+    // Those players wake up to the new ICE console. A deliberate green or
+    // violet pick is untouched, and from now on any explicit re-pick (even
+    // back to AMBER) persists with settingsVersion 2 and always wins.
+    if((current.settingsVersion || 0) < 2 && current.theme === "amber"){
+      current.theme = "ice";
+    }
+    current.settingsVersion = 2;
     ready = true;
     applyToDocument();
     readyResolve();
+    // persist the migration so it never re-runs (fire-and-forget: a failed
+    // write just means the migration re-runs next boot, which is idempotent)
+    StripDB.saveState(SETTINGS_ID, current).catch(()=>{});
   }
 
   function get(){

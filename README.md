@@ -28,10 +28,10 @@ Your saves and high scores live on your device. I can't see them. Nobody can.
 
 ## What's on the strip right now
 
-50 cartridges at the moment — the half-century deck. A rough mix:
+51 cartridges at the moment — the half-century deck, plus one. A rough mix:
 
 - **The classics:** Snake, Mini 2048, Mini Sudoku, Maze, Slide Puzzle, Lights Out, Memory Match, Sequence (Simon Says), Bubble Shooter, Whack-a-Mole, XOX, Minesweeper, Blockfall, Breakout, Pong Duel
-- **Quick hits:** Reaction Time, Type Speed, Color Snap, Balloon Pop, Flap Dot, Stack Tower, Plinko, Rhythm Tap, Gravity Drop, Blob Merge, Chain Link
+- **Quick hits:** Reaction Time, Type Speed, Color Snap, Balloon Pop, Flap Dot, Stack Tower, Plinko, Rhythm Tap, Gravity Drop, Blob Merge, Chain Link, Perfect Ring
 - **Slow burns:** Tower Defense, Kingdom, Trading Post, Ant Colony, Garden, Tiny Aquarium, Artillery Duel
 - **Puzzles & strategy:** Unscramble, Quick Trivia, Code Breaker, Crate Push, Drop Four
 - **Words & cards:** Lexicle, Blackjack 21 (virtual chips only — no real money, ever)
@@ -54,16 +54,19 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
 - **Closest to Unlock**: the Trophy Case shows the three trophies you're nearest to
   with honest progress bars — because "almost there" is the strongest pull there is.
   Event trophies (night-owl hours, record revisits) are never faked into percentages.
-- **Controls that respect your hands** (Settings → Controls): a master **volume**
+- **Controls that respect your hands** (Settings → Controls): **fullscreen** leads
+  the list (Round 21 — the immersion switch reads first), then a master **volume**
   slider (rides on one shared gain node — games, chimes, everything), **haptic
   strength** (Light / Normal / Strong — it demos itself when you tap), on-screen
   **navigation arrows** for one-tap cartridge hops (and a scroll-lock that no longer
-  strands you), and **fullscreen** for edge-to-edge play.
+  strands you).
 - **Your data, yours** (Settings → Your Data): export every save, highscore, trophy,
   streak and XP as one JSON file; import it on any device to pick up exactly where
   you left off. Device settings (volume, skin, motion) stay put on import.
 - **Daily Pick** (◎ chip in the HUD): one cartridge a day, the same one for everyone,
-  picked from the date itself — no server, no account. The chip jumps straight to it;
+  picked from the date itself — no server, no account. The chip teleports to it behind
+  a **confirm sheet** (Round 21: the jump used to be instant, and one stray tap
+  abandoned whatever you were playing);
   the card wears a glowing "TODAY'S PICK ×2" tag — a real share button, and a promise:
   runs on today's pick earn DOUBLE toward your best score, and the doubled value is
   what stays in your best — beat it raw tomorrow (puzzle timers/move-count games keep
@@ -99,7 +102,8 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
   and your best, straight from the high-score history Strip keeps anyway. Puzzle
   games that count moves or seconds show real values plus a visible "FEWER WINS"
   note, so a downward line reads correctly.
-- **CRT skins**: Settings → CRT skin. Amber (default), Green phosphor, or Violet.
+- **CRT skins**: Settings → CRT skin. **ICE** (Round 21 default — frost-blue plasma),
+  Amber (the classic original), Green phosphor, or Violet.
 One tap re-tints the entire console — glows, panels, browser chrome, and (for installed
 PWAs) the launch splash / titlebar color follow along. Games keep their own colors;
 only the shell changes.

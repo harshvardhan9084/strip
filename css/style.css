@@ -54,6 +54,26 @@ html[data-theme="violet"]{
   --bg-rgb:      14,10,20;
 }
 
+/* Round 21 — ICE: the new default console color. An ice-blue phosphor on a
+   deep ocean-black chassis — same contrast discipline as the other skins
+   (chroma channels only, layout untouched), so every game reads identically.
+   Chosen for the deck's CRT family: amber/green/violet were the classic
+   phosphors; ICE is the frost-blue plasma terminal that reads instantly
+   "new console" while keeping the warm-in-the-dark glow the HUD is built on. */
+html[data-theme="ice"]{
+  --bg:        #070B12;
+  --panel:     #0E141D;
+  --panel-2:   #16202C;
+  --amber:     #54D9EC;
+  --amber-dim: #1F5A68;
+  --purple:    #7FE8C0;
+  --purple-dim:#3A6B57;
+  --line:      #223241;
+  --glow-rgb:    84,217,236;
+  --accent2-rgb: 127,232,192;
+  --bg-rgb:      7,11,18;
+}
+
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body{
   margin:0; padding:0; height:100%; overflow:hidden;
@@ -675,6 +695,7 @@ html.scroll-locked #strip{
 .theme-swatch.amber{ background:radial-gradient(circle at 35% 35%, #FFD9A0, #FFB347 60%, #7A5A22); }
 .theme-swatch.green{ background:radial-gradient(circle at 35% 35%, #B8FFD1, #5EEA8F 60%, #2A6B41); }
 .theme-swatch.violet{ background:radial-gradient(circle at 35% 35%, #E8D4FF, #C79BFF 60%, #5E4090); }
+.theme-swatch.ice{ background:radial-gradient(circle at 35% 35%, #D2F6FC, #54D9EC 60%, #1F5A68); }
 
 /* ---------- Setting rows: hover response (desktop) ---------- */
 .setting-row{

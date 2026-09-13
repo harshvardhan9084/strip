@@ -35,6 +35,7 @@ Strip.register({
     let mines, revealed, flagged, placed, over, won, flags, elapsed, timerId;
     let longPress = null, suppressDig = false;
     let restored = false;
+    let hitIdx = -1; // the mine that actually detonated — painted distinctly
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
@@ -56,6 +57,11 @@ Strip.register({
         W = D.W; H = D.H; MINES = D.MINES;
         api.save({ diff: diffIdx, bests, wins, streak }).catch(()=>{});
         restored = true; // switching fields abandons the old board
+        // Round 21 bugfix: the switch never cleared a running timer, so the
+        // new field's clock started the instant you tapped the size pill —
+        // TIME ticked before the first dig and the run was silently on the
+        // clock. Fresh board, fresh clock.
+        clearInterval(timerId); timerId = null;
         buildBoard();
         freshBoard();
         paintDiff();
@@ -117,7 +123,13 @@ Strip.register({
         c.addEventListener("contextmenu", (e) => { e.preventDefault(); clearTimeout(longPress); suppressDig = true; toggleFlag(r, col); });
         c.addEventListener("click", () => {
           if(suppressDig){ suppressDig = false; return; }
-          if(placed && revealed[r * W + c]) chord(r, col);
+          // Round 21 bugfix: this read `revealed[r * W + c]` — but `c` here is
+          // the BUTTON ELEMENT (the loop's cell variable), not the column. The
+          // index evaluated to a string like "0[object HTMLButtonElement]",
+          // the lookup was always undefined, and chord NEVER fired on tap:
+          // tapping a number silently no-opped (the genre's core efficiency
+          // move was pointer-only dead). `col` is the loop's real column.
+          if(placed && revealed[r * W + col]) chord(r, col);
           else dig(r, col);
         });
 
@@ -154,10 +166,22 @@ Strip.register({
           el.textContent = "";
           el.setAttribute("aria-label", `row ${r} col ${c}, hidden`);
         }
-        if(over && !won && mines[i] && revealed[i] !== true && !flagged[i]){
-          el.style.background = "rgba(232,99,127,.35)";
-          el.textContent = "✱"; // the hit wasn't just visual — show WHAT was there
-          el.setAttribute("aria-label", `row ${r} col ${c}, mine`);
+        if(over && !won){
+          // Round 21 loss-board legibility: the detonated cell burns bright
+          // red, every other unflagged mine glows dim, and a WRONG flag gets
+          // the classic ✗ — the final board explains the loss instead of
+          // painting every mine the same shade.
+          if(mines[i] && revealed[i] !== true && !flagged[i]){
+            el.style.background = i === hitIdx ? "rgba(232,99,127,.95)" : "rgba(232,99,127,.35)";
+            el.style.color = i === hitIdx ? "#fff" : "rgba(237,234,227,.8)";
+            el.textContent = "✱";
+            el.setAttribute("aria-label", `row ${r} col ${c}, mine`);
+          } else if(!mines[i] && flagged[i]){
+            el.style.background = "var(--panel-2)";
+            el.style.color = "var(--danger)";
+            el.textContent = "✗";
+            el.setAttribute("aria-label", `row ${r} col ${c}, wrong flag`);
+          }
         }
       }
     }
@@ -212,6 +236,7 @@ Strip.register({
 
       if(mines[i]){
         over = true; won = false;
+        hitIdx = i;
         clearInterval(timerId);
         Feedback.buzz("lose");
         streak = 0;
@@ -259,7 +284,7 @@ Strip.register({
       neighbors(i, j => { if(!revealed[j] && !flagged[j]) targets.push(j); });
       if(!targets.length) return;
       for(const j of targets){
-        if(mines[j]){ over = true; won = false; clearInterval(timerId); Feedback.buzz("lose"); streak = 0; persist(); render(); return; }
+        if(mines[j]){ over = true; won = false; hitIdx = j; clearInterval(timerId); Feedback.buzz("lose"); streak = 0; persist(); render(); return; }
         const stack = [j];
         while(stack.length){
           const k = stack.pop();
@@ -336,6 +361,7 @@ Strip.register({
       revealed = new Array(W * H).fill(false);
       flagged = new Array(W * H).fill(false);
       placed = false; over = false; won = false; flags = 0; elapsed = 0;
+      hitIdx = -1;
       render();
     }
 

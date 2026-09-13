@@ -32,10 +32,24 @@ Strip.register({
     //      ladder shortens as you climb instead of every merge starting over.
     //   3. MILESTONES — every new max stage fires a banner + fanfare, so
     //      progress is felt, not just counted.
+    //
+    // Round 21 (user: "do something about blob merge again"):
+    //   4. THE BOARD PERSISTS — scrolling away used to silently reset a run
+    //      (unmount threw the grid away); score/grid/record now survive the
+    //      strip's mount windows, like every deep game in the deck.
+    //   5. COMBO CHAIN — merges within 2.5s stack a ×2..×5 multiplier. The
+    //      rush verb is CHAINING, not merging: plan two moves, feel the
+    //      multiplier climb, hear the pitch rise.
+    //   6. MERGES MAKE SOUND — the core verb was completely silent (only
+    //      FAILED drops had a tone). Merges now chirp, rising with stage
+    //      and combo; spawns pop in; merges bounce; blobs have depth.
+    //   7. JAM CEREMONY — the (near-impossible) stuck board announces its
+    //      reshuffle instead of silently wiping your score mid-drag.
     let maxStageEver = 0;
+    let savedState = null;
     try{
-      const saved = await api.load();
-      if(saved && Number.isFinite(saved.maxStageEver)) maxStageEver = saved.maxStageEver;
+      savedState = await api.load();
+      if(savedState && Number.isFinite(savedState.maxStageEver)) maxStageEver = savedState.maxStageEver;
     }catch(e){}
 
     function updateGoalLine(){
@@ -50,7 +64,7 @@ Strip.register({
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="bm-score" style="color:var(--amber)">0</span></div><div>BEST <span id="bm-best" style="color:var(--purple)">${best}</span></div>`;
+    statRow.innerHTML = `<div>SCORE <span id="bm-score" style="color:var(--amber)">0</span></div><div>BEST <span id="bm-best" style="color:var(--purple)">${best}</span></div><div id="bm-combo" style="display:none; color:#6FCF97;"></div>`;
     wrap.appendChild(statRow);
 
     // goal line: states the actual objective + carries the MEGA BLOB win note
@@ -75,14 +89,45 @@ Strip.register({
     let winShown = false; // MEGA BLOB banner shows once per board
     let maxStage = 0;     // best blob grown THIS board (drives spawn scaling)
 
+    // ---- Round 21: combo chain ----
+    let combo = 0, lastMergeAt = 0;
+    const COMBO_MS = 2500, COMBO_MAX = 5;
+    function updateComboChip(){
+      const chip = q("#bm-combo");
+      if(!chip) return;
+      const hot = combo >= 2 && (Date.now() - lastMergeAt) <= COMBO_MS;
+      chip.style.display = hot ? "block" : "none";
+      if(hot) chip.textContent = "COMBO ×" + combo;
+    }
+    // one low-rate heartbeat just for the combo chip's expiry
+    const comboTick = setInterval(updateComboChip, 400);
+
+    // ---- Round 21: board persistence ----
+    function persistState(){
+      api.save({ grid, score, maxStage, winShown, maxStageEver }).catch(()=>{});
+    }
+    function restoreState(){
+      const s = savedState;
+      if(!s || !Array.isArray(s.grid) || s.grid.length !== ROWS) return false;
+      if(!s.grid.every(row => Array.isArray(row) && row.length === COLS)) return false;
+      grid = s.grid.map(row => row.map(b => (b && Number.isFinite(b.stage) && b.stage >= 0) ? { stage: Math.floor(b.stage) } : null));
+      score = Number.isFinite(s.score) && s.score > 0 ? Math.floor(s.score) : 0;
+      maxStage = Number.isFinite(s.maxStage) ? Math.max(0, Math.floor(s.maxStage)) : 0;
+      winShown = !!s.winShown;
+      q("#bm-score").textContent = score;
+      return true;
+    }
+
     function newGame(){
       grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
       score = 0;
       winShown = false;
       maxStage = 0;
+      combo = 0; lastMergeAt = 0;
       for(let i=0;i<4;i++) addBlob();
       render();
       q("#bm-score").textContent = 0;
+      persistState();
     }
 
     function emptyCells(){
@@ -105,7 +150,7 @@ Strip.register({
       } else {
         stage = Math.random() < 0.7 ? 0 : 1;
       }
-      grid[r][c] = { stage };
+      grid[r][c] = { stage, _new: true }; // _new: one pop-in animation
     }
 
     // floating +N chips — merges and recycles both pay VISIBLY now (the audit
@@ -121,7 +166,10 @@ Strip.register({
     if(!document.getElementById("bm-float-kf")){
       const st = document.createElement("style");
       st.id = "bm-float-kf";
-      st.textContent = "@keyframes bmFloat{from{opacity:1; transform:translateY(0)}to{opacity:0; transform:translateY(-26px)}}";
+      st.textContent =
+        "@keyframes bmFloat{from{opacity:1; transform:translateY(0)}to{opacity:0; transform:translateY(-26px)}}" +
+        "@keyframes bmPopIn{from{transform:scale(0)}to{transform:scale(1)}}" +
+        "@keyframes bmMergeBounce{0%{transform:scale(.6)}55%{transform:scale(1.22)}100%{transform:scale(1)}}";
       document.head.appendChild(st);
     }
 
@@ -132,14 +180,21 @@ Strip.register({
         if(!blob) continue;
         const el = document.createElement("div");
         el.dataset.r = r; el.dataset.c = c;
+        const col = STAGE_COLORS[Math.min(blob.stage, STAGE_COLORS.length-1)];
+        // Round 21: depth + high-stage aura — flat discs read as buttons;
+        // inset light/shadow reads as a physical blob worth touching
+        const aura = blob.stage >= 5 ? `, 0 0 16px ${col}66` : "";
         el.style.cssText = `
           position:absolute; left:${c*CELL+4}px; top:${r*CELL+4}px; width:${CELL-8}px; height:${CELL-8}px;
-          border-radius:50%; background:${STAGE_COLORS[Math.min(blob.stage, STAGE_COLORS.length-1)]};
+          border-radius:50%; background:${col};
           display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:14px;
-          cursor:grab; box-shadow:0 4px 10px rgba(0,0,0,.3); user-select:none;
+          cursor:grab; user-select:none;
+          box-shadow:0 4px 10px rgba(0,0,0,.3), inset 0 -5px 8px rgba(0,0,0,.28), inset 0 4px 7px rgba(255,255,255,.22)${aura};
           transition:left .15s ease, top .15s ease;
         `;
         el.textContent = blob.stage + 1;
+        if(blob._new){ el.style.animation = "bmPopIn .18s ease-out"; blob._new = false; }
+        else if(blob._merged){ el.style.animation = "bmMergeBounce .3s ease-out"; blob._merged = false; }
         attachDrag(el);
         board.appendChild(el);
       }
@@ -168,6 +223,7 @@ Strip.register({
         origTop = parseFloat(el.style.top);
         el.style.zIndex = 10;
         el.style.transition = "none";
+        el.style.transform = "scale(1.12)"; // the grab is FELT, not just seen
       }
       function onMove(e){
         if(!el._held || e.pointerId !== heldPointer) return;
@@ -182,6 +238,7 @@ Strip.register({
         heldPointer = null;
         if(!el.isConnected){ return; } // detached mid-drag: nothing to commit, nothing to snap
         el.style.zIndex = 1;
+        el.style.transform = "";
 
         const r = +el.dataset.r, c = +el.dataset.c;
         const curLeft = parseFloat(el.style.left), curTop = parseFloat(el.style.top);
@@ -244,9 +301,14 @@ Strip.register({
         api.setHighscore(best);
         q("#bm-best").textContent = best;
       }
+      // Round 21: spending breaks the chain — recycle OR chain-merge is a
+      // real tempo decision now
+      combo = 0;
+      updateComboChip();
       Feedback.tone("thud"); Feedback.haptic("light");
       addFloat(r, c, "+" + pts, "#EDEAE3");
       render();
+      persistState();
     }
 
     function tryMove(r, c, tr, tc){
@@ -261,16 +323,25 @@ Strip.register({
         grid[r][c] = null;
         success = true;
       } else if(target.stage === source.stage){
-        grid[tr][tc] = { stage: source.stage + 1 };
+        grid[tr][tc] = { stage: source.stage + 1, _merged: true };
         grid[r][c] = null;
-        score += Math.pow(2, source.stage + 1);
+        // Round 21 — combo chain: merges within COMBO_MS stack ×2..×5.
+        // The rush verb is CHAINING; the pitch rises with the combo.
+        const now = Date.now();
+        combo = (now - lastMergeAt <= COMBO_MS) ? Math.min(COMBO_MAX, combo + 1) : 1;
+        lastMergeAt = now;
+        const mult = combo;
+        const pts = Math.pow(2, source.stage + 1) * mult;
+        score += pts;
         q("#bm-score").textContent = score;
         if(score > best){
           best = score;
           api.setHighscore(best);
           q("#bm-best").textContent = best;
         }
-        addFloat(tr, tc, "+" + Math.pow(2, source.stage + 1), "#FFB347");
+        try{ Feedback.tone(300 + source.stage * 55 + (mult - 1) * 70, 0.07); }catch(e){}
+        Feedback.haptic("light");
+        addFloat(tr, tc, "+" + Math.pow(2, source.stage + 1) + (mult > 1 ? " ×" + mult : ""), "#FFB347");
         // milestone: every NEW max stage this board fires a banner + fanfare —
         // progress is felt at the moment it happens, not read off a counter
         const newStage = source.stage + 1;
@@ -292,17 +363,38 @@ Strip.register({
         // board — the board stays playable and bigger is still possible
         if(newStage === WIN_STAGE + 1 && !winShown){
           winShown = true;
+          persistState();
         }
         addBlob();
         success = true;
       }
       if(success){
         render();
+        updateComboChip();
+        persistState();
         if(emptyCells().length === 0 && !anyMergePossible()){
-          setTimeout(newGame, 900);
+          // Round 21: the stuck board announces its reshuffle — the old
+          // silent 900ms wipe read as the game hiccuping your score away
+          showJam();
         }
       }
       return success;
+    }
+
+    // ---- Round 21: jam ceremony ----
+    let jamShown = false;
+    function showJam(){
+      if(jamShown) return;
+      jamShown = true;
+      const banner = document.createElement("div");
+      banner.style.cssText = "position:absolute; inset:0; background:rgba(10,10,16,.85); border-radius:12px; z-index:15; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center;";
+      banner.innerHTML =
+        '<div style="font-family:var(--font-display); font-size:13px; color:var(--amber); letter-spacing:2px;">BOARD JAM</div>' +
+        '<div style="font-size:11px; color:var(--ink-dim);">no merges left — reshuffling with a fresh board…</div>' +
+        '<div style="font-size:10px; color:var(--ink);">score ' + score + ' banked · best ' + best + '</div>';
+      board.appendChild(banner);
+      try{ Feedback.buzz("win"); }catch(e){}
+      setTimeout(() => { jamShown = false; newGame(); }, 1400);
     }
 
     function anyMergePossible(){
@@ -323,9 +415,14 @@ Strip.register({
     }
 
     newBtn.addEventListener("click", newGame);
-    newGame();
+    // Round 21: the board survives scroll-away unmounts — restore the run
+    // if a valid one is saved, exactly like every deep game in the deck
+    if(!restoreState()) newGame();
+    render();
 
     return () => {
+      clearInterval(comboTick);
+      persistState();
       // no window listeners exist anymore — pointer capture keeps every drag
       // on its own element, and removing the element from the DOM ends its
       // event flow. Nothing to clean up, nothing can leak.
