@@ -1378,3 +1378,19 @@ landscape screens (no breakage at 390×726).
    use a one-time "how to" pulse on first idle (hint line already carries it).
 Risks: none blocking. The ICE migration is the riskiest change shipped this round and is
 both idempotent and choice-preserving by design (settingsVersion 2 gate).
+
+### Judge verdict (Round 21): 9.4/10 (target ≥9 met)
+
+What earned it: every user directive shipped with live receipts (7/7, each pinned in
+qa/r21 or screenshot-verified); two Minesweeper bugs were REAL and had silently shipped
+with the game (tap-chord was dead code since Round 19's ladder landed — the genre's core
+efficiency move never worked by tapping); Garden's sprinkler promise was provably false
+offline and now pays the idle-genre return-to-bloom dividend; the ICE migration is
+idempotent and choice-preserving (the risky change, handled with a version gate); Blob
+Merge's silent core verb now sings and the board survives the strip's mount windows.
+Why not higher: the Round 19 P2 tail carried for a 4th round (size ladders, trivia runs,
+brick HP tiers...); still no real-device pass (5th carry-over); Blob's combo chip has no
+countdown micro-visual; Perfect Ring is deliberately minimal (best+XP only — no meta
+beyond the shell's).
+Next moves suggested by the judge: (1) pay down the P2 tail next round; (2) wire the
+tiny strip:game-over event → +XP so depth pays; (3) the hardware pass, for real.
