@@ -1187,3 +1187,103 @@ WEEK RIPPLE toast.
   pushes) both read the shipped game array directly.
 - QA pin gap (judge: garden/blackjack/etc unpinned) acknowledged → Round 20
   move #2. sw v18. Commit follows this addendum.
+
+## Round 20 — "Console Feel": UI/UX + controls, driven by the gamer-emotion framework
+
+Scope (user): "improve the UI/UX and settings(control) too. And keep those gamers
+emotions in mind" — dopamine, rush, compulsion, progression, investing, retention.
+
+### Shipped
+
+- **Player XP & Level engine (`js/xp.js`, new)** — the deck-wide meta layer. Every
+  award source is shell-observable, so all 50 games feed progression with ZERO
+  per-game edits: settle on a cartridge +1 (consecutive-dedupe, 30/day cap —
+  browsing can't out-farm playing), a REAL new best +25 (hooked in app.js
+  makeApi.setHighscore: post-write best must exceed stored best; replays pay 0),
+  trophy unlock +40 (trophies.js now dispatches strip:trophy-unlocked), daily pick
+  +15 with +5/streak-day bonus (cap +50; computeDailyXp pure + pinned), favorite
+  growth +5 (toggle-safe: only counts increases past favsSeen). Level curve
+  step(L)=50+28(L-1)^1.35 (L1→2 = 50 XP — first session ends with a ceremony;
+  L5 = 422 cumulative), 15 titles FRESH FOAM → ARCADE IMMORTAL, then BEYOND THE
+  SCREEN. Disk-write gate like Daily (failed boot read ⇒ in-memory session).
+- **HUD level pill** (under the STRIP title): LV + micro XP track, tap opens the
+  trophy case; "+XP" float chips (repositioned in QA from below-the-pill — it
+  overlapped card titles — to right-of-pill).
+- **LEVEL UP ceremony**: full-screen phosphor card (rotating conic burst, pixel
+  LV numeral, title line), win tone + haptic pattern, auto-dismiss/tap/Esc,
+  queued per level crossed. reduce-motion kills the loops.
+- **Trophy Case → Player Card**: level ring (conic --ring-pct), title, XP all
+  time, and 4 identity counters (EXPLORED n/50, VISITS, TROPHIES x/13, STREAK
+  BEST). Panel order is now identity → ritual → near-misses → list.
+- **Trophy Case → CLOSEST TO UNLOCK**: top-3 locked METRIC trophies with honest
+  progress bars (visited/favs/totalVisits/dailyStreak/dayVisits), sorted by
+  ratio. Event trophies (night hours, record revisits) are never faked into
+  percentages; block hides entirely when nothing metric remains.
+- **Settings → CONTROLS**: master **Volume** slider (real master GainNode in
+  Feedback — live while dragging, persisted on release, readout + CSS --fill),
+  **Haptic strength** LIGHT/NORMAL/STRONG (scales presets AND raw patterns,
+  0.55/1/1.7, clamped 4–60 ms; demos itself on tap), **Navigation arrows**
+  toggle (on-screen ▲▼ hop controls on the right edge — make scroll-lock usable,
+  one-tap deck hops; 34px, idle opacity 55% so covered content stays visible —
+  tuned down in QA after the TD screenshot showed them too present at 100%),
+  **Fullscreen** Enter/Exit (webkit fallbacks, honest N/A when unsupported).
+- **Settings → YOUR DATA**: **Export save file** (one JSON: all game saves +
+  highscore histories + trophies/daily/deck-meta/XP; device settings excluded by
+  design), **Import save file** (strict envelope validation, confirm dialog,
+  wipes + restores, reloads; device settings preserved like Clear-all), **Show
+  welcome hint again** (drawer exposes StripDrawer.showHint).
+- **Drawer → category chips**: ALL / ★ / one chip per category (14), horizontal
+  scroll, tap-again-to-clear; ★ shows a flat favorites list. At 50 cartridges
+  the text box alone made people TYPE to browse.
+- **Settle haptic tick** in app.js (new-card settle = tactile click, deduped).
+- **Console-noise fix**: kingdom's `setHighscore(state.day - 1 …)` tripped the
+  registry's inverted-score tripwire on every boot — clamp hoisted, warning
+  gone (regex verified non-matching against the live mount source).
+- sw v18 → **v19** (both caches, xp.js added to SHELL_ASSETS). README updated.
+
+### QA (agent-browser, live)
+
+- **`qa/r20-regression.js` NEW — 34 pins, 34/34 PASS**: curve boundaries
+  (49 stays L1 / 50 crosses L2), daily cap 65, settle +1 + dedupe, new-best
+  hook through the REAL api factory via documented seam
+  `StripShell._testMakeApi` (+25 / 0 / +25), HUD pill ↔ curve agreement,
+  volume/haptics flow into Feedback + restore, export envelope shape +
+  settings-exclusion, import validation (4 rejects), nav arrows exist+hop,
+  Player Card (ring/LV/4 stats), closest bars ≥1, chips render/narrow/restore,
+  settings smoke (all 6 new controls present).
+- **`qa/r19-regression.js` still 10/10 PASS** — Round 19 fixes unbroken.
+- Visual/real-play passes: LEVEL UP captured on screen (LV 5 HIGH SCORER);
+  Player Card + closest bars DOM-verified (12/232, 434 XP, 3 bars); drawer
+  chips screenshot; both new settings sections screenshot; mobile 390×726
+  checked (HUD dense but clean); Memory Match flipped two cards by real
+  clicks (MOVES 1); fav-pin XP anti-farm verified live (+5 then 0).
+- **50/50 mount sweep: zero console errors.** Offline boot verified from a
+  CLEAN SW install (server killed): 21/21 precache assets, 50 carts, XP
+  hydrated. (An earlier "offline failure" was proven a test artifact — a
+  manual caches.delete() mid-session emptied the precache the real flow
+  never touches.)
+- Import round-trip live-verified (export → mutate → importAll → re-export
+  contains the probe); volume drag persists (input→change split).
+- All files node --check clean.
+
+### Judge verdict: 9.3/10 (target ≥9 met)
+
+Adversarial findings, all closed same-round: (1) XP float overlapped card
+titles → repositioned; (2) nav arrows visually ate game content at 100%
+opacity → idle 55% + hover/press full; (3) kingdom tripwire false positive →
+fixed, verified against the tripwire regex; (4) offline scare reproduced,
+root-caused as self-inflicted (precache nuke), real flow proven sound.
+Residual NITs (accepted): settle float can feel chatty on a browsing binge
+(capped 30/day, invisible after); HUD left column adds ~30px on short
+landscape screens (no breakage at 390×726).
+
+### Round 21 candidates (priority order)
+
+1. **P2 tail carried from Round 19**: size ladders (Memory Match, Lights Out,
+   Slide Puzzle, Maze, Mini Sudoku, Code Breaker), Trivia 10-question runs,
+   Whack-a-Mole multi-mole waves, Breakout brick HP tiers, Etch/Kaleido
+   save-PNG, Tone Pad loop record, Breathe daily counter.
+2. Wire per-game XP hooks where depth lives (win/lose events → small XP) —
+   needs a tiny Strip-level event, not per-game edits.
+3. Real-device pass (carry-over, 4th round): DST streak flip on hardware;
+   live permission-revoked check.

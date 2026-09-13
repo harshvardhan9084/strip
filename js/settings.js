@@ -20,6 +20,10 @@ window.Settings = (function(){
     sound: true,
     theme: "amber",   // "amber" | "green" | "violet" — CRT skin engine (Round 11)
     dailyNudge: false, // Round 14: opt-in local notification on the day flip
+    // Round 20 — controls & feel:
+    volume: 0.8,          // master loudness 0..1 (Feedback master gain)
+    hapticStrength: "normal", // "light" | "normal" | "strong"
+    navArrows: true,      // on-screen ▲▼ jump buttons on the strip edges
   };
 
   const THEME_META_COLORS = {

@@ -29,7 +29,14 @@ try{
 <body>
 
 <div id="hud">
-  <div id="hud-title">STRIP</div>
+  <div id="hud-left">
+    <div id="hud-title">STRIP</div>
+    <!-- Player level pill (Round 20) — js/xp.js hydrates it; opens the trophy case -->
+    <button id="xp-pill" aria-label="Player level — opens trophy case">
+      <span id="xp-level">LV 1</span>
+      <span id="xp-track" aria-hidden="true"><span id="xp-fill"></span></span>
+    </button>
+  </div>
   <div id="hud-right">
     <button id="drawer-btn" aria-label="All cartridges" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="6" r="1.6"/><circle cx="12" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/><circle cx="6" cy="18" r="1.6"/><circle cx="12" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>
@@ -114,6 +121,50 @@ try{
 
       <div class="settings-divider"></div>
 
+      <!-- Round 20 — CONTROLS: feel of the console itself -->
+      <div class="settings-section-label">CONTROLS</div>
+
+      <div class="setting-row setting-row-col">
+        <div class="setting-text">
+          <div class="setting-label">Volume</div>
+          <div class="setting-desc">Master loudness for every game and chime</div>
+        </div>
+        <div class="volume-control">
+          <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" step="5" value="80" aria-label="Master volume">
+          <span id="volume-readout" class="volume-readout">80</span>
+        </div>
+      </div>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Navigation arrows</div>
+          <div class="setting-desc">On-screen ▲▼ buttons to jump between cartridges — handy when scroll is locked</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="navArrows">
+      </label>
+
+      <div class="setting-row setting-row-col">
+        <div class="setting-text">
+          <div class="setting-label">Haptic strength</div>
+          <div class="setting-desc">How hard taps buzz, where supported</div>
+        </div>
+        <div class="seg-options" role="group" aria-label="Haptic strength">
+          <button type="button" class="seg-btn" data-strength-value="light" aria-pressed="false">LIGHT</button>
+          <button type="button" class="seg-btn" data-strength-value="normal" aria-pressed="true">NORMAL</button>
+          <button type="button" class="seg-btn" data-strength-value="strong" aria-pressed="false">STRONG</button>
+        </div>
+      </div>
+
+      <div class="setting-row setting-row-col">
+        <div class="setting-text">
+          <div class="setting-label">Fullscreen</div>
+          <div class="setting-desc">Edge-to-edge play — hide the browser chrome</div>
+        </div>
+        <button id="fullscreen-btn" class="btn accent small-btn" type="button">Enter</button>
+      </div>
+
+      <div class="settings-divider"></div>
+
       <!-- CRT skin picker (Round 11) -->
       <div class="theme-row">
         <div class="setting-text">
@@ -141,6 +192,20 @@ try{
 
       <div class="settings-divider"></div>
 
+      <!-- Round 20 — YOUR DATA: progress ownership -->
+      <div class="settings-section-label">YOUR DATA</div>
+
+      <button id="export-save-btn" class="btn" type="button" style="width:100%;">Export save file</button>
+      <div class="setting-desc" style="text-align:center; margin-top:6px;">Downloads one JSON with every save, highscore, trophy, streak and XP — your progress, yours.</div>
+
+      <button id="import-save-btn" class="btn" type="button" style="width:100%; margin-top:10px;">Import save file</button>
+      <input type="file" id="import-save-input" accept="application/json,.json" hidden>
+      <div class="setting-desc" style="text-align:center; margin-top:6px;">Replaces current progress with an exported save. Device settings stay.</div>
+
+      <button id="replay-hint-btn" class="btn" type="button" style="width:100%; margin-top:10px;">Show welcome hint again</button>
+
+      <div class="settings-divider"></div>
+
       <button id="clear-progress-btn" class="btn" style="width:100%; border-color:var(--danger); color:var(--danger);">
         Clear all progress
       </button>
@@ -158,6 +223,7 @@ try{
 <script src="js/settings.js"></script>
 <script src="js/feedback.js"></script>
 <script src="js/focustrap.js"></script>
+<script src="js/xp.js"></script>
 <script src="js/trophies.js"></script>
 <script src="js/shufflebag.js"></script>
 <script src="js/registry.js"></script>

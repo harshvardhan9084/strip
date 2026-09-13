@@ -206,6 +206,131 @@ window.StripDB = (function(){
     return Promise.resolve(null);
   }
 
+  // ---- bulk export / import (Round 20: progress ownership) ----
+  // The player's save is THEIRS: one JSON file captures every game save, every
+  // highscore history, and every shell record (trophies, daily streak, deck
+  // meta, XP). Device preferences (__app_settings__) deliberately stay local —
+  // sound/volume/motion are per-device choices, not progress.
+
+  function getAllRecords(storeName){
+    return tx(storeName, "readonly").then(store => {
+      if(!store){
+        return [...useFallback().get(storeName).values()];
+      }
+      return new Promise((resolve) => {
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    });
+  }
+
+  // A save is safe to export when every record has the store's shape. Strict
+  // enough to refuse a random .json, loose enough to survive legitimate saves
+  // (game state data is arbitrary JSON by design).
+  function sanitizeExport(records){
+    const out = {};
+    records.forEach(r => {
+      if(!r || typeof r.id !== "string" || !r.id) return;
+      if(r.data === undefined) return;
+      try{ JSON.stringify(r.data); }catch(e){ return; } // circular/foreign record: skip, never break the whole export
+      out[r.id] = r.data;
+    });
+    return out;
+  }
+
+  function exportAll(){
+    return Promise.all([
+      getAllRecords(STATE_STORE),
+      getAllRecords(SCORE_STORE),
+    ]).then(([stateRecs, scoreRecs]) => {
+      const state = sanitizeExport(stateRecs);
+      const scores = {};
+      scoreRecs.forEach(r => {
+        if(!r || typeof r.id !== "string" || !r.id) return;
+        const best = Number(r.best);
+        if(!Number.isFinite(best)) return;
+        scores[r.id] = {
+          best,
+          history: (Array.isArray(r.history) ? r.history : [])
+            .map(Number).filter(Number.isFinite).slice(-HISTORY_CAP),
+        };
+      });
+      delete state[SETTINGS_KEY]; // device preferences stay device-local
+      return {
+        app: "strip",
+        v: 1,
+        exportedAt: new Date().toISOString(),
+        counts: { saves: Object.keys(state).length, scores: Object.keys(scores).length },
+        state,
+        scores,
+      };
+    });
+  }
+
+  // Shape check for an imported file. Accepts the full export envelope only —
+  // no partial merges, no silent surprises: import REPLACES progress.
+  function validImport(data){
+    return !!data && typeof data === "object" &&
+      data.app === "strip" && typeof data.state === "object" && data.state !== null &&
+      typeof data.scores === "object" && data.scores !== null;
+  }
+
+  function putRecord(storeName, id, record){
+    return tx(storeName, "readwrite").then(store => {
+      if(!store){
+        useFallback().get(storeName).set(id, record);
+        return true;
+      }
+      return new Promise((resolve) => {
+        const req = store.put(record);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+      });
+    });
+  }
+
+  function importAll(data){
+    if(!validImport(data)) return Promise.reject(new Error("not a Strip save"));
+    // Same contract as clearAll: device settings survive the wipe, then every
+    // exported record is written back. Reload afterwards so mounted games
+    // re-hydrate from the imported truth (same rationale as Clear all).
+    return loadState(SETTINGS_KEY).then(preservedSettings => {
+      return Promise.all([STATE_STORE, SCORE_STORE].map(storeName =>
+        tx(storeName, "readwrite").then(store => {
+          if(!store){
+            useFallback().get(storeName).clear();
+            return true;
+          }
+          return new Promise(resolve => {
+            const req = store.clear();
+            req.onsuccess = () => resolve(true);
+            req.onerror = () => resolve(false);
+          });
+        })
+      )).then(() => {
+        const writes = [];
+        Object.keys(data.state).forEach(id => {
+          writes.push(putRecord(STATE_STORE, id, { id, data: data.state[id], updatedAt: Date.now() }));
+        });
+        Object.keys(data.scores).forEach(id => {
+          const s = data.scores[id] || {};
+          const best = Number(s.best);
+          if(!Number.isFinite(best)) return;
+          writes.push(putRecord(SCORE_STORE, id, {
+            id,
+            best,
+            history: (Array.isArray(s.history) ? s.history : []).map(Number).filter(Number.isFinite).slice(-HISTORY_CAP),
+            updatedAt: Date.now(),
+          }));
+        });
+        return Promise.all(writes).then(() => {
+          if(preservedSettings) return saveState(SETTINGS_KEY, preservedSettings);
+        });
+      });
+    });
+  }
+
   // full wipe — used by the "Clear all progress" setting. Clears all game
   // saves and all highscores, but explicitly preserves the app's own settings
   // record (a reserved id inside the "state" store) — clearing your game
@@ -235,5 +360,5 @@ window.StripDB = (function(){
     });
   }
 
-  return { saveState, loadState, loadStateChecked, getHighscore, getScoreRecord, setHighscore, clearHighscore, estimateUsage, clearAll };
+  return { saveState, loadState, loadStateChecked, getHighscore, getScoreRecord, setHighscore, clearHighscore, estimateUsage, clearAll, exportAll, importAll, validImport };
 })();

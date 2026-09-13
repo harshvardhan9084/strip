@@ -26,7 +26,18 @@
       // intentional. Non-pick days/games pass straight through.
       setHighscore(score){
         const boosted = (window.Daily && Daily.twistScore) ? Daily.twistScore(id, score) : score;
-        return StripDB.setHighscore(id, boosted);
+        // Round 20 — progression hook: a REAL best improvement is the single
+        // strongest dopamine signal the deck has, so it pays +25 XP. We read
+        // the stored best first and compare the POST-write value: score <=
+        // best pays nothing, so replaying old runs can never farm XP.
+        return StripDB.getHighscore(id).then(prev =>
+          StripDB.setHighscore(id, boosted).then(newBest => {
+            if(window.XP && Number.isFinite(newBest) && newBest > (Number(prev) || 0)){
+              XP.award("best");
+            }
+            return newBest;
+          })
+        );
       } // returns a Promise<number> (new best)
     };
   }
@@ -214,9 +225,17 @@
     // actually ON (the drawer uses this to maintain a recents list)
     const entry = cards[centerIdx];
     if(entry){
+      // Round 20: a settle on a NEW cartridge gets a tiny tactile tick —
+      // flipping through the deck physically "clicks" like a real wheel.
+      // Deduped on the same id so re-settling never double-fires.
+      if(lastSettledHapticId !== entry.mod.id){
+        lastSettledHapticId = entry.mod.id;
+        try{ Feedback.haptic("light"); }catch(e){}
+      }
       window.dispatchEvent(new CustomEvent("strip:card-centered", { detail: { id: entry.mod.id } }));
     }
   }
+  let lastSettledHapticId = null;
 
   let rafPending = false;
   function onScroll(){
@@ -225,8 +244,48 @@
     requestAnimationFrame(() => { syncViewport(); rafPending = false; });
   }
 
+  // ---- on-screen navigation arrows (Round 20) ----
+  // A vertical feed deserves explicit controls: the arrows give a one-tap
+  // hop to the next/previous cartridge (thumb-reachable right edge), they
+  // make scroll-lock USABLE (locked scroll no longer strands you on a card),
+  // and they give desktop players a precise control next to the trackpad.
+  // Toggleable in Settings → Controls (default on).
+  let navEl = null;
+  function buildNavArrows(){
+    if(navEl) return;
+    navEl = document.createElement("div");
+    navEl.id = "nav-arrows";
+    navEl.innerHTML =
+      '<button id="nav-prev" aria-label="Previous cartridge">' +
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg>' +
+      '</button>' +
+      '<button id="nav-next" aria-label="Next cartridge">' +
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10l6 6 6-6"/></svg>' +
+      '</button>';
+    document.body.appendChild(navEl);
+    navEl.querySelector("#nav-prev").addEventListener("click", () => navHop(-1));
+    navEl.querySelector("#nav-next").addEventListener("click", () => navHop(1));
+  }
+  function navHop(dir){
+    if(document.hidden) return;
+    const h = stripEl.clientHeight || 1;
+    const target = Math.max(0, currentCenterIdx + dir);
+    // bounded growth: hopping past the built deck extends it first
+    let guard = 0;
+    while(target >= cards.length && guard++ < 10) appendCards(BATCH_SIZE);
+    if(target >= cards.length) return;
+    stripEl.scrollTo({ top: target * h, behavior: "smooth" });
+    try{ Feedback.tone("tap"); Feedback.haptic("light"); }catch(e){}
+  }
+  function applyNavArrowSetting(on){
+    buildNavArrows();
+    navEl.classList.toggle("on", !!on);
+  }
+
   async function init(){
     await Settings.whenReady();
+    applyNavArrowSetting(Settings.get().navArrows);
+    Settings.onChange((s) => applyNavArrowSetting(s.navArrows));
     allModules = Strip.all();
     if(!allModules.length){
       stripEl.innerHTML = `<div style="padding:40px;color:var(--ink-dim)">No cartridges registered yet.</div>`;
@@ -289,6 +348,10 @@
       const cart = el.closest ? el.closest(".cart") : null;
       const entry = cards[currentCenterIdx];
       return !!(cart && entry && entry.el === cart);
-    }
+    },
+    // QA seam (Round 20, same precedent as Daily._internals): the api factory
+    // itself, so headless regression pins exercise the EXACT production XP
+    // hook (new-best award) instead of a copy of it.
+    _testMakeApi: makeApi
   };
 })();

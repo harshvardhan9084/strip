@@ -21,6 +21,9 @@
  */
 window.Feedback = (function(){
   let ctx = null;
+  let master = null;   // Round 20: one master GainNode — the volume slider
+                       // scales EVERYTHING (games, shell chimes) in one place
+  let volume = 0.8;    // 0..1, hydrated from Settings
 
   function ensureCtx(){
     if(ctx) return ctx;
@@ -49,6 +52,42 @@ window.Feedback = (function(){
     try{ return !!Settings.get().haptics; }catch(e){ return true; }
   }
 
+  // Round 20 — master volume: the shared AudioContext gains a single
+  // GainNode every note routes through. Recreating it per note would
+  // re-trigger envelopes; one persistent node scales live, mid-game.
+  function masterGain(){
+    const c = ensureCtx();
+    if(!c) return null;
+    if(!master || master.context !== c){
+      master = c.createGain();
+      master.gain.value = volume;
+      master.connect(c.destination);
+    }
+    return master;
+  }
+  function setVolume(v){
+    volume = Math.min(1, Math.max(0, Number(v) || 0));
+    const m = masterGain();
+    if(m && ctx) m.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
+  }
+  function getVolume(){ return volume; }
+
+  // Round 20 — haptic strength: LIGHT/NORMAL/STRONG scales every preset and
+  // every raw pattern (numbers and array entries) by a fixed multiplier.
+  // Never below ~4ms (imperceptible) and never above ~60ms (painful).
+  const HAPTIC_SCALE = { light: 0.55, normal: 1, strong: 1.7 };
+  let hapticScale = HAPTIC_SCALE.normal;
+  function setHapticStrength(name){
+    hapticScale = HAPTIC_SCALE[name] || HAPTIC_SCALE.normal;
+  }
+  function getHapticStrength(){
+    for(const k of Object.keys(HAPTIC_SCALE)) if(HAPTIC_SCALE[k] === hapticScale) return k;
+    return "normal";
+  }
+  function scaleHaptic(ms){
+    return Math.min(60, Math.max(4, Math.round(ms * hapticScale)));
+  }
+
   // Play a single oscillator note with a short percussive envelope.
   function playNote(freq, dur, opts){
     if(!soundEnabled()) return;
@@ -74,8 +113,9 @@ window.Feedback = (function(){
     gain.gain.linearRampToValueAtTime(gainPeak, t0 + Math.min(0.01, dur / 4));
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
 
+    const out = masterGain() || c.destination;
     osc.connect(gain);
-    gain.connect(c.destination);
+    gain.connect(out);
     osc.start(t0);
     osc.stop(t0 + dur + 0.02);
   }
@@ -120,11 +160,12 @@ window.Feedback = (function(){
     if(!hapticsEnabled()) return;
     if(!navigator.vibrate) return;
     if(Array.isArray(nameOrPattern)){
-      navigator.vibrate(nameOrPattern);
+      // scale each segment, keep the rhythm's shape (Round 20 strength)
+      navigator.vibrate(nameOrPattern.map(v => typeof v === "number" ? scaleHaptic(v) : v));
       return;
     }
     const ms = HAPTIC_PRESETS[nameOrPattern] != null ? HAPTIC_PRESETS[nameOrPattern] : (typeof nameOrPattern === "number" ? nameOrPattern : 10);
-    navigator.vibrate(ms);
+    navigator.vibrate(scaleHaptic(ms));
   }
 
   // Convenience combo for the common "something happened, tell the player" case.
@@ -136,5 +177,22 @@ window.Feedback = (function(){
     haptic(hapticMap[kind] || "light");
   }
 
-  return { tone, haptic, buzz };
+  // Round 20: hydrate control preferences from Settings. Two moments matter:
+  // immediately (defaults, so the very first tones are sane) and after
+  // whenReady() — Settings hydrates from IndexedDB asynchronously and does
+  // NOT fire onChange for the boot merge, so without this a saved volume of
+  // 0.3 would silently play at 0.8 until the next settings change.
+  function applyControlPrefs(s){
+    setVolume(s.volume != null ? s.volume : 0.8);
+    setHapticStrength(s.hapticStrength || "normal");
+  }
+  try{
+    if(window.Settings){
+      applyControlPrefs(Settings.get());
+      Settings.whenReady().then(() => applyControlPrefs(Settings.get())).catch(() => {});
+      Settings.onChange(applyControlPrefs);
+    }
+  }catch(e){}
+
+  return { tone, haptic, buzz, setVolume, getVolume, setHapticStrength, getHapticStrength };
 })();

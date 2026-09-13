@@ -168,6 +168,15 @@ window.Trophies = (function(){
       persist();
       newlyUnlocked.forEach(showToast);
       updateBadge();
+      // Round 20 — XP bridge: the deck-wide Player Level pays +40 per
+      // trophy. Event-driven like everything else in this file, so XP.js
+      // stays decoupled (and retroactive boot unlocks still pay — the
+      // streak milestones can land here before the UI ever shows them).
+      newlyUnlocked.forEach(def => {
+        try{
+          window.dispatchEvent(new CustomEvent("strip:trophy-unlocked", { detail: { id: def.id, name: def.name } }));
+        }catch(e){}
+      });
     }
   }
 
@@ -440,15 +449,138 @@ window.Trophies = (function(){
     wrap.appendChild(cal);
   }
 
+  // ---------- Round 20 — Player Card (identity investment) ----------
+  // The trophy case doesn't just LIST what you did — it shows WHO you are on
+  // the deck: one level ring, one title, the counters that grow every
+  // session. Self-investment is the stickiest retention hook there is.
+  function renderPlayerCard(){
+    const wrap = document.createElement("div");
+    wrap.className = "player-card";
+    wrap.setAttribute("role", "group");
+    wrap.setAttribute("aria-label", "Player card");
+
+    const lv = (window.XP && XP.getState) ? XP.getState() : { level: 1, into: 0, need: 50, title: "FRESH FOAM" };
+    const pct = Math.max(0, Math.min(100, Math.round((lv.into / (lv.need || 50)) * 100)));
+
+    const ring = document.createElement("div");
+    ring.className = "player-ring";
+    ring.style.setProperty("--ring-pct", pct);
+    ring.innerHTML =
+      '<div class="player-ring-inner">' +
+        '<div class="player-ring-level">LV ' + lv.level + '</div>' +
+        '<div class="player-ring-xp">' + lv.into + '/' + lv.need + '</div>' +
+      '</div>';
+    ring.title = lv.into + "/" + lv.need + " XP into level " + lv.level + " — " + lv.need + " needed to level up";
+
+    const text = document.createElement("div");
+    text.className = "player-text";
+    const title = document.createElement("div");
+    title.className = "player-title";
+    title.textContent = lv.title;
+    const sub = document.createElement("div");
+    sub.className = "player-sub";
+    sub.textContent = (window.XP && XP.getState) ? (XP.getState().xp || 0) + " XP all time" : "XP all time";
+    text.appendChild(title); text.appendChild(sub);
+
+    wrap.appendChild(ring); wrap.appendChild(text);
+
+    // identity counters — everything here already exists elsewhere; the card
+    // is the one place they read as a single growing profile
+    let dailyBest = 0;
+    try{ if(window.Daily && Daily.getState) dailyBest = Daily.getState().best || 0; }catch(e){}
+    const unlocked = Object.keys(state.unlocked).length;
+    const stats = document.createElement("div");
+    stats.className = "player-stats";
+    const stat = (v, l) => {
+      const s = document.createElement("div");
+      s.className = "player-stat";
+      const n = document.createElement("div"); n.className = "player-stat-n"; n.textContent = v;
+      const t = document.createElement("div"); t.className = "player-stat-l"; t.textContent = l;
+      s.appendChild(n); s.appendChild(t);
+      return s;
+    };
+    stats.appendChild(stat(state.visited.length + "/50", "EXPLORED"));
+    stats.appendChild(stat(state.visitsTotal, "VISITS"));
+    stats.appendChild(stat(unlocked + "/" + DEFS.length, "TROPHIES"));
+    stats.appendChild(stat(dailyBest, "STREAK BEST"));
+    wrap.appendChild(stats);
+
+    gridEl.appendChild(wrap);
+  }
+
+  // ---------- Round 20 — Closest to Unlock (near-miss compulsion) ----------
+  // The three metric trophies you are CLOSEST to, with honest progress bars.
+  // "Almost there" is the strongest pull a trophy list can exert — but only
+  // when the progress is REAL, so event-only trophies (night hours, record
+  // revisits) are never faked into a percentage.
+  function lockedProgress(){
+    const today = (state.dayVisits[dayKey()] || 0);
+    const map = {
+      visited: state.visited.length,
+      favs: state.favCount,
+      totalVisits: state.visitsTotal,
+      dailyStreak: state.dailyStreak,
+      dayVisits: today,
+    };
+    const rows = [];
+    for(const def of DEFS){
+      if(state.unlocked[def.id]) continue;
+      if(!def.metric || !(def.metric in map) || !def.need) continue;
+      const cur = Math.min(def.need, map[def.metric]);
+      rows.push({ def, cur, ratio: cur / def.need });
+    }
+    rows.sort((a, b) => b.ratio - a.ratio);
+    return rows.slice(0, 3);
+  }
+  function renderClosest(){
+    const rows = lockedProgress();
+    if(!rows.length) return; // everything metric is unlocked (or nothing locks) — no empty block
+    const wrap = document.createElement("div");
+    wrap.className = "closest-block";
+    const head = document.createElement("div");
+    head.className = "closest-head";
+    head.textContent = "CLOSEST TO UNLOCK";
+    wrap.appendChild(head);
+    rows.forEach(({ def, cur, ratio }) => {
+      const item = document.createElement("div");
+      item.className = "closest-item";
+      const line = document.createElement("div");
+      line.className = "closest-line";
+      const name = document.createElement("span");
+      name.className = "closest-name";
+      name.textContent = def.medal + " " + def.name;
+      const num = document.createElement("span");
+      num.className = "closest-num";
+      num.textContent = cur + "/" + def.need;
+      line.appendChild(name); line.appendChild(num);
+      const track = document.createElement("div");
+      track.className = "closest-track";
+      const fill = document.createElement("div");
+      fill.className = "closest-fill";
+      fill.style.width = Math.round(ratio * 100) + "%";
+      track.appendChild(fill);
+      item.appendChild(line); item.appendChild(track);
+      item.title = def.desc;
+      item.setAttribute("role", "img");
+      item.setAttribute("aria-label", def.name + ": " + cur + " of " + def.need + " — " + Math.round(ratio * 100) + "% there");
+      wrap.appendChild(item);
+    });
+    gridEl.appendChild(wrap);
+  }
+
   function renderGrid(){
     gridEl.innerHTML = "";
     const unlockedCount = Object.keys(state.unlocked).length;
     subEl.textContent = unlockedCount + " / " + DEFS.length + " unlocked · " +
       state.visited.length + "/50 cartridges explored · " + state.visitsTotal + " visits" +
       (state.dailyStreak > 0 ? " · daily streak " + state.dailyStreak : "");
+    // Round 20: identity first (who you are), then the ritual (what you do
+    // daily), then the near-misses (what you're about to earn), then the list.
+    renderPlayerCard();
     // Round 14: the Daily Ritual block (streak + last-7-days + share) leads
     // the panel — it is the one trophy-adjacent thing players use daily.
     renderDailyStats();
+    renderClosest();
     for(const def of DEFS){
       const ts = state.unlocked[def.id];
       const item = document.createElement("div");

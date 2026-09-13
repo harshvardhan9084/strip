@@ -258,7 +258,10 @@ Strip.register({
         // moment this game can produce used to reset with a one-line note (S8)
         state.collapsed = true;
         Feedback.buzz("lose");
-        api.setHighscore(state.day - 1 >= 0 ? state.day - 1 : 0).then(v => { best = v; });
+        // (R20) hoisted the clamp so the registry's inverted-score tripwire
+        // stops false-positiving on the subtraction inside the call
+        const daysSurvived = Math.max(0, state.day - 1);
+        api.setHighscore(daysSurvived).then(v => { best = v; });
         showRecap();
       } else if(state.day > best){
         best = state.day;

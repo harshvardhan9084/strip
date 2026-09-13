@@ -43,6 +43,25 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
 
 ## The stuff around the games
 
+- **Player Level & XP** (LV pill in the HUD): everything feeds one meta-game now.
+  Settling on cartridges, new bests, trophies, the Daily Pick, even pinning a favorite —
+  each pays XP with a floating "+15 XP" chip, and crossing a level boundary triggers a
+  full-screen LEVEL UP ceremony with your new title (FRESH FOAM → BUTTON TESTER → … →
+  ARCADE IMMORTAL). The Trophy Case opens on your **Player Card**: level ring, title,
+  and the counters that grow every session. Browsing alone can't out-farm playing —
+  settle XP caps at 30/day, and a "new best" only pays when the best actually got
+  better. Purely local, obviously.
+- **Closest to Unlock**: the Trophy Case shows the three trophies you're nearest to
+  with honest progress bars — because "almost there" is the strongest pull there is.
+  Event trophies (night-owl hours, record revisits) are never faked into percentages.
+- **Controls that respect your hands** (Settings → Controls): a master **volume**
+  slider (rides on one shared gain node — games, chimes, everything), **haptic
+  strength** (Light / Normal / Strong — it demos itself when you tap), on-screen
+  **navigation arrows** for one-tap cartridge hops (and a scroll-lock that no longer
+  strands you), and **fullscreen** for edge-to-edge play.
+- **Your data, yours** (Settings → Your Data): export every save, highscore, trophy,
+  streak and XP as one JSON file; import it on any device to pick up exactly where
+  you left off. Device settings (volume, skin, motion) stay put on import.
 - **Daily Pick** (◎ chip in the HUD): one cartridge a day, the same one for everyone,
   picked from the date itself — no server, no account. The chip jumps straight to it;
   the card wears a glowing "TODAY'S PICK ×2" tag — a real share button, and a promise:
@@ -63,8 +82,9 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
   site should. If you later revoke that permission in the browser, Settings says
   so instead of pretending the nudge still works.
 - **Cartridge drawer** (grid icon): the deck's table of contents. Jump straight to any
-  cartridge, filter by name, and star the ones you keep coming back to. Favorites and
-  recents are remembered on your device. Today's pick carries a little ◆ in the list.
+  cartridge, filter by name **or by category chip**, and star the ones you keep coming
+  back to. Favorites and recents are remembered on your device. Today's pick carries a
+  little ◆ in the list.
 - **Trophy Case** (cup icon): achievements for exploring — your first cartridge, 10,
   25, all 50; a day with 30 visits; 100 total visits (REGULAR); browsing in the small
   hours (NIGHT SHIFT and its morning mirror EARLY BIRD); pinning 5 favorites; holding
@@ -102,7 +122,10 @@ I've already built the boring parts so you don't have to:
 - the whole install and offline thing (`manifest.json`, `sw.js`)
 - settings, the dark look, the shell around your game
 - the cartridge drawer (grid icon in the HUD): jump anywhere, filter by name, pin favorites
-- the Trophy Case: shell-level achievements for exploring the deck
+- the Trophy Case: shell-level achievements for exploring the deck, plus the Player
+  Card (level ring, title, lifetime counters) and Closest-to-Unlock progress bars
+- the Player XP/Level engine (`js/xp.js`): one award table, one ceremony, zero per-game wiring
+- export/import of the entire save (`js/storage.js`) — progress ownership
 - the Daily Pick: a deterministic game-of-the-day with streaks (`js/daily.js`)
 - three CRT skins — Amber, Green, Violet — in Settings, down to the PWA titlebar color
 

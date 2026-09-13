@@ -17,6 +17,7 @@
 
   let favorites = new Set();
   let recents = [];
+  let activeCat = null;   // Round 20: chip filter — null = ALL, "__favs" = favorites, else a category label
 
   // ---------- persistence ----------
   async function loadMeta(){
@@ -56,6 +57,10 @@
           </button>
         </div>
         <input id="drawer-filter" type="search" placeholder="Filter cartridges…" aria-label="Filter cartridges" autocomplete="off">
+        <!-- Round 20: one-tap category chips — at 50 cartridges a text box
+             alone makes players type to navigate, and nobody "browses" by
+             typing. Chips make the shelf scannable in one glance. -->
+        <div id="drawer-chips" role="group" aria-label="Filter by category"></div>
         <div id="drawer-grid" role="list"></div>
       </div>
     `;
@@ -63,6 +68,7 @@
     panel = overlay.querySelector("#drawer-panel");
     filterInput = overlay.querySelector("#drawer-filter");
     grid = overlay.querySelector("#drawer-grid");
+    chipsEl = overlay.querySelector("#drawer-chips");
 
     overlay.querySelector("#drawer-close").addEventListener("click", close);
     overlay.addEventListener("click", (e) => { if(e.target === overlay) close(); });
@@ -79,6 +85,31 @@
     }, { passive:true });
   }
 
+  // ---------- Round 20: category chips ----------
+  let chipsEl = null;
+  function renderChips(){
+    if(!chipsEl) return;
+    const cats = [...new Set(Strip.all().map(m => m.label || "STRIP"))].sort();
+    chipsEl.innerHTML = "";
+    const chip = (value, label) => {
+      const c = document.createElement("button");
+      c.type = "button";
+      c.className = "drawer-chip" + (activeCat === value ? " on" : "");
+      c.textContent = label;
+      c.setAttribute("aria-pressed", activeCat === value ? "true" : "false");
+      c.addEventListener("click", () => {
+        activeCat = (activeCat === value) ? null : value; // tap again = back to ALL
+        renderChips();
+        renderGrid();
+        try{ Feedback.tone("toggle"); Feedback.haptic("light"); }catch(e){}
+      });
+      return c;
+    };
+    chipsEl.appendChild(chip(null, "ALL"));
+    chipsEl.appendChild(chip("__favs", "★"));
+    cats.forEach(cat => chipsEl.appendChild(chip(cat, cat)));
+  }
+
   function close(){
     if(!overlay) return;
     overlay.classList.remove("open");
@@ -90,6 +121,7 @@
   }
   function open(){
     ensureDom();
+    renderChips();
     renderGrid();
     overlay.classList.add("open");
     try{ filterInput.value = ""; }catch(e){}
@@ -190,13 +222,17 @@
     const mods = Strip.all();
     const q = (filterInput.value || "").trim().toLowerCase();
     const match = (m) => !q || (m.title || "").toLowerCase().includes(q) || (m.id || "").includes(q) || (m.label || "").toLowerCase().includes(q);
+    // Round 20: chip filter narrows the UNIVERSE before the grouping rules
+    // below run — favorites chip shows a flat starred list, a category chip
+    // hides every other shelf.
+    const catFilter = (m) => {
+      if(activeCat === null) return true;
+      if(activeCat === "__favs") return favorites.has(m.id);
+      return (m.label || "STRIP") === activeCat;
+    };
 
     grid.innerHTML = "";
     const frag = document.createDocumentFragment();
-
-    const favMods = mods.filter(m => favorites.has(m.id) && match(m));
-    const recentMods = recents.map(id => mods.find(m => m.id === id)).filter(m => m && !favorites.has(m.id) && match(m));
-    const rest = mods.filter(m => !favorites.has(m.id) && !recents.includes(m.id) && match(m));
 
     const section = (name, list) => {
       if(!list.length) return;
@@ -207,15 +243,24 @@
       list.forEach(m => frag.appendChild(itemFor(m)));
     };
 
-    section(favMods.length ? "FAVORITES" : "", favMods);
-    section(recentMods.length ? "RECENT" : "", recentMods);
-    const groups = new Map();
-    rest.forEach(m => {
-      const k = m.label || "STRIP";
-      if(!groups.has(k)) groups.set(k, []);
-      groups.get(k).push(m);
-    });
-    [...groups.keys()].sort().forEach(k => section(k, groups.get(k)));
+    if(activeCat === "__favs"){
+      const favsOnly = mods.filter(m => favorites.has(m.id) && match(m));
+      section(favsOnly.length ? "FAVORITES" : "", favsOnly);
+    } else {
+      const favMods = mods.filter(m => favorites.has(m.id) && match(m) && catFilter(m));
+      const recentMods = recents.map(id => mods.find(m => m.id === id)).filter(m => m && !favorites.has(m.id) && match(m) && catFilter(m));
+      const rest = mods.filter(m => !favorites.has(m.id) && !recents.includes(m.id) && match(m) && catFilter(m));
+
+      section(favMods.length ? "FAVORITES" : "", favMods);
+      section(recentMods.length ? "RECENT" : "", recentMods);
+      const groups = new Map();
+      rest.forEach(m => {
+        const k = m.label || "STRIP";
+        if(!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(m);
+      });
+      [...groups.keys()].sort().forEach(k => section(k, groups.get(k)));
+    }
 
     if(!frag.childNodes.length){
       const empty = document.createElement("div");
@@ -282,4 +327,8 @@
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
+
+  // Round 20: settings' "Show welcome hint again" replays the first-run
+  // overlay without clearing anything else.
+  window.StripDrawer = { showHint: () => { activeCat = null; maybeShowHint(); } };
 })();
