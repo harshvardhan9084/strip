@@ -1,18 +1,29 @@
 Strip.register({
   id: "lightsout",
-  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves|seconds; NEVER double it (twist)
+  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves (CLASSIC 5×5 only); NEVER double it (twist)
   label: "PUZZLE",
   title: "Lights Out",
-  tag: "5×5",
+  tag: "3 sizes",
   hint: "Tap to toggle neighbors — clear the board",
   async mount(container, api){
-    const SIZE = 5;
-    // best = fewest moves to clear (lower is better; stored inverted for the
-    // max-based highscore store). Fetch and convert exactly ONCE — the old code
-    // fetched twice (await + then) and the stat line briefly showed the raw
-    // inverted value before the second fetch corrected it.
+    // Round 22 (P2 tail): the 5×5 was the whole game since Round 1. Now the
+    // classic ladder: 4×4 warm-up, 5×5 classic (still feeds the highscore
+    // store, inverted), 6×6 for the veterans — per-size bests live in the
+    // save, Minesweeper-ladder style. Every puzzle stays solvable by
+    // construction: scrambles are always valid toggles from the solved state.
+    const SIZES = [
+      { key: "junior",  label: "4×4", n: 4 },
+      { key: "classic", label: "5×5", n: 5 },
+      { key: "grand",   label: "6×6", n: 6 },
+    ];
+    const INV = 100000;
+    const saved0 = await api.load().catch(() => null);
+    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 1;
+    const bests = saved0 && saved0.bests ? saved0.bests : {};
     let stored = await api.getHighscore();
-    let best = stored ? 100000 - stored : Infinity;
+    let bestClassic = stored ? INV - stored : Infinity;
+    let SIZE = SIZES[sizeIdx].n;
+    let best = sizeIdx === 1 ? bestClassic : (bests[SIZES[sizeIdx].key] ?? Infinity);
     let grid, moves, solved;
 
     const wrap = document.createElement("div");
@@ -22,8 +33,35 @@ Strip.register({
     statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
     wrap.appendChild(statRow);
 
+    const sizeRow = document.createElement("div");
+    sizeRow.style.cssText = "display:flex; gap:6px;";
+    const sizeBtns = [];
+    SIZES.forEach((d, i) => {
+      const b = document.createElement("button");
+      b.textContent = d.label;
+      b.style.cssText = "font-size:10px; padding:4px 9px; border-radius:20px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer;";
+      b.addEventListener("click", () => {
+        if(i === sizeIdx) return;
+        sizeIdx = i; SIZE = SIZES[i].n;
+        best = sizeIdx === 1 ? bestClassic : (bests[SIZES[i].key] ?? Infinity);
+        api.save({ size: sizeIdx, bests }).catch(()=>{});
+        paintSizes();
+        buildCells();
+        newGame();
+      });
+      sizeBtns.push(b);
+      sizeRow.appendChild(b);
+    });
+    function paintSizes(){
+      sizeBtns.forEach((b, i) => {
+        const active = i === sizeIdx;
+        b.style.background = active ? "var(--amber)" : "var(--panel-2)";
+        b.style.color = active ? "#000" : "var(--ink-dim)";
+      });
+    }
+    wrap.appendChild(sizeRow);
+
     const board = document.createElement("div");
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,240px);`;
     wrap.appendChild(board);
 
     const newBtn = document.createElement("button");
@@ -35,21 +73,26 @@ Strip.register({
     container.appendChild(wrap);
 
     const cells = [];
-    for(let i=0;i<SIZE*SIZE;i++){
-      const c = document.createElement("button");
-      c.style.cssText = "aspect-ratio:1; border-radius:6px; border:none; cursor:pointer; transition:background .12s ease;";
-      c.addEventListener("click", () => toggle(Math.floor(i/SIZE), i%SIZE));
-      board.appendChild(c);
-      cells.push(c);
+    function buildCells(){
+      board.innerHTML = "";
+      cells.length = 0;
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,${SIZE * 50}px);`;
+      for(let i=0;i<SIZE*SIZE;i++){
+        const c = document.createElement("button");
+        c.style.cssText = "aspect-ratio:1; border-radius:6px; border:none; cursor:pointer; transition:background .12s ease;";
+        c.addEventListener("click", () => toggle(Math.floor(i/SIZE), i%SIZE));
+        board.appendChild(c);
+        cells.push(c);
+      }
     }
 
     function render(){
       for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
         const el = cells[r*SIZE+c];
         el.style.background = grid[r][c] ? "var(--amber)" : "var(--panel-2)";
-        el.style.boxShadow = grid[r][c] ? "0 0 14px rgba(255,179,71,.5)" : "none";
+        el.style.boxShadow = grid[r][c] ? "0 0 14px rgba(var(--glow-rgb),.5)" : "none";
       }
-      statRow.textContent = solved ? `SOLVED in ${moves} moves — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
+      statRow.textContent = solved ? `SOLVED in ${moves} — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
     }
 
     function toggle(r, c){
@@ -68,9 +111,17 @@ Strip.register({
       solved = grid.every(row => row.every(v => v === 0));
       if(solved){
         Feedback.buzz("win");
-        // lower moves = better; store as a "score" where higher is better by inverting
-        const scoreValue = 100000 - moves; // keeps store's max-wins semantics useful
-        api.setHighscore(scoreValue).then(v => { best = 100000 - v; render(); });
+        if(moves < best){
+          best = moves;
+          bests[SIZES[sizeIdx].key] = moves;
+          if(sizeIdx === 1){
+            bestClassic = moves;
+            api.setHighscore(INV - moves); // only the classic 5×5 feeds the store
+          } else {
+            api.save({ size: sizeIdx, bests }).catch(()=>{});
+          }
+        }
+        render();
       }
     }
 
@@ -78,7 +129,7 @@ Strip.register({
       grid = Array.from({length:SIZE}, () => Array(SIZE).fill(0));
       moves = 0; solved = false;
       // scramble via N valid random toggles from solved state, guarantees solvability
-      const scrambleSteps = 15 + Math.floor(Math.random()*10);
+      const scrambleSteps = SIZE * 3 + Math.floor(Math.random() * SIZE * 2);
       for(let i=0;i<scrambleSteps;i++){
         const r = Math.floor(Math.random()*SIZE), c = Math.floor(Math.random()*SIZE);
         [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(([dr,dc]) => {
@@ -91,6 +142,8 @@ Strip.register({
       render();
     }
 
+    paintSizes();
+    buildCells();
     newGame();
   }
 });

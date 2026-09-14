@@ -1,13 +1,31 @@
 Strip.register({
   id: "memorymatch",
-  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves|seconds; NEVER double it (twist)
+  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves (CLASSIC field only); NEVER double it (twist)
   label: "PUZZLE",
   title: "Memory Match",
-  tag: "4×3",
+  tag: "3 fields",
   hint: "Flip two cards, find the pairs",
   async mount(container, api){
-    let best = await api.getHighscore(); // best = fewest moves (stored inverted, like lights out)
-    const EMOJI = ["🍕","🚀","🎸","🐙","🌵","🔮"];
+    // Round 22 (P2 tail, carried since R19): one 4×3 board forever is a game
+    // you outgrow in ninety seconds. Now a 3-size ladder — 4×3 / 6×4 / 6×5 —
+    // with per-size bests. The classic field still feeds the highscore store
+    // (inverted moves); the two bigger fields keep honest bests inside the
+    // save, exactly like Minesweeper's ladder. More pairs = more working
+    // memory on the table = the deck's quietest puzzle gets a real slope.
+    const POOL = ["🍕","🚀","🎸","🐙","🌵","🔮","🧩","🦊","⚡","🍄","🎲","🦉","🍀","🍉","🛸"];
+    const SIZES = [
+      { key: "classic", label: "4×3", cols: 4, pairs: 6 },
+      { key: "plus",    label: "6×4", cols: 6, pairs: 12 },
+      { key: "grand",   label: "6×5", cols: 6, pairs: 15 },
+    ];
+    const INV = 100000;
+    const saved0 = await api.load().catch(() => null);
+    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 0;
+    const bests = saved0 && saved0.bests ? saved0.bests : {};
+    const stored = await api.getHighscore();
+    let bestClassic = stored ? INV - stored : Infinity;
+    let S = SIZES[sizeIdx];
+    let best = sizeIdx === 0 ? bestClassic : (bests[S.key] ?? Infinity);
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px;";
@@ -16,8 +34,35 @@ Strip.register({
     statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
     wrap.appendChild(statRow);
 
+    // size pills
+    const sizeRow = document.createElement("div");
+    sizeRow.style.cssText = "display:flex; gap:6px;";
+    const sizeBtns = [];
+    SIZES.forEach((d, i) => {
+      const b = document.createElement("button");
+      b.textContent = d.label;
+      b.style.cssText = "font-size:10px; padding:4px 9px; border-radius:20px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer;";
+      b.addEventListener("click", () => {
+        if(i === sizeIdx) return;
+        sizeIdx = i; S = SIZES[i];
+        best = sizeIdx === 0 ? bestClassic : (bests[S.key] ?? Infinity);
+        api.save({ size: sizeIdx, bests }).catch(()=>{});
+        paintSizes();
+        newGame();
+      });
+      sizeBtns.push(b);
+      sizeRow.appendChild(b);
+    });
+    function paintSizes(){
+      sizeBtns.forEach((b, i) => {
+        const active = i === sizeIdx;
+        b.style.background = active ? "var(--amber)" : "var(--panel-2)";
+        b.style.color = active ? "#000" : "var(--ink-dim)";
+      });
+    }
+    wrap.appendChild(sizeRow);
+
     const board = document.createElement("div");
-    board.style.cssText = "display:grid; grid-template-columns:repeat(4,1fr); gap:8px; width:min(78vw,260px);";
     wrap.appendChild(board);
 
     const newBtn = document.createElement("button");
@@ -40,21 +85,23 @@ Strip.register({
     }
 
     function newGame(){
-      const deck = shuffle([...EMOJI, ...EMOJI]);
+      const deck = shuffle(POOL.slice(0, S.pairs).flatMap(e => [e, e]));
       cards = deck.map(e => ({ emoji: e, flipped:false, matched:false }));
       flipped = []; matched = 0; moves = 0; busy = false;
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${S.cols},1fr); gap:8px; width:min(78vw,${Math.min(S.pairs * 2, S.cols) * 62}px);`;
       renderBoard();
       updateStat();
     }
 
     function renderBoard(){
       board.innerHTML = "";
+      const small = S.pairs > 6; // denser fields get smaller tiles & glyphs
       cards.forEach((c, i) => {
         const btn = document.createElement("button");
         btn.style.cssText = `
           aspect-ratio:1; border-radius:8px; border:none; cursor:pointer;
           background:${c.flipped || c.matched ? "var(--panel-2)" : "var(--purple)"};
-          font-size:22px; display:flex; align-items:center; justify-content:center;
+          font-size:${small ? 17 : 22}px; display:flex; align-items:center; justify-content:center;
           opacity:${c.matched ? 0.4 : 1};
           transition:background .15s ease;
         `;
@@ -65,9 +112,9 @@ Strip.register({
     }
 
     function updateStat(){
-      statRow.textContent = matched === EMOJI.length
-        ? `SOLVED in ${moves} moves — best ${best === Infinity ? "-" : best}`
-        : `MOVES ${moves} · PAIRS ${matched}/${EMOJI.length}`;
+      statRow.textContent = matched === S.pairs
+        ? `SOLVED in ${moves} — best ${best === Infinity ? "-" : best}`
+        : `MOVES ${moves} · PAIRS ${matched}/${S.pairs}`;
     }
 
     function flip(i){
@@ -88,10 +135,19 @@ Strip.register({
           flipped = []; busy = false;
           renderBoard();
           updateStat();
-          if(matched === EMOJI.length){
+          if(matched === S.pairs){
             Feedback.buzz("win");
-            const scoreValue = 100000 - moves;
-            api.setHighscore(scoreValue).then(v => { best = 100000 - v; updateStat(); });
+            if(moves < best){
+              best = moves;
+              bests[S.key] = moves;
+              if(sizeIdx === 0){
+                bestClassic = moves;
+                api.setHighscore(INV - moves); // only the classic time feeds the store
+              } else {
+                api.save({ size: sizeIdx, bests }).catch(()=>{});
+              }
+            }
+            updateStat();
           }
         } else {
           Feedback.tone("fail");
@@ -105,7 +161,7 @@ Strip.register({
       }
     }
 
-    best = best ? 100000 - best : Infinity;
+    paintSizes();
     newGame();
   }
 });

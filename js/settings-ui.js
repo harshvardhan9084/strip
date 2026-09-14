@@ -7,6 +7,8 @@
   const lockBtn = document.getElementById("lock-btn");
   const lockToast = document.getElementById("lock-toast");
   const themeBtns = Array.from(document.querySelectorAll(".theme-seg-btn"));
+  // Round 22 — background texture picker
+  const bgBtns = Array.from(document.querySelectorAll(".bg-seg-btn"));
   // Round 20 — controls & data wiring
   const volumeSlider = document.getElementById("volume-slider");
   const volumeReadout = document.getElementById("volume-readout");
@@ -142,6 +144,24 @@
     b.addEventListener("click", () => {
       if(Settings.get().theme === b.dataset.themeValue) return;
       Settings.set({ theme: b.dataset.themeValue });
+      Feedback.tone("toggle");
+      Feedback.haptic("light");
+    });
+  });
+
+  // ---------- Round 22 — background texture picker ----------
+  // Same contract as the skin picker: one settings key, instant repaint via
+  // html[data-bg]. The layer re-tints itself from the live phosphor channels,
+  // so switching skins keeps the texture harmonized with zero extra wiring.
+  function syncBgBtns(settings){
+    bgBtns.forEach(b => {
+      b.setAttribute("aria-pressed", settings.bgStyle === b.dataset.bgValue ? "true" : "false");
+    });
+  }
+  bgBtns.forEach(b => {
+    b.addEventListener("click", () => {
+      if(Settings.get().bgStyle === b.dataset.bgValue) return;
+      Settings.set({ bgStyle: b.dataset.bgValue });
       Feedback.tone("toggle");
       Feedback.haptic("light");
     });
@@ -312,6 +332,6 @@
   });
 
   // reflect settings changes made anywhere (e.g. the lock button) back into the panel toggles
-  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
-  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
+  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncBgBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
+  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncBgBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
 })();

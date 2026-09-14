@@ -125,12 +125,17 @@
     renderGrid();
     overlay.classList.add("open");
     try{ filterInput.value = ""; }catch(e){}
-    // dialog parity: move focus into the sheet (filter first — it's the main
-    // tool). Deferred one frame: the overlay is still visibility:hidden at
-    // classList.add time (fade-in transition just started), and focus() on a
-    // hidden element is silently dropped.
+    // Round 22 (user ask): the filter no longer STEALS focus on open. The old
+    // auto-focus popped the virtual keyboard the instant the drawer opened on
+    // phones — the list was half-hidden before you'd seen it. Focus still
+    // moves INTO the sheet (dialog parity: a dialog that never receives focus
+    // leaves keyboard users stranded behind the overlay) — onto the panel
+    // itself, which opens no keyboard; desktop keyboard users are one Tab
+    // from the filter, and everything is still typeable after that.
+    panel.tabIndex = -1;
+    panel.style.outline = "none";
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      filterInput.focus({ preventScroll: true });
+      panel.focus({ preventScroll: true });
     }));
   }
   function isOpen(){ return overlay && overlay.classList.contains("open"); }

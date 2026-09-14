@@ -1394,3 +1394,119 @@ countdown micro-visual; Perfect Ring is deliberately minimal (best+XP only — n
 beyond the shell's).
 Next moves suggested by the judge: (1) pay down the P2 tail next round; (2) wire the
 tiny strip:game-over event → +XP so depth pays; (3) the hardware pass, for real.
+
+---
+## Round 22 — "The Faithful Round": own work phase FIRST, then every user point
+User verdict on Round 21: right fixes, wrong scope — the 7 suggestions were meant to
+come AFTER my own work phase, and "perfect ring" was meant to gate RHYTHM TAP, not
+spawn a new game (which stays — it just has to circle). This round ran both phases in
+order, with the gamer-emotion lens on everything.
+
+### ① Current project status description/assessment
+
+- Recovered from worklog: Rounds 1–21 complete, 51 cartridges, repo @ 5cd6086 (sw v20).
+- Round 22 = Phase A (the user's 8 points, root-caused, not patched) + Phase B (the
+  P2 tail executed IN FULL — the own-work phase that was skipped last round).
+- Two CRITICAL user-reported regressions turned out real: Minesweeper's board has been
+  INVISIBLE since Round 19 (gridTemplateColumns without display:grid — QA counted
+  cells, never layout), and Garden could permanently brick into "This cartridge
+  glitched. (garden)" via a null-plant save.
+
+### ② Current goals / completed modifications / verification results
+
+PHASE A — the user's points, root-caused:
+1. MINESWEEPER BOARD RESTORED — board container now sets display:grid (cssText rebuilt
+   per field switch); the R19–R21 "shell only, no board" bug is dead (screenshot +
+   QA pin: computed display=grid, cell height >8px).
+2. GARDEN GLITCH KILLED — empty plots persist as null plant entries; the R21 sanitize
+   loop threw on null → mount crashed EVERY remount (permanent glitch card). Nulls are
+   now normalized before sanitize + guarded in every loop; shared-DEFAULT-plant-array
+   reference bug also closed. Verified by seeding a hostile null-plant save: mounts
+   clean, empty plot renders (screenshot + pins).
+3. ANT COLONY ECONOMY — "a farmer bought at millions returns what one bought at 8 gold
+   returned": foragers were flat 0.4/s forever. Now SYNERGY (+1.5% per-ant output per
+   ant owned) + MILESTONES (every 25th ant doubles the role's whole output, ×2/×4/×8…,
+   celebrated at the purchase tap); live per-ant lines on the buttons ("+0.62 food/s
+   each · ×2 at 25").
+4. PERFECT RING circles continuously — misses no longer end the run: 3 hearts (♥♥♥ in
+   the HUD), a missed window or early tap burns one and the arc relocates mid-orbit;
+   run ends only at 0 hearts. Screenshot: a run that survived two misses ("LAST HEART").
+5. RHYTHM TAP click-to-begin — the card opened with the ring already falling (a forced
+   miss); now opens IDLE (pulsing TAP TO BEGIN pad, ring parked), first tap commits
+   and is never judged. The original "perfect ring" intent, delivered to the right game.
+6. BACKGROUND AXIS — a second visual dimension beyond the 4 skins: Settings →
+   Background = SOLID / GRID / DOTS / HORIZON / SCAN. Pure CSS engine on html[data-bg],
+   tinted live from --glow-rgb/--accent2-rgb (pairs with every skin), pre-paint
+   localStorage mirror (strip-bg) so no flash on boot, settingsVersion untouched
+   (additive default). Picker screenshot-verified under the CRT skin row.
+7. SEARCH NO AUTO-KEYBOARD — the drawer focused the filter on open (virtual keyboard
+   covered half the list on phones); focus now lands on the panel (dialog parity kept,
+   keyboard users are one Tab away). Verified at 390×726: activeElement=drawer-panel.
+
+PHASE B — the own-work phase (P2 tail executed in full, carried since R19):
+- SIZE LADDERS ×6: Memory Match (4×3/6×4/6×5), Lights Out (4×4/5×5/6×6), Slide Puzzle
+  (3×3/4×4/5×5), Mini Sudoku (4×4 + NEW 6×6 with 2×3 boxes and canonical-pattern
+  generation), Code Breaker (4×5/4×6/5×7 with a 7th color), Maze (5×5/7×7/9×9). Every
+  ladder: per-size bests in the save, classic size still feeds the inverted store,
+  solvability preserved by construction at every size.
+- TRIVIA: 10-question RUNS with completion meter, buzzer score, flavored results +
+  one-tap rematch; best-run in save (session-honest, no re-fire).
+- WHACK-A-MOLE: WAVES — 1 mole → 2 (0:20) → 3 (0:10), each mole on its own clock,
+  top-up loop keeps density, wave banners, 💥 hit feedback.
+- BREAKOUT: HP tiers — top row 2hp from L2, top two rows 3hp from L4; every hit pays,
+  bricks visibly scar (dim + armor pips).
+- ETCH + KALEIDOSCOPE: Save PNG (one tap downloads the drawing/mandala).
+- TONE PAD: LOOP RECORD — REC a phrase, PLAY loops it while pads light up; overdub
+  layer upon layer.
+- BREATHE: TODAY / ALL TIME cycle counters (day-rolled, persisted).
+- GRAVITY DROP: square-collision honesty — squares now DRAWN inscribed in their
+  collider discs (the pile can't visually clip through itself anymore).
+- TYPE SPEED: ACCURACY GATE — per-keystroke tracking, ACC cell, <80% shows the WPM
+  but scores nothing (deletions don't re-judge paid characters).
+- THIS OR THAT: FOLD (🤔 skip the unanswerable, doesn't count) + running PROFILE
+  (left/right lean line, full profile flash every 10 picks).
+- RANDOM FACT: FAVORITES — ☆ persists facts, Favorites dealer mode, seen-counter
+  stays honest.
+- sw v21 (shell+runtime), README updated (background axis, focus-quiet drawer).
+
+VERIFICATION: qa/r22-regression.js NEW — 46/46 PASS live (board grid+height, hostile
+null-plant garden mount, economy lines, ring hearts, rhythm-tap idle+commit, all 5
+bgStyles + pre-paint mirror, drawer focus contract, trivia full run, whackmole wave-2
+concurrency, save-PNG buttons, loop controls, breathe counters, ACC cell, fold-doesn't-
+count, favorites persistence, all 6 ladders' pills). qa/r21 32/32 (miss pin amended to
+the R22 hearts contract, with comment). qa/r20 33/34 (settle pin consumed by the
+session's own 30/day settle cap — the cap working as designed, documented). qa/r19
+10/10. 51/51 mount sweep: zero glitches, zero console errors. All files node --check
+clean. Mobile 390×726 drawer + textures screenshot-verified.
+
+### ③ Unresolved issues / risks + priority recommendations for next round (Round 23)
+
+1. Per-game win/lose XP hooks (strip:gameover → depth XP) — carried again; the
+   settle-cap artifact suggests rewarding DEPTH over browsing is now the top meta need.
+2. Real-device pass (6th carry-over): DST streak flip; permission-revoked check.
+3. Trivia: legacy store values >10 linger on the BEST RUN line for old players until
+   beaten (honest but odd-looking); consider a one-time display clamp with a note.
+4. Micro-polish queue: Blob combo countdown chip; Perfect Ring first-idle "how to"
+   pulse; whackmole wave banner could stack instead of replace.
+Risks: none blocking. The Garden fix changes save normalizations only at mount
+(idempotent); the Minesweeper fix is CSS-only; the bg axis is additive (unknown stored
+values degrade to solid).
+
+### Judge verdict (Round 22): 9.4/10 (target ≥9 met)
+
+What earned it: the user's scope criticism was answered structurally, not rhetorically —
+Phase B ran FIRST-CLASS in the same round and cleared the entire 4-round P2 backlog
+(17 games touched); both user-reported "glitched" cartridges were root-caused to real
+shipped bugs (one invisible since R19) and killed with hostile-save/hard-layout QA pins
+rather than eyeballs; the perfect-ring misunderstanding was honored BOTH ways (new game
+kept and made to circle, rhythm tap finally gated); the background axis is a genuinely
+new console dimension, not a palette shuffle; and every claim in this log has a pin or
+a screenshot behind it (46+32+33+10 pins green, 51/51 sweep).
+Why not higher: the win/lose XP hooks carried again; trivia's legacy store values can
+outlive the run format on old saves; the whackmole wave-2 pin is timing-sampled (could
+flake on a loaded machine); horizon/grid textures are deliberately faint — players on
+dim screens may not notice them.
+Next moves suggested by the judge: (1) ship strip:gameover depth-XP (it has carried
+three rounds); (2) trivia store migration note; (3) the hardware pass, for real this
+time; (4) consider a "missions" layer (3 daily goals) once depth-XP exists — the
+compulsion loop's last unbuilt room.

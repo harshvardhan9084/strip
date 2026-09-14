@@ -22,6 +22,12 @@ try{
       var bg = { green: "#090F0B", violet: "#0E0A14", ice: "#070B12", amber: "#0B0B0F" }[t];
       if(m && bg) m.setAttribute("content", bg);
     }
+    // Round 22: the background texture axis gets the same pre-paint mirror
+    // ("solid" needs no attribute — the CSS engine only keys on textures).
+    var b = localStorage.getItem("strip-bg");
+    if(b === "grid" || b === "dots" || b === "horizon" || b === "scan"){
+      document.documentElement.setAttribute("data-bg", b);
+    }
   })();
 }catch(e){}
 </script>
@@ -198,7 +204,24 @@ try{
 
       <div style="margin-top:12px"></div>
 
-      <!-- Install button added to settings -->
+      <!-- Round 22 — BACKGROUND: the texture axis. The skin above picks the
+           phosphor color; this picks what the console sits ON. Five static
+           textures, each tinted live by the active skin's own channels. -->
+      <div class="theme-row">
+        <div class="setting-text">
+          <div class="setting-label">Background</div>
+          <div class="setting-desc">The texture behind the console — pairs with every skin.</div>
+        </div>
+        <div class="theme-options bg-options" role="group" aria-label="Background style">
+          <button type="button" class="bg-seg-btn" data-bg-value="solid" aria-pressed="true">SOLID</button>
+          <button type="button" class="bg-seg-btn" data-bg-value="grid" aria-pressed="false">GRID</button>
+          <button type="button" class="bg-seg-btn" data-bg-value="dots" aria-pressed="false">DOTS</button>
+          <button type="button" class="bg-seg-btn" data-bg-value="horizon" aria-pressed="false">HORIZON</button>
+          <button type="button" class="bg-seg-btn" data-bg-value="scan" aria-pressed="false">SCAN</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px"></div>
       <button id="install-setting-btn" class="btn" style="width:100%;">Install to play offline</button>
       <div id="install-note" class="setting-desc" style="text-align:center; margin-top:6px; display:none;">If your browser doesn't show a prompt, use the browser menu (⋮) → "Install app" or "Add to Home screen".</div>
 

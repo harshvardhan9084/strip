@@ -29,6 +29,10 @@ window.Settings = (function(){
     volume: 0.8,          // master loudness 0..1 (Feedback master gain)
     hapticStrength: "normal", // "light" | "normal" | "strong"
     navArrows: true,      // on-screen ▲▼ jump buttons on the strip edges
+    // Round 22 — background texture: a separate axis from the phosphor skin.
+    // The skin picks the COLOR of the console; the background picks the
+    // TEXTURE behind it ("solid" | "grid" | "dots" | "horizon" | "scan").
+    bgStyle: "solid",
   };
 
   const THEME_META_COLORS = {
@@ -41,6 +45,9 @@ window.Settings = (function(){
   // meant green/violet users saw an amber flash on every cold boot. The inline
   // <head> script in index.html reads this synchronously before first paint.
   const THEME_LS_KEY = "strip-theme";
+  // Round 22 — same pre-paint mirror for the background texture axis.
+  const BG_LS_KEY = "strip-bg";
+  const BG_STYLES = ["solid", "grid", "dots", "horizon", "scan"];
 
   // Per-theme manifest (Round 13): an installed PWA's window chrome reads the
   // manifest's theme_color at launch, which was hardcoded to amber — green/violet
@@ -112,6 +119,12 @@ window.Settings = (function(){
     if(meta) meta.setAttribute("content", THEME_META_COLORS[theme]);
     applyManifestTheme(theme);
     try{ localStorage.setItem(THEME_LS_KEY, theme); }catch(e){}
+    // Round 22 — background texture axis (CSS engine keys off html[data-bg];
+    // "solid" is the absence of a layer, so we only mirror non-solid values
+    // for the pre-paint script — an unknown/stale value degrades to solid).
+    const bg = BG_STYLES.includes(current.bgStyle) ? current.bgStyle : "solid";
+    document.documentElement.dataset.bg = bg;
+    try{ localStorage.setItem(BG_LS_KEY, bg); }catch(e){}
   }
 
   async function hydrate(){

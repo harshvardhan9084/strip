@@ -29,7 +29,7 @@ Strip.register({
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>WPM <span id="ty-score" style="color:var(--amber)">-</span></div><div>BEST <span id="ty-best" style="color:var(--purple)">${best}</span></div>`;
+    statRow.innerHTML = `<div>WPM <span id="ty-score" style="color:var(--amber)">-</span></div><div>ACC <span id="ty-acc" style="color:var(--ink)">-</span></div><div>BEST <span id="ty-best" style="color:var(--purple)">${best}</span></div>`;
     wrap.appendChild(statRow);
 
     const phraseBox = document.createElement("div");
@@ -68,6 +68,16 @@ Strip.register({
     container.appendChild(wrap);
 
     let phrase, startTime, done;
+    // Round 22 (P2 tail): the ACCURACY gate. The old run only checked the
+    // FINAL text — you could maul the phrase, patch it with 30 backspaces,
+    // and bank a record WPM. Now every keystroke is tracked; finish with
+    // accuracy under 80% and the WPM displays but scores nothing. The BEST
+    // line means what it says.
+    let keystrokes = 0, mistakes = 0, prevLen = 0;
+
+    function accuracy(){
+      return keystrokes ? Math.max(0, Math.round(100 * (keystrokes - mistakes) / keystrokes)) : 100;
+    }
 
     function renderPhrase(typed){
       let html = "";
@@ -87,9 +97,11 @@ Strip.register({
       phrase = PHRASES[Math.floor(Math.random()*PHRASES.length)];
       startTime = null;
       done = false;
+      keystrokes = 0; mistakes = 0; prevLen = 0;
       input.value = "";
       input.disabled = false;
       q("#ty-score").textContent = "-";
+      q("#ty-acc").textContent = "-";
       renderPhrase("");
     }
 
@@ -97,19 +109,35 @@ Strip.register({
       if(done) return;
       if(!startTime) startTime = Date.now();
       const typed = input.value;
+      if(typed.length > prevLen){
+        // an insertion: judge the newest character (deletions don't re-judge
+        // characters the player already paid for)
+        keystrokes++;
+        const i = typed.length - 1;
+        if(typed[i] !== phrase[i]) mistakes++;
+      }
+      prevLen = typed.length;
+      q("#ty-acc").textContent = accuracy() + "%";
       renderPhrase(typed);
       if(typed === phrase){
         done = true;
-        Feedback.buzz("success");
         input.disabled = true;
         const seconds = (Date.now() - startTime) / 1000;
         const words = phrase.split(" ").length;
         const wpm = Math.round((words / seconds) * 60);
+        const acc = accuracy();
         q("#ty-score").textContent = wpm;
-        api.setHighscore(wpm).then(v => {
-          best = v;
-          q("#ty-best").textContent = best;
-        });
+        if(acc >= 80){
+          Feedback.buzz("success");
+          api.setHighscore(wpm).then(v => {
+            best = v;
+            q("#ty-best").textContent = best;
+          });
+        } else {
+          Feedback.buzz("error");
+          q("#ty-acc").innerHTML = `<span style="color:var(--danger)">${acc}%</span>`;
+          phraseBox.title = "Accuracy below 80% — this run can't set a best";
+        }
       }
     });
 

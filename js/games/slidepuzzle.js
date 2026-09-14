@@ -1,13 +1,28 @@
 Strip.register({
   id: "slidepuzzle",
-  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves|seconds; NEVER double it (twist)
+  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves (CLASSIC 4×4 only); NEVER double it (twist)
   label: "PUZZLE",
   title: "Slide Puzzle",
-  tag: "4×4",
+  tag: "3 sizes",
   hint: "Tap a tile next to the gap to slide it",
   async mount(container, api){
-    let best = await api.getHighscore(); // fewest moves, inverted store
-    const SIZE = 4;
+    // Round 22 (P2 tail): the ladder arrives — 3×3 / 4×4 / 5×5. The classic
+    // 4×4 still feeds the inverted highscore store; the other sizes keep
+    // honest per-size bests in the save. Every shuffle is random valid moves
+    // from the solved state, so solvability holds at every size.
+    const SIZES = [
+      { key: "junior",  label: "3×3", n: 3 },
+      { key: "classic", label: "4×4", n: 4 },
+      { key: "grand",   label: "5×5", n: 5 },
+    ];
+    const INV = 100000;
+    const saved0 = await api.load().catch(() => null);
+    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 1;
+    const bests = saved0 && saved0.bests ? saved0.bests : {};
+    const stored = await api.getHighscore();
+    let bestClassic = stored ? INV - stored : Infinity;
+    let SIZE = SIZES[sizeIdx].n;
+    let best = sizeIdx === 1 ? bestClassic : (bests[SIZES[sizeIdx].key] ?? Infinity);
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px;";
@@ -16,8 +31,34 @@ Strip.register({
     statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
     wrap.appendChild(statRow);
 
+    const sizeRow = document.createElement("div");
+    sizeRow.style.cssText = "display:flex; gap:6px;";
+    const sizeBtns = [];
+    SIZES.forEach((d, i) => {
+      const b = document.createElement("button");
+      b.textContent = d.label;
+      b.style.cssText = "font-size:10px; padding:4px 9px; border-radius:20px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer;";
+      b.addEventListener("click", () => {
+        if(i === sizeIdx) return;
+        sizeIdx = i; SIZE = SIZES[i].n;
+        best = sizeIdx === 1 ? bestClassic : (bests[SIZES[i].key] ?? Infinity);
+        api.save({ size: sizeIdx, bests }).catch(()=>{});
+        paintSizes();
+        newGame();
+      });
+      sizeBtns.push(b);
+      sizeRow.appendChild(b);
+    });
+    function paintSizes(){
+      sizeBtns.forEach((b, i) => {
+        const active = i === sizeIdx;
+        b.style.background = active ? "var(--amber)" : "var(--panel-2)";
+        b.style.color = active ? "#000" : "var(--ink-dim)";
+      });
+    }
+    wrap.appendChild(sizeRow);
+
     const board = document.createElement("div");
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,240px); height:min(70vw,240px);`;
     wrap.appendChild(board);
 
     const newBtn = document.createElement("button");
@@ -36,9 +77,11 @@ Strip.register({
 
     function newGame(){
       tiles = Array.from({length: SIZE*SIZE-1}, (_,i) => i+1).concat(0);
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,${SIZE * 62}px); height:min(70vw,${SIZE * 62}px);`;
       // shuffle via random valid moves from solved state -> always solvable
+      const shuffleSteps = SIZE === 3 ? 80 : SIZE === 4 ? 150 : 260;
       let blank = tiles.indexOf(0);
-      for(let i=0;i<150;i++){
+      for(let i=0;i<shuffleSteps;i++){
         const neighbors = getNeighbors(blank);
         const swap = neighbors[Math.floor(Math.random()*neighbors.length)];
         [tiles[blank], tiles[swap]] = [tiles[swap], tiles[blank]];
@@ -65,7 +108,7 @@ Strip.register({
       tiles.forEach((v, i) => {
         const cell = document.createElement("button");
         cell.style.cssText = `
-          border:none; border-radius:8px; font-weight:700; font-size:16px; cursor:pointer;
+          border:none; border-radius:8px; font-weight:700; font-size:${SIZE === 5 ? 13 : 16}px; cursor:pointer;
           background:${v===0 ? "transparent" : "var(--panel-2)"};
           color:${v===0 ? "transparent" : "var(--ink)"};
           box-shadow:${v===0 ? "none" : "0 2px 6px rgba(0,0,0,.3)"};
@@ -86,19 +129,27 @@ Strip.register({
       if(isSolved(tiles)){
         won = true;
         Feedback.buzz("win");
-        const scoreValue = 100000 - moves;
-        api.setHighscore(scoreValue).then(v => { best = 100000 - v; updateStat(); });
+        if(moves < best){
+          best = moves;
+          bests[SIZES[sizeIdx].key] = moves;
+          if(sizeIdx === 1){
+            bestClassic = moves;
+            api.setHighscore(INV - moves); // only the classic 4×4 feeds the store
+          } else {
+            api.save({ size: sizeIdx, bests }).catch(()=>{});
+          }
+        }
       }
       render();
       updateStat();
     }
 
     function updateStat(){
-      statRow.textContent = won ? `SOLVED in ${moves} moves — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
+      statRow.textContent = won ? `SOLVED in ${moves} — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
     }
 
     newBtn.addEventListener("click", newGame);
-    best = best ? 100000 - best : Infinity;
+    paintSizes();
     newGame();
   }
 });

@@ -103,8 +103,14 @@ Strip.register({
     let cells = [];
     function buildBoard(){
       board.innerHTML = "";
-      board.style.gridTemplateColumns = `repeat(${W},1fr)`;
-      board.style.width = `min(72vw,${W * 24}px)`;
+      // Round 22 CRITICAL fix: the board container never had display:grid —
+      // gridTemplateColumns on a block div does nothing, and 64 empty
+      // padding-less flex buttons collapsed to 0×0. The card showed the stat
+      // row, the field pills and the New button… with NO board at all (the
+      // user played a shell: "the main board is missing"). Every field switch
+      // re-writes the whole cssText so stale columns from a bigger grid can
+      // never leak into a smaller one.
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${W},1fr); gap:3px; width:min(72vw,${W * 24}px);`;
       cells = [];
       for(let i = 0; i < W * H; i++){
         const c = document.createElement("button");

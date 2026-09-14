@@ -107,8 +107,15 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
 One tap re-tints the entire console — glows, panels, browser chrome, and (for installed
 PWAs) the launch splash / titlebar color follow along. Games keep their own colors;
 only the shell changes.
+- **Background textures** (Round 22): Settings → Background — **SOLID / GRID / DOTS /
+  HORIZON / SCAN**. A second visual axis, fully independent of the skin: the skin picks
+  the phosphor *color*, the background picks the *texture* the console sits on. Every
+  texture is tinted live from the active skin's own glow channels, so all five pair
+  with all four skins with zero extra wiring.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
+  The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over
+  the list on phones — tap the filter when you want it.
 - **Everything stays local.** Saves, high scores, favorites, trophies, streaks — all in
 your browser's own storage. "Clear all progress" in Settings wipes it all, for real.
 

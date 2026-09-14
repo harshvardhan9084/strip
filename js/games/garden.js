@@ -79,12 +79,21 @@ Strip.register({
       album: Object.assign({}, saved.album),
     }) : DEFAULT;
     // never share the DEFAULT template's plant array by reference (a saved
-    // state missing `plants` would otherwise mutate the template)
-    if(!Array.isArray(state.plants) || !state.plants.length){
+    // state missing `plants` would otherwise mutate the template — and two
+    // Garden cards mounted in one session would share one plant array)
+    if(!Array.isArray(state.plants) || state.plants === DEFAULT.plants || !state.plants.length){
       state.plants = [mkPlant(), mkPlant(), mkPlant()];
     }
+    // Round 22 — THE "GLITCHED CARTRIDGE" KILLER: empty plots are stored as
+    // null (buy a plot, close the picker, scroll away → the autosave persists
+    // a null entry). The old sanitize loop below then did `p.health = …` on
+    // null and the mount THREW — the shell replaced the whole card with
+    // "This cartridge glitched. (garden)", permanently, because every
+    // remount re-threw on the same save. Normalize hostile entries first,
+    // then guard the loop.
+    state.plants = state.plants.map(p => (p && typeof p === "object") ? p : null);
     // legacy migration: plants from before the seed shop are daisies
-    state.plants.forEach(p => { if(!p.species) p.species = "daisy"; if(p.dead === undefined) p.dead = false; });
+    state.plants.forEach(p => { if(!p) return; if(!p.species) p.species = "daisy"; if(p.dead === undefined) p.dead = false; });
 
     let best = await api.getHighscore(); // best = total harvests ever
 
@@ -108,6 +117,7 @@ Strip.register({
     state.greenhouse = Math.min(GREENHOUSE.length, Math.max(0, Math.floor(fin(state.greenhouse, 0))));
     state.can = !!state.can;
     state.plants.forEach(p => {
+      if(!p) return; // a null is a REAL empty plot — never a reason to die
       p.health = Math.min(100, Math.max(0, fin(p.health, 100)));
       p.lastWater = fin(p.lastWater, Date.now());
       p.stage = Math.min(STAGES.length - 1, Math.max(0, Math.floor(fin(p.stage, 0))));

@@ -229,11 +229,16 @@ window.__qa21 = (async () => {
       await wait(200);
       const hintAfter = [...cart.querySelectorAll('div')].find(d => /tap inside the arc/.test(d.textContent));
       ok('click to begin works', !!hintAfter && !hint, hintAfter ? 'run started' : 'no hint');
-      // a second tap while playing (almost surely outside a tiny arc) ends the run
+      // a second tap while playing (almost surely outside a tiny arc) burns
+      // one heart — Round 22 amended this contract per user ask: a miss no
+      // longer ends the run (3 hearts), so the pin now asserts the run
+      // SURVIVES the miss and the HUD shows a heart was spent (♥♥♡).
       cv.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
       await wait(200);
-      const over = [...cart.querySelectorAll('div')].find(d => /tap to retry|NEW BEST/.test(d.textContent));
-      ok('miss ends run, retry offered', !!over, over ? 'over state' : 'still playing');
+      const lives = cart.querySelector('#pr-lives');
+      const stillPlaying = ![...cart.querySelectorAll('div')].find(d => /tap to retry|NEW BEST/.test(d.textContent));
+      ok('miss costs a heart, run circles on', stillPlaying && lives && /♥♥♡|♥♡♡/.test(lives.textContent),
+        lives ? lives.textContent : (stillPlaying ? 'playing, no hud' : 'over'));
     }
   } catch (e) { ok('ring pins', false, e.message); }
 

@@ -65,8 +65,33 @@ Strip.register({
     function cost(role){
       return Math.ceil(BASE_COST[role] * Math.pow(COST_GROWTH, state[role === "vaultTier" ? "vaultTier" : role]));
     }
+    // ---- Round 22 economy repair (the user's playtest finding) ----
+    // "A farmer bought at MILLIONS returns the same as one bought at 8 gold."
+    // Foragers were a flat 0.4/s forever and farmers only had the small
+    // fertility bump, so deep into the 1.14^n cost curve every new ant was
+    // economically meaningless — the ladder punished you for climbing it.
+    // Two standard idle-genre fairness mechanics, layered:
+    //   1. SYNERGY — each role's per-ant output scales with how many of that
+    //      role you already run (+1.5% per ant). A late forager out-earns an
+    //      early one; never as steep as its price, but no longer flat.
+    //   2. MILESTONES — every 25th ant of a role DOUBLES that role's whole
+    //      output (×2 at 25, ×4 at 50, ×8 at 75…). Legible targets that
+    //      puncture the exponential cost wall in every bracket.
+    const MILESTONE_EVERY = 25;
+    function milestoneMult(role){
+      return Math.pow(2, Math.floor(state[role] / MILESTONE_EVERY));
+    }
+    function nextMilestone(role){
+      return (Math.floor(state[role] / MILESTONE_EVERY) + 1) * MILESTONE_EVERY;
+    }
+    function foragerEach(){
+      return BASE_RATE.foragers * (1 + 0.015 * state.foragers) * milestoneMult("foragers");
+    }
+    function farmerEach(){
+      return BASE_RATE.farmers * state.fertility * milestoneMult("farmers");
+    }
     function ratePerSec(){
-      return state.foragers * BASE_RATE.foragers + state.farmers * BASE_RATE.farmers * state.fertility;
+      return state.foragers * foragerEach() + state.farmers * farmerEach();
     }
     function vaultCap(){
       return Math.round(VAULT_BASE_CAP * Math.pow(VAULT_CAP_GROWTH, state.vaultTier));
@@ -142,7 +167,7 @@ Strip.register({
       row.className = "btn";
       row.style.cssText = "display:flex; justify-content:space-between; align-items:center; text-align:left; width:100%; padding:8px 12px;";
       row.innerHTML = `
-        <span style="font-size:12px;">${icon} <b style="color:var(--ink)">${label(role)}</b> <span style="color:var(--ink-dim); font-size:10px;">×<span class="count">0</span></span><br><span style="color:var(--ink-dim); font-size:9px; font-weight:400;">${desc}</span></span>
+        <span style="font-size:12px;">${icon} <b style="color:var(--ink)">${label(role)}</b> <span style="color:var(--ink-dim); font-size:10px;">×<span class="count">0</span></span><br><span class="desc" style="color:var(--ink-dim); font-size:9px; font-weight:400;">${desc}</span></span>
         <span class="cost" style="font-family:var(--font-display); font-size:9px; color:var(--amber); white-space:nowrap; margin-left:8px;">0</span>
       `;
       row.addEventListener("click", () => {
@@ -161,6 +186,11 @@ Strip.register({
         state.food -= c;
         state[role]++;
         if(role === "farmers") state.fertility = 1 + state.farmers * 0.03;
+        if((role === "foragers" || role === "farmers") && state[role] % MILESTONE_EVERY === 0){
+          // the milestone lands at the exact tap that earned it — seen, heard, felt
+          spawnFloat(`${label(role).toUpperCase()} ×${milestoneMult(role)}!`, row);
+          try{ Feedback.buzz("success"); Feedback.tone("win"); }catch(e){}
+        }
         persist();
         refresh();
       });
@@ -171,8 +201,8 @@ Strip.register({
       return { foragers:"Foragers", farmers:"Farmers", soldiers:"Soldiers", vaultTier:"Bigger Vault" }[role];
     }
 
-    const foragerRow = roleRow("foragers", "🌿", "+0.4 food/s into vault");
-    const farmerRow  = roleRow("farmers", "🌾", "+0.9 food/s, grows fertility");
+    const foragerRow = roleRow("foragers", "🌿", "+0.4 food/s each — grows with the colony");
+    const farmerRow  = roleRow("farmers", "🌾", "+0.9 food/s each — grows with the colony");
     const vaultRow   = roleRow("vaultTier", "🧺", "raises vault capacity");
     const soldierRow = roleRow("soldiers", "🛡", "reduces raid losses on the vault");
 
@@ -209,6 +239,11 @@ Strip.register({
         row.style.opacity = affordable ? 1 : 0.55;
         row.style.borderColor = affordable ? "var(--amber-dim)" : "var(--line)";
       });
+      // live per-ant honesty (Round 22): the number you earn with is the
+      // number on the button — synergy and the next ×2 target included
+      const fd = foragerRow.querySelector(".desc"), fmd = farmerRow.querySelector(".desc");
+      if(fd) fd.textContent = `+${foragerEach().toFixed(2)} food/s each · ×2 at ${nextMilestone("foragers")}`;
+      if(fmd) fmd.textContent = `+${farmerEach().toFixed(2)} food/s each · ×2 at ${nextMilestone("farmers")}`;
     }
 
     function collectVault(){

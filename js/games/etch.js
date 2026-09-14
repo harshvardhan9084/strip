@@ -20,15 +20,21 @@ Strip.register({
     canvasWrap.appendChild(canvas);
 
     const controls = document.createElement("div");
-    controls.style.cssText = "display:flex; gap:10px;";
+    controls.style.cssText = "display:flex; gap:10px; flex-wrap:wrap; justify-content:center;";
     const clearBtn = document.createElement("button");
     clearBtn.className = "btn accent";
     clearBtn.textContent = "Shake to clear";
     const colorBtn = document.createElement("button");
     colorBtn.className = "btn purple";
     colorBtn.textContent = "Color";
+    // Round 22 (P2 tail): SAVE PNG — a drawing that can never leave the pad
+    // is a drawing nobody keeps. One tap downloads the board as a PNG.
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn";
+    saveBtn.textContent = "Save PNG";
 
     controls.appendChild(colorBtn);
+    controls.appendChild(saveBtn);
     controls.appendChild(clearBtn);
     wrap.appendChild(canvasWrap);
     wrap.appendChild(controls);
@@ -87,6 +93,18 @@ Strip.register({
     canvas.addEventListener("touchstart", start, {passive:true});
     canvas.addEventListener("touchmove", move, {passive:true});
     canvas.addEventListener("touchend", end);
+
+    saveBtn.addEventListener("click", () => {
+      try{
+        const a = document.createElement("a");
+        a.download = "strip-etch-" + Date.now() + ".png";
+        a.href = canvas.toDataURL("image/png");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        Feedback.tone("success");
+      }catch(e){ Feedback.tone("error"); }
+    });
 
     clearBtn.addEventListener("click", () => {
       // clear in user-space units (the context is dpr-scaled) so one swipe

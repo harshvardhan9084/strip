@@ -54,9 +54,16 @@ Strip.register({
     function buildWall(){
       bricks = [];
       const rows = Math.min(5, 4 + Math.floor(level / 2));
+      // Round 22 (P2 tail): HP tiers. From level 2 the top row takes TWO
+      // hits, from level 4 the top two rows take THREE — the wall gains
+      // armor as you climb, so late levels are a siege instead of a sweep.
+      // Every hit pays (10 × level), the shatter pays a bonus, and damaged
+      // bricks visibly dim so the plan of attack reads at a glance.
+      const hpFor = (r) => 1 + (level >= 2 && r === 0 ? 1 : 0) + (level >= 4 && r <= 1 ? 1 : 0);
       for(let r = 0; r < rows; r++){
         for(let c = 0; c < COLS; c++){
-          bricks.push({ x: c * (BW + GAP) + 4, y: r * (BH + GAP) + 22, w: BW, h: BH, alive: true, row: r });
+          const hp = hpFor(r);
+          bricks.push({ x: c * (BW + GAP) + 4, y: r * (BH + GAP) + 22, w: BW, h: BH, alive: true, row: r, hp, maxHp: hp });
         }
       }
     }
@@ -123,8 +130,9 @@ Strip.register({
         if(!b.alive) continue;
         if(ball.x + ball.r > b.x && ball.x - ball.r < b.x + b.w &&
            ball.y + ball.r > b.y && ball.y - ball.r < b.y + b.h){
-          b.alive = false;
-          score += 10 * level;
+          b.hp--;
+          score += 10 * level; // every hit pays — armored bricks are worth the siege
+          if(b.hp <= 0){ b.alive = false; score += 5; }
           statUpdate();
           Feedback.tone("ok");
           const overlapX = Math.min(ball.x + ball.r - b.x, b.x + b.w - (ball.x - ball.r));
@@ -167,8 +175,20 @@ Strip.register({
       ctx.clearRect(0, 0, W, H);
       for(const b of bricks){
         if(!b.alive) continue;
+        // damaged bricks dim toward their last hit — the wall shows its scars
+        ctx.globalAlpha = 0.45 + 0.55 * (b.hp / b.maxHp);
         ctx.fillStyle = ROW_COLORS[b.row % ROW_COLORS.length];
         ctx.fillRect(b.x, b.y, b.w, b.h);
+        if(b.maxHp > 1){
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = "rgba(0,0,0,.45)";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+          // armor pips: one notch per extra hit the brick can still take
+          ctx.fillStyle = "rgba(0,0,0,.5)";
+          for(let k = 0; k < b.hp - 1 && k < 2; k++) ctx.fillRect(b.x + 3 + k * 5, b.y + b.h - 4, 3, 2);
+        }
+        ctx.globalAlpha = 1;
       }
       ctx.fillStyle = "#EDEAE3";
       ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);

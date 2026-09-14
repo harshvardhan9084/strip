@@ -137,6 +137,12 @@ Strip.register({
 
     const bag = ShuffleBag.restore(state.bag, FACTS.length);
     let idx = bag.next();
+    // Round 22 (P2 tail): FAVORITES. Facts are social currency — people want
+    // to KEEP the good ones. A ★ on the live fact persists it; a Favorites
+    // toggle flips the card into a favorites dealer (tap-through your stars).
+    // The seen counter stays honest: favorites browsing never inflates it.
+    if(!Array.isArray(state.favs)) state.favs = [];
+    let favMode = false;
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:18px; width:100%;";
@@ -155,25 +161,77 @@ Strip.register({
     nextBtn.className = "btn accent";
     nextBtn.textContent = "Another fact";
 
+    const favRow = document.createElement("div");
+    favRow.style.cssText = "display:flex; gap:10px; align-items:center;";
+    const starBtn = document.createElement("button");
+    starBtn.className = "btn";
+    starBtn.style.cssText = "width:52px; font-size:15px;";
+    const favBtn = document.createElement("button");
+    favBtn.className = "btn";
+    favBtn.textContent = "★ Favorites (0)";
+    favRow.appendChild(starBtn);
+    favRow.appendChild(favBtn);
+
     wrap.appendChild(counter);
     wrap.appendChild(card);
+    wrap.appendChild(favRow);
     wrap.appendChild(nextBtn);
     container.appendChild(wrap);
 
+    function isFav(){ return state.favs.includes(idx); }
+
+    function paintStar(){
+      starBtn.textContent = isFav() ? "★" : "☆";
+      starBtn.style.color = isFav() ? "var(--amber)" : "";
+      starBtn.style.borderColor = isFav() ? "var(--amber-dim)" : "";
+      favBtn.textContent = `★ Favorites (${state.favs.length})`;
+      favBtn.style.borderColor = favMode ? "var(--amber)" : "";
+      favBtn.style.color = favMode ? "var(--amber)" : "";
+    }
+
     function render(){
-      card.textContent = FACTS[idx];
-      counter.textContent = `FACT #${state.seen + 1}`;
+      if(favMode){
+        if(!state.favs.length){
+          card.textContent = "No favorites yet — tap ☆ on a fact worth keeping.";
+          counter.textContent = `FAVORITES 0`;
+        } else {
+          card.textContent = FACTS[state.favs[idx % state.favs.length]];
+          counter.textContent = `FAVORITES ${state.favs.length}`;
+        }
+      } else {
+        card.textContent = FACTS[idx];
+        counter.textContent = `FACT #${state.seen + 1}`;
+      }
       state.bag = bag.serialize();
+      paintStar();
     }
 
     function next(){
       Feedback.tone("swap"); Feedback.haptic("light");
-      idx = bag.next();
-      state.seen++;
+      if(favMode){
+        if(state.favs.length) idx = bag.next(); // favorites re-deal through the same bag position
+      } else {
+        idx = bag.next();
+        state.seen++;
+      }
       state.bag = bag.serialize();
       api.save(state);
       render();
     }
+
+    starBtn.addEventListener("click", () => {
+      if(favMode) return; // the star stars the LIVE fact; in favorites mode it's already kept
+      const k = state.favs.indexOf(idx);
+      if(k >= 0) state.favs.splice(k, 1); else state.favs.push(idx);
+      api.save(state);
+      Feedback.tone(k >= 0 ? "swap" : "success"); Feedback.haptic("light");
+      paintStar();
+    });
+    favBtn.addEventListener("click", () => {
+      favMode = !favMode;
+      Feedback.tone("toggle"); Feedback.haptic("light");
+      render();
+    });
 
     nextBtn.addEventListener("click", next);
     card.addEventListener("click", next);

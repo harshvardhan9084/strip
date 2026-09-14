@@ -59,12 +59,37 @@ Strip.register({
     const START_R = 78;
     const MAX_R = 160;
     let streak = 0, running = false, r = START_R, rafId = null, speed = 0.9;
+    // Round 22 (user ask): click-to-begin gate — the card used to open with
+    // the ring ALREADY falling, so the first seconds were a forced miss and
+    // the streak started at −1 confidence. Now the card opens on an idle,
+    // breathing pad; the first tap commits and is never judged.
+    let mode = "idle"; // "idle" | "playing"
+
+    // pulsing CTA on the idle pad (transform kept — the pad centers itself)
+    if(!document.getElementById("rt-cta-kf")){
+      const st = document.createElement("style");
+      st.id = "rt-cta-kf";
+      st.textContent = "@keyframes rtPulse{0%,100%{transform:translate(-50%,-50%) scale(1)}50%{transform:translate(-50%,-50%) scale(1.06)}}" +
+        ".rt-cta{animation:rtPulse 1.15s ease-in-out infinite; border:2px solid var(--amber-dim) !important;}";
+      document.head.appendChild(st);
+    }
 
     function reset(){
       streak = 0;
       q("#rt-score").textContent = 0;
       speed = 0.9;
-      spawnRing();
+      enterIdle();
+    }
+
+    function enterIdle(){
+      mode = "idle";
+      running = false;
+      r = MAX_R;
+      shrinkRing.setAttribute("r", MAX_R);
+      shrinkRing.setAttribute("opacity", "0.3");
+      padBtn.innerHTML = "TAP TO<br>BEGIN";
+      padBtn.style.fontSize = "10px";
+      padBtn.classList.add("rt-cta");
     }
 
     function spawnRing(){
@@ -101,6 +126,18 @@ Strip.register({
     }
 
     function tap(){
+      if(mode === "idle"){
+        // the commitment tap: starts the run, never judged
+        mode = "playing";
+        padBtn.textContent = "TAP";
+        padBtn.style.fontSize = "13px";
+        padBtn.classList.remove("rt-cta");
+        shrinkRing.setAttribute("opacity", "1");
+        feedback.textContent = "";
+        spawnRing();
+        Feedback.tone("place"); Feedback.haptic("light");
+        return;
+      }
       if(!running) return;
       const diff = Math.abs(r - TARGET_R);
       if(diff < 6){

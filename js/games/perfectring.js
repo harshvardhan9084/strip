@@ -6,9 +6,12 @@
  * somewhere on it; tap the instant the dot is inside the arc. Every hit
  * REVERSES the orbit, speeds it up, shrinks the arc, and moves it — so the
  * next window is always tighter and always somewhere new. Dead-center hits
- * pay PERFECT (+2). One early tap, one late tap, or one full lap through
- * the arc ends the run — and the restart is one tap away, because the
- * compulsion loop lives in the instant retry.
+ * pay PERFECT (+2). Round 22 (user ask: "let it circle continuously — don't
+ * fail just on the first rotation"): a miss no longer ends the run. You
+ * carry three hearts; a full lap through the arc or an early tap burns ONE
+ * heart and the orbit keeps spinning — the run ends only when the last
+ * heart drops. The rush now has room to breathe, and long runs feel like
+ * survival instead of a coin flip on rotation one.
  *
  * Emotion mapping: RUSH (orbit speed ramps), DOPAMINE (PERFECT floats +
  * rising pitch + milestone fanfares), COMPULSION (tap-to-retry restart),
@@ -58,7 +61,7 @@ Strip.register({
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="pr-score" style="color:var(--amber)">0</span></div><div>BEST <span id="pr-best" style="color:var(--purple)">${best}</span></div>`;
+    statRow.innerHTML = `<div>SCORE <span id="pr-score" style="color:var(--amber)">0</span></div><div>BEST <span id="pr-best" style="color:var(--purple)">${best}</span></div><div>LIVES <span id="pr-lives" style="color:var(--danger)">♥♥♥</span></div>`;
     wrap.appendChild(statRow);
 
     const cv = document.createElement("canvas");
@@ -81,6 +84,7 @@ Strip.register({
     let arcWidth = START_ARC;
     let arcCenter = 0;           // radians — where the target arc sits
     let score = 0;
+    let lives = 3;               // Round 22: the run survives misses — 3 hearts
     let lastTs = null;
     let rafId = null;
     let wasInArc = false;       // dot is inside the window this pass
@@ -117,13 +121,18 @@ Strip.register({
 
     function startRun(){
       mode = "playing";
-      score = 0; speed = START_SPEED; arcWidth = START_ARC;
+      score = 0; lives = 3; speed = START_SPEED; arcWidth = START_ARC;
       dir = Math.random() < 0.5 ? 1 : -1;
       angle = -Math.PI / 2;
       newTarget();
       q("#pr-score").textContent = "0";
+      paintLives();
       hintEl.textContent = "tap inside the arc";
       try{ Feedback.tone("place"); Feedback.haptic("light"); }catch(e){}
+    }
+
+    function paintLives(){
+      q("#pr-lives").textContent = "♥".repeat(lives) + "♡".repeat(Math.max(0, 3 - lives));
     }
 
     function hit(){
@@ -145,6 +154,22 @@ Strip.register({
       speed = Math.min(MAX_SPEED, speed * SPEED_GROWTH);
       arcWidth = Math.max(MIN_ARC, arcWidth * ARC_SHRINK);
       newTarget();
+    }
+
+    // Round 22 — a miss burns one heart instead of the whole run: the ring
+    // circles on, the arc relocates, and the pressure keeps building.
+    function miss(){
+      lives--;
+      paintLives();
+      try{ Feedback.buzz("error"); Feedback.haptic("medium"); }catch(e){}
+      shakeUntil = performance.now() + 200;
+      if(lives <= 0){
+        endRun();
+        return;
+      }
+      floatText(lives === 1 ? "LAST HEART" : "MISS −1♥", COLORS.danger);
+      hintEl.textContent = lives === 1 ? "one heart left — careful" : "missed — " + lives + " hearts left";
+      newTarget(); // fresh window, same orbit — the circle never stops
     }
 
     function endRun(){
@@ -169,7 +194,7 @@ Strip.register({
       }
       // playing
       if(inArc()) hit();
-      else endRun();
+      else miss();
     }
     cv.addEventListener("pointerdown", onTap);
 
@@ -202,7 +227,7 @@ Strip.register({
         // math: it's exact for every arc size and both directions.)
         const isIn = inArc();
         if(isIn) wasInArc = true;
-        else if(wasInArc) endRun();
+        else if(wasInArc) miss(); // the window came and went — one heart, not the run
       }
 
       // shake on miss (brief, tiny)

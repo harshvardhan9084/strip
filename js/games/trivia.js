@@ -2,14 +2,13 @@ Strip.register({
   id: "trivia",
   label: "PUZZLE",
   title: "Quick Trivia",
-  tag: "🧠",
-  hint: "Tap the correct answer",
+  tag: "10Q runs",
+  hint: "Ten questions per run — bank as many as you can",
   async mount(container, api){
     // lookups scoped to THIS card — duplicate ids across two copies of a
     // cartridge coexist briefly in the strip, and getElementById could
     // update the stale copy instead of the visible one
     const q = (sel) => container.querySelector(sel);
-    let best = await api.getHighscore();
     const savedState = (await api.load()) || { bag: null };
     const Q = [
       { q:"What planet has the most moons?", a:["Jupiter","Saturn","Mars","Neptune"], correct:1 },
@@ -91,13 +90,29 @@ Strip.register({
       { q:"What's the tallest building in the world (as of recent record)?", a:["Shanghai Tower","Burj Khalifa","One World Trade","Taipei 101"], correct:1 },
     ];
 
+    // Round 22 (P2 tail): endless streaks have no shape — you never FEEL a
+    // run end, so nothing is ever completed. Now every visit is a 10-question
+    // RUN with a completion meter, a score at the buzzer and a rematch one
+    // tap away. Best run lives in the save (the legacy streak highscore in
+    // the store stays as history; run scores only overwrite it when they
+    // genuinely beat it).
+    const RUN_LEN = 10;
+    let savedRunBest = Number.isFinite(savedState.runBest) ? savedState.runBest : null;
+
     const wrap = document.createElement("div");
-    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:16px; width:100%; max-width:280px;";
+    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:280px;";
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>STREAK <span id="tv-score" style="color:var(--amber)">0</span></div><div>BEST <span id="tv-best" style="color:var(--purple)">${best}</span></div>`;
     wrap.appendChild(statRow);
+
+    // the completion meter — the run's shape, visible at a glance
+    const meterTrack = document.createElement("div");
+    meterTrack.style.cssText = "width:100%; height:5px; background:var(--panel-2); border-radius:3px; overflow:hidden;";
+    const meterFill = document.createElement("div");
+    meterFill.style.cssText = "height:100%; width:0%; background:var(--amber); border-radius:3px; transition:width .25s ease;";
+    meterTrack.appendChild(meterFill);
+    wrap.appendChild(meterTrack);
 
     const qText = document.createElement("div");
     qText.style.cssText = "font-size:15px; font-weight:600; text-align:center; min-height:50px; display:flex; align-items:center;";
@@ -109,14 +124,20 @@ Strip.register({
 
     container.appendChild(wrap);
 
-    let streak = 0, current, answered;
+    let qNum = 0, runScore = 0, current, answered;
     const bag = ShuffleBag.restore(savedState.bag, Q.length);
+
+    function paintStats(){
+      statRow.innerHTML = `<div>Q <span id="tv-q" style="color:var(--amber)">${Math.min(qNum + 1, RUN_LEN)}</span>/${RUN_LEN}</div><div>SCORE <span id="tv-score" style="color:var(--amber)">${runScore}</span></div><div>BEST RUN <span id="tv-best" style="color:var(--purple)">${savedRunBest === null ? "-" : savedRunBest + "/" + RUN_LEN}</span></div>`;
+      meterFill.style.width = (qNum / RUN_LEN) * 100 + "%";
+    }
 
     function pickQuestion(){
       current = Q[bag.next()];
       savedState.bag = bag.serialize();
       api.save(savedState);
       answered = false;
+      paintStats();
       qText.textContent = current.q;
       answers.innerHTML = "";
       current.a.forEach((ans, i) => {
@@ -139,20 +160,50 @@ Strip.register({
       });
       if(correct){
         Feedback.buzz("success");
-        streak++;
-        q("#tv-score").textContent = streak;
-        if(streak > best){
-          best = streak;
-          api.setHighscore(best);
-          q("#tv-best").textContent = best;
-        }
+        runScore++;
       } else {
         Feedback.buzz("error");
-        api.setHighscore(streak);
-        streak = 0;
-        q("#tv-score").textContent = 0;
       }
-      setTimeout(pickQuestion, 900);
+      paintStats();
+      qNum++;
+      if(qNum >= RUN_LEN){
+        setTimeout(showResults, 800);
+      } else {
+        setTimeout(pickQuestion, 900);
+      }
+    }
+
+    function showResults(){
+      meterFill.style.width = "100%";
+      meterFill.style.background = runScore >= 7 ? "#6FCF97" : "var(--amber)";
+      const flavor = runScore === 10 ? "PERFECT RUN — flawless ten."
+        : runScore >= 8 ? "Sharp. The run of a scholar."
+        : runScore >= 5 ? "Solid majority — bank it and go again."
+        : runScore >= 3 ? "Warm-up run. The bag reshuffles."
+        : "Every run resets the bag — fresh ten, fresh chance.";
+      const isNewBest = savedRunBest === null || runScore > savedRunBest;
+      if(isNewBest){
+        savedState.runBest = runScore;
+        savedRunBest = runScore; // session-honest: a later run compares against THIS
+        api.save(savedState);
+        api.setHighscore(runScore); // max-wins store: only a genuine beat lands
+        Feedback.buzz("win");
+      }
+      qText.textContent = `RUN COMPLETE — ${runScore}/${RUN_LEN}`;
+      answers.innerHTML = "";
+      const flavorEl = document.createElement("div");
+      flavorEl.style.cssText = "font-size:12px; color:var(--ink-dim); text-align:center; margin-bottom:6px;";
+      flavorEl.textContent = (isNewBest && runScore > 0 ? "NEW BEST RUN · " : "") + flavor;
+      answers.appendChild(flavorEl);
+      const again = document.createElement("button");
+      again.className = "btn accent";
+      again.textContent = "Play again";
+      again.addEventListener("click", () => {
+        qNum = 0; runScore = 0;
+        meterFill.style.background = "var(--amber)";
+        pickQuestion();
+      });
+      answers.appendChild(again);
     }
 
     pickQuestion();

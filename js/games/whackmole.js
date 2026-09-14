@@ -45,28 +45,60 @@ Strip.register({
       holes.push(hole);
     }
 
-    let score = 0, running = false, spawnTimer = null, countdownTimer = null, timeLeft = 30;
-    let activeHole = -1;
+    let score = 0, running = false, countdownTimer = null, topupTimer = null, timeLeft = 30, wave = 1;
+    // Round 22 (P2 tail): multi-mole WAVES. The old board showed exactly one
+    // mole forever — 20 seconds in, the game was a metronome. Now the round
+    // escalates: wave 2 (0:20 left) puts TWO moles up at once, wave 3 (0:10
+    // left) THREE, and every wave pops faster. Each mole hides on its own
+    // clock; a top-up loop keeps the wave's density without clustering spawns.
+    let active = new Map(); // holeIndex -> hide timeout id
+    const molesForWave = (w) => Math.min(3, w);
+    const upTimeFor = (w) => Math.max(430, 950 - (w - 1) * 130 - score * 4);
 
-    function popRandom(){
-      holes.forEach(h => h.textContent = "");
-      activeHole = Math.floor(Math.random() * holes.length);
-      holes[activeHole].textContent = "🐹";
-      const upTime = Math.max(450, 950 - score * 15); // gets faster as score climbs
-      spawnTimer = setTimeout(() => {
-        if(holes[activeHole]) holes[activeHole].textContent = "";
-        if(running) popRandom();
-      }, upTime);
+    function waveBanner(text){
+      const b = document.createElement("div");
+      b.textContent = text;
+      b.style.cssText = "position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); font-family:var(--font-display); font-size:11px; color:var(--amber); background:rgba(10,10,16,.85); border:1px solid var(--amber-dim); border-radius:10px; padding:8px 12px; z-index:4; pointer-events:none;";
+      wrap.style.position = "relative";
+      wrap.appendChild(b);
+      setTimeout(() => b.remove(), 1200);
+    }
+
+    function popMole(){
+      if(!running) return;
+      const free = holes.map((_, i) => i).filter(i => !active.has(i));
+      if(!free.length) return;
+      const i = free[Math.floor(Math.random() * free.length)];
+      holes[i].textContent = "🐹";
+      active.set(i, setTimeout(() => {
+        holes[i].textContent = "";
+        active.delete(i);
+      }, upTimeFor(wave)));
+    }
+
+    function topUp(){
+      if(!running) return;
+      let guard = 6; // per-tick spawn cap: a wave flip never dumps 3 at once
+      while(active.size < molesForWave(wave) && guard-- > 0) popMole();
+    }
+
+    function advanceWave(){
+      if(wave < 3){
+        wave++;
+        waveBanner(`WAVE ${wave} — ${molesForWave(wave)} MOLES!`);
+        try{ Feedback.buzz("success"); }catch(e){}
+      }
     }
 
     holes.forEach((h, i) => {
       h.addEventListener("click", () => {
-        if(!running || i !== activeHole) return;
+        if(!running || !active.has(i)) return;
+        clearTimeout(active.get(i));
+        active.delete(i);
         score++;
         q("#wm-score").textContent = score;
-        h.textContent = "";
-        clearTimeout(spawnTimer);
-        popRandom();
+        h.textContent = "💥";
+        setTimeout(() => { if(h.textContent === "💥") h.textContent = ""; }, 180);
         Feedback.haptic("light");
         Feedback.tone("pop");
       });
@@ -75,13 +107,16 @@ Strip.register({
     function tickCountdown(){
       timeLeft--;
       q("#wm-time").textContent = timeLeft;
+      if(timeLeft === 20 || timeLeft === 10) advanceWave();
       if(timeLeft <= 0) endGame();
     }
 
     function endGame(){
       running = false;
-      clearTimeout(spawnTimer);
+      active.forEach(t => clearTimeout(t));
+      active.clear();
       clearInterval(countdownTimer);
+      clearInterval(topupTimer);
       holes.forEach(h => h.textContent = "");
       startBtn.textContent = "Play again";
       startBtn.disabled = false;
@@ -92,20 +127,25 @@ Strip.register({
     }
 
     function start(){
-      score = 0; timeLeft = 30; running = true;
+      score = 0; timeLeft = 30; wave = 1; running = true;
+      active.forEach(t => clearTimeout(t));
+      active.clear();
       q("#wm-score").textContent = 0;
       q("#wm-time").textContent = 30;
       startBtn.disabled = true;
       startBtn.textContent = "Playing…";
-      popRandom();
+      topUp();
+      topupTimer = setInterval(topUp, 260);
       countdownTimer = setInterval(tickCountdown, 1000);
     }
 
     startBtn.addEventListener("click", start);
 
     return () => {
-      clearTimeout(spawnTimer);
+      active.forEach(t => clearTimeout(t));
+      active.clear();
       clearInterval(countdownTimer);
+      clearInterval(topupTimer);
     };
   }
 });

@@ -13,10 +13,16 @@ Strip.register({
     wrap.appendChild(canvas);
 
     const controls = document.createElement("div");
-    controls.style.cssText = "display:flex; gap:10px;";
+    controls.style.cssText = "display:flex; gap:10px; flex-wrap:wrap; justify-content:center;";
     const clearBtn = document.createElement("button");
     clearBtn.className = "btn accent";
     clearBtn.textContent = "Clear";
+    // Round 22 (P2 tail): SAVE PNG — a mandala worth ten minutes of drag is
+    // worth keeping. One tap downloads the disc as a PNG.
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "btn";
+    saveBtn.textContent = "Save PNG";
+    controls.appendChild(saveBtn);
     controls.appendChild(clearBtn);
     wrap.appendChild(controls);
 
@@ -80,6 +86,18 @@ Strip.register({
     canvas.addEventListener("touchstart", (e)=>{e.preventDefault(); start(e);}, {passive:false});
     canvas.addEventListener("touchmove", (e)=>{e.preventDefault(); move(e);}, {passive:false});
     canvas.addEventListener("touchend", end);
+
+    saveBtn.addEventListener("click", () => {
+      try{
+        const a = document.createElement("a");
+        a.download = "strip-kaleido-" + Date.now() + ".png";
+        a.href = canvas.toDataURL("image/png");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        Feedback.tone("success");
+      }catch(e){ Feedback.tone("error"); }
+    });
 
     clearBtn.addEventListener("click", () => {
       const rect = canvas.getBoundingClientRect();

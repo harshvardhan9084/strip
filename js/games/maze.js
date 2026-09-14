@@ -1,13 +1,27 @@
 Strip.register({
   id: "maze",
-  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves|seconds; NEVER double it (twist)
+  scoreEncoding: "inverted", scoreCeiling: 100000, // stores 100000 - moves (CLASSIC 7×7 only); NEVER double it (twist)
   label: "PUZZLE",
   title: "Maze",
-  tag: "swipe",
+  tag: "3 sizes",
   hint: "Swipe to move the dot to the star",
   async mount(container, api){
-    let best = await api.getHighscore(); // fewest moves, stored inverted
-    const SIZE = 7;
+    // Round 22 (P2 tail): size ladder — 5×5 warm-up, 7×7 classic (still feeds
+    // the inverted store), 9×9 deep run. Every maze is DFS-carved from the
+    // solved corner, so solvability holds at every size.
+    const SIZES = [
+      { key: "junior",  label: "5×5", n: 5, holes: 3 },
+      { key: "classic", label: "7×7", n: 7, holes: 6 },
+      { key: "grand",   label: "9×9", n: 9, holes: 9 },
+    ];
+    const INV = 100000;
+    const saved0 = await api.load().catch(() => null);
+    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 1;
+    const bests = saved0 && saved0.bests ? saved0.bests : {};
+    const stored = await api.getHighscore();
+    let bestClassic = stored ? INV - stored : Infinity;
+    let SIZE = SIZES[sizeIdx].n;
+    let best = sizeIdx === 1 ? bestClassic : (bests[SIZES[sizeIdx].key] ?? Infinity);
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
@@ -16,12 +30,43 @@ Strip.register({
     statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
     wrap.appendChild(statRow);
 
+    const sizeRow = document.createElement("div");
+    sizeRow.style.cssText = "display:flex; gap:6px;";
+    const sizeBtns = [];
+    SIZES.forEach((d, i) => {
+      const b = document.createElement("button");
+      b.textContent = d.label;
+      b.style.cssText = "font-size:10px; padding:4px 9px; border-radius:20px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim); cursor:pointer;";
+      b.addEventListener("click", () => {
+        if(i === sizeIdx) return;
+        sizeIdx = i; SIZE = SIZES[i].n;
+        best = sizeIdx === 1 ? bestClassic : (bests[SIZES[i].key] ?? Infinity);
+        api.save({ size: sizeIdx, bests }).catch(()=>{});
+        paintSizes();
+        fitBoard();
+        newGame();
+      });
+      sizeBtns.push(b);
+      sizeRow.appendChild(b);
+    });
+    function paintSizes(){
+      sizeBtns.forEach((b, i) => {
+        const active = i === sizeIdx;
+        b.style.background = active ? "var(--amber)" : "var(--panel-2)";
+        b.style.color = active ? "#000" : "var(--ink-dim)";
+      });
+    }
+    wrap.appendChild(sizeRow);
+
     const boardWrap = document.createElement("div");
-    boardWrap.style.cssText = `
-      display:grid; grid-template-columns:repeat(${SIZE},1fr); grid-template-rows:repeat(${SIZE},1fr);
-      width:min(72vw,260px); height:min(72vw,260px); gap:2px; touch-action:none;
-    `;
     wrap.appendChild(boardWrap);
+    function fitBoard(){
+      boardWrap.style.cssText = `
+        display:grid; grid-template-columns:repeat(${SIZE},1fr); grid-template-rows:repeat(${SIZE},1fr);
+        width:min(72vw,${SIZE * 38}px); height:min(72vw,${SIZE * 38}px); gap:2px; touch-action:none;
+      `;
+    }
+    fitBoard();
 
     const newBtn = document.createElement("button");
     newBtn.className = "btn accent";
@@ -48,7 +93,8 @@ Strip.register({
       }
       carve(0,0);
       // ensure some extra connectivity so it doesn't feel too corridor-y
-      for(let i=0;i<6;i++){
+      const holes = SIZES[sizeIdx].holes;
+      for(let i=0;i<holes;i++){
         const r = Math.floor(Math.random()*SIZE), c = Math.floor(Math.random()*SIZE);
         w[r][c] = false;
       }
@@ -84,7 +130,7 @@ Strip.register({
         cell.style.cssText = `
           background:${walls[r][c] ? "var(--panel-2)" : "var(--bg)"};
           border-radius:2px; display:flex; align-items:center; justify-content:center;
-          font-size:14px;
+          font-size:${SIZE === 9 ? 11 : 14}px;
         `;
         if(isPlayer) cell.textContent = "🐾";
         else if(isGoal) cell.textContent = "⭐";
@@ -109,8 +155,17 @@ Strip.register({
       if(nr===goal[0] && nc===goal[1]){
         won = true;
         Feedback.buzz("win");
-        const scoreValue = 100000 - moves;
-        api.setHighscore(scoreValue).then(v => { best = 100000 - v; updateStat(); });
+        if(moves < best){
+          best = moves;
+          bests[SIZES[sizeIdx].key] = moves;
+          if(sizeIdx === 1){
+            bestClassic = moves;
+            api.setHighscore(INV - moves); // only the classic maze feeds the store
+          } else {
+            api.save({ size: sizeIdx, bests }).catch(()=>{});
+          }
+        }
+        updateStat();
       }
       render();
       updateStat();
@@ -143,7 +198,7 @@ Strip.register({
     window.addEventListener("keydown", onKey);
 
     newBtn.addEventListener("click", newGame);
-    best = best ? 100000 - best : Infinity;
+    paintSizes();
     newGame();
 
     return () => window.removeEventListener("keydown", onKey);

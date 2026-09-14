@@ -98,7 +98,18 @@ Strip.register({
           ctx.arc(0,0,s.r,0,Math.PI*2);
           ctx.fill();
         } else {
-          ctx.fillRect(-s.r,-s.r,s.r*2,s.r*2);
+          // Round 22 (P2 tail) — collision honesty. Squares used to be DRAWN
+          // corner-to-corner (half-diagonal r√2) while COLLIDING as discs of
+          // radius r, so stacked squares visibly clipped through each other
+          // and through the floor. Now the square is drawn inscribed in its
+          // own collider (half-side r/√2): everything you see fits inside the
+          // physics disc, so the pile can never lie again. A subtle rim keeps
+          // the shape legible at the new size.
+          const hs = s.r / Math.SQRT2;
+          ctx.fillRect(-hs, -hs, hs * 2, hs * 2);
+          ctx.strokeStyle = "rgba(0,0,0,.35)";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(-hs, -hs, hs * 2, hs * 2);
         }
         ctx.restore();
       });
