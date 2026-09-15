@@ -102,6 +102,7 @@ Strip.register({
         Feedback.buzz("success");
         state.matched++;
         q("#cm-score").textContent = state.matched;
+        api.gameover("win", tweakCount);
         api.save(state);
         // Round 19 (S7 fix): BEST used to be the lifetime counter mirrored
         // back at you (always equal to MATCHED). Now it's a real skill record:

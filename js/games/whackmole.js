@@ -55,13 +55,20 @@ Strip.register({
     const molesForWave = (w) => Math.min(3, w);
     const upTimeFor = (w) => Math.max(430, 950 - (w - 1) * 130 - score * 4);
 
+    let bannerEl = null; // Round 23: one banner slot — a second banner REPLACES
+    let bannerTimer = null; // the first instead of stacking into unreadable overlap
     function waveBanner(text){
-      const b = document.createElement("div");
-      b.textContent = text;
-      b.style.cssText = "position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); font-family:var(--font-display); font-size:11px; color:var(--amber); background:rgba(10,10,16,.85); border:1px solid var(--amber-dim); border-radius:10px; padding:8px 12px; z-index:4; pointer-events:none;";
       wrap.style.position = "relative";
-      wrap.appendChild(b);
-      setTimeout(() => b.remove(), 1200);
+      if(!bannerEl){
+        bannerEl = document.createElement("div");
+        bannerEl.style.cssText = "position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); font-family:var(--font-display); font-size:11px; color:var(--amber); background:rgba(10,10,16,.85); border:1px solid var(--amber-dim); border-radius:10px; padding:8px 12px; z-index:4; pointer-events:none; transition:opacity .18s;";
+        wrap.appendChild(bannerEl);
+      }
+      clearTimeout(bannerTimer);
+      bannerEl.style.opacity = "0";
+      requestAnimationFrame(() => { if(bannerEl) bannerEl.style.opacity = "1"; });
+      bannerEl.textContent = text;
+      bannerTimer = setTimeout(() => { if(bannerEl) bannerEl.style.opacity = "0"; }, 1200);
     }
 
     function popMole(){
@@ -120,6 +127,7 @@ Strip.register({
       holes.forEach(h => h.textContent = "");
       startBtn.textContent = "Play again";
       startBtn.disabled = false;
+api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#wm-best").textContent = best;

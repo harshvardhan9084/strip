@@ -65,6 +65,7 @@ Strip.register({
         const vs = ms < 250 ? "faster than typical" : ms > 320 ? "slower than typical" : "about typical";
         zone.textContent = `${ms} ms — tap to retry · avg5 ${avg} (${vs} adult: ~250ms)`;
         const scoreValue = 100000 - ms;
+        api.gameover("over", scoreValue);
         api.setHighscore(scoreValue).then(v => {
           best = v;
           bestRow.textContent = `BEST ${100000-best}ms`;

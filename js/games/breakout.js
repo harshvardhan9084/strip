@@ -168,6 +168,7 @@ Strip.register({
       Feedback.buzz("lose");
       startBtn.disabled = false;
       startBtn.textContent = "Wall won — retry";
+api.gameover("over", score);
       api.setHighscore(score).then(v => { best = v; statUpdate(); });
     }
 

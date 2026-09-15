@@ -129,11 +129,13 @@ Strip.register({
         q("#ty-score").textContent = wpm;
         if(acc >= 80){
           Feedback.buzz("success");
+          api.gameover("win", wpm);
           api.setHighscore(wpm).then(v => {
             best = v;
             q("#ty-best").textContent = best;
           });
         } else {
+          api.gameover("over", wpm);
           Feedback.buzz("error");
           q("#ty-acc").innerHTML = `<span style="color:var(--danger)">${acc}%</span>`;
           phraseBox.title = "Accuracy below 80% — this run can't set a best";

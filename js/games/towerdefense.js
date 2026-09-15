@@ -585,6 +585,7 @@ Strip.register({
       msg.textContent = `Base fell at wave ${wave}. Tap Restart.`;
       waveBtn.textContent = "Restart";
       waveBtn.disabled = false;
+      api.gameover("over", wave);
       if(wave > best){ best = wave; api.setHighscore(best); }
       updateStat();
     }

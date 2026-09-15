@@ -236,6 +236,7 @@ Strip.register({
         if(!hasMoves()){
           Feedback.buzz("lose");
           gameOverShown = true;
+          api.gameover("over", score);
         }
       } else {
         render();

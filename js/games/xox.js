@@ -163,9 +163,9 @@ Strip.register({
 
     function endRound(result){
       over = true;
-      if(result.winner === "X"){ state.wins++; statusLine.textContent = "You win!"; Feedback.buzz("win"); }
-      else if(result.winner === "O"){ state.losses++; statusLine.textContent = "AI wins."; Feedback.buzz("lose"); }
-      else { state.draws++; statusLine.textContent = "Draw."; Feedback.tone("toggle"); Feedback.haptic("medium"); }
+      if(result.winner === "X"){ state.wins++; statusLine.textContent = "You win!"; Feedback.buzz("win"); api.gameover("win", state.wins); }
+      else if(result.winner === "O"){ state.losses++; statusLine.textContent = "AI wins."; Feedback.buzz("lose"); api.gameover("over", 0); }
+      else { state.draws++; statusLine.textContent = "Draw."; Feedback.tone("toggle"); Feedback.haptic("medium"); api.gameover("over", 0); }
       api.save(state);
       render(result.line);
     }

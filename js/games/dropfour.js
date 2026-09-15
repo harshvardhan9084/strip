@@ -255,10 +255,12 @@ Strip.register({
         Feedback.buzz("win");
         streak++;
         best = Math.max(best, streak);
+        api.gameover("win", streak);
         api.setHighscore(best); // the all-time streak survives every defeat now
         api.save({ streak, difficulty });
       } else if(winner === 2){
         Feedback.buzz("lose");
+        api.gameover("over", 0);
         streak = 0; // current streak resets; BEST no longer vanishes with it
         api.save({ streak, difficulty });
       } else {

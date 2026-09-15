@@ -129,6 +129,7 @@ Strip.register({
       if(isSolved(tiles)){
         won = true;
         Feedback.buzz("win");
+        api.gameover("win", moves);
         if(moves < best){
           best = moves;
           bests[SIZES[sizeIdx].key] = moves;

@@ -98,6 +98,18 @@ Strip.register({
     // genuinely beat it).
     const RUN_LEN = 10;
     let savedRunBest = Number.isFinite(savedState.runBest) ? savedState.runBest : null;
+    // Round 23 (judge carry-over): pre-R22 runs scored raw points, so old
+    // saves can carry a runBest the 10-question format can no longer reach —
+    // "BEST RUN 14/10" reads as a broken meter. One-time normalize: clamp the
+    // save to the format ceiling, keep the raw value as history in the store,
+    // and flag a * so the BEST line explains itself instead of looking lied.
+    let legacyBest = false;
+    if(savedRunBest != null && savedRunBest > RUN_LEN){
+      savedRunBest = RUN_LEN;
+      legacyBest = true;
+      savedState.runBest = RUN_LEN;
+      api.save(savedState);
+    }
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:280px;";
@@ -128,7 +140,7 @@ Strip.register({
     const bag = ShuffleBag.restore(savedState.bag, Q.length);
 
     function paintStats(){
-      statRow.innerHTML = `<div>Q <span id="tv-q" style="color:var(--amber)">${Math.min(qNum + 1, RUN_LEN)}</span>/${RUN_LEN}</div><div>SCORE <span id="tv-score" style="color:var(--amber)">${runScore}</span></div><div>BEST RUN <span id="tv-best" style="color:var(--purple)">${savedRunBest === null ? "-" : savedRunBest + "/" + RUN_LEN}</span></div>`;
+      statRow.innerHTML = `<div>Q <span id="tv-q" style="color:var(--amber)">${Math.min(qNum + 1, RUN_LEN)}</span>/${RUN_LEN}</div><div>SCORE <span id="tv-score" style="color:var(--amber)">${runScore}</span></div><div>BEST RUN <span id="tv-best" style="color:var(--purple)"${legacyBest ? ' title="Pre-Round-22 record, normalized to the 10-question format"' : ''}>${savedRunBest === null ? "-" : savedRunBest + "/" + RUN_LEN + (legacyBest ? "*" : "")}</span></div>`;
       meterFill.style.width = (qNum / RUN_LEN) * 100 + "%";
     }
 
@@ -186,6 +198,7 @@ Strip.register({
         savedState.runBest = runScore;
         savedRunBest = runScore; // session-honest: a later run compares against THIS
         api.save(savedState);
+        api.gameover("over", runScore);
         api.setHighscore(runScore); // max-wins store: only a genuine beat lands
         Feedback.buzz("win");
       }

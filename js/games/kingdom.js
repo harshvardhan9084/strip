@@ -261,6 +261,7 @@ Strip.register({
         // (R20) hoisted the clamp so the registry's inverted-score tripwire
         // stops false-positiving on the subtraction inside the call
         const daysSurvived = Math.max(0, state.day - 1);
+        api.gameover("over", daysSurvived);
         api.setHighscore(daysSurvived).then(v => { best = v; });
         showRecap();
       } else if(state.day > best){

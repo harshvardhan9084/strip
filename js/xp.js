@@ -16,6 +16,15 @@
  *   strip:daily-played     -> +15 XP, +5 per streak day (cap +50 bonus)
  *   strip:fav-changed      -> +5 XP when the favorites row GROWS (toggle-safe:
  *                             only counts increases past the highest count seen)
+ *   strip:gameover         -> +8 WIN / +5 DEEP RUN (score >= 60% of best,
+ *                             score games only) / +2 RUN — 20 runs/day cap
+ *                             (Round 23: reward DEPTH, not browsing — the
+ *                             settle cap alone meant finishing runs paid
+ *                             nothing beyond the rare new best)
+ *
+ * Every award also fires "strip:xp-awarded" { reason, amount } so downstream
+ * layers (missions.js) can track daily progress without reaching into XP
+ * state — one event, no circular imports.
  *
  * Surfaces:
  *   #xp-pill  — HUD pill "LV 4" with a micro progress track (opens the trophy
@@ -33,6 +42,8 @@
 window.XP = (function(){
   const STORE_ID = "__xp__";
   const SETTLE_DAILY_CAP = 30;
+  const RUN_DAILY_CAP = 20;      // Round 23: gameover awards per day
+  const DEEP_RUN_RATIO = 0.6;    // an "over" run at >= 60% of your best is DEEP
 
   // ---- award table ----
   const AWARD = {
@@ -43,6 +54,17 @@ window.XP = (function(){
     dailyStreakStep: 5,
     dailyStreakBonusCap: 50,
     fav: 5,
+    // Round 23 — run endings (strip:gameover). Winning pays most; grinding
+    // CLOSE to your best still pays; a throwaway run pays crumbs. The cap
+    // keeps the whole ladder un-farmable, while the caps' size (20/day)
+    // means a genuinely playful day never bumps into it.
+    runWin: 8,
+    runDeep: 5,
+    runOver: 2,
+    // Round 23 — Daily Missions (missions.js). Auto-paid the moment a goal
+    // completes — no claim button, the dopamine should not wait behind UI.
+    mission: 30,
+    sweep: 40, // all three missions cleared the same day
   };
 
   // ---- level curve ----
@@ -80,7 +102,7 @@ window.XP = (function(){
   }
 
   // ---------- state ----------
-  let state = { xp: 0, day: null, settleToday: 0, favsSeen: 0 };
+  let state = { xp: 0, day: null, settleToday: 0, favsSeen: 0, runToday: 0 };
   let hydrated = false;   // disk-write gate (Daily's pattern)
   let readyResolve;
   const readyPromise = new Promise(res => { readyResolve = res; });
@@ -94,6 +116,7 @@ window.XP = (function(){
     if(state.day !== dk){
       state.day = dk;
       state.settleToday = 0;
+      state.runToday = 0;
     }
   }
   function persist(){
@@ -122,8 +145,19 @@ window.XP = (function(){
     if(pillLevel.textContent !== text) pillLevel.textContent = text;
     const pct = Math.max(0, Math.min(100, Math.round((into / need) * 100)));
     pillFill.style.width = pct + "%";
+    // Round 23: the pill now also carries the daily contract — missions left
+    // (or the sweep) show here so the trophy case has a reason to be opened.
+    let missionNote = "";
+    try{
+      if(window.Missions && Missions.summary){
+        const ms = Missions.summary();
+        missionNote = ms.left > 0
+          ? " · " + ms.left + " mission" + (ms.left === 1 ? "" : "s") + " left today"
+          : " · all missions clear";
+      }
+    }catch(e){}
     pill.title = "Player level " + level + " — " + titleFor(level) +
-      " · " + into + "/" + need + " XP to LV " + (level + 1) +
+      " · " + into + "/" + need + " XP to LV " + (level + 1) + missionNote +
       " · tap for your player card";
   }
 
@@ -225,20 +259,63 @@ window.XP = (function(){
     else if(reason === "trophy") amount = AWARD.trophy;
     else if(reason === "daily") amount = computeDailyXp(opts.streak);
     else if(reason === "fav") amount = AWARD.fav;
+    else if(reason === "mission") amount = AWARD.mission;
+    else if(reason === "sweep") amount = AWARD.sweep;
     if(amount <= 0) return;
+    return applyAward(reason, amount, opts);
+  }
 
+  // The shared tail of every award: mutate, persist, render, float, level-up.
+  function applyAward(reason, amount, opts){
     const before = levelFor(state.xp);
     state.xp += amount;
     const after = levelFor(state.xp);
     persist();
     renderHud();
 
+    // Round 23: one broadcast event for downstream layers (missions.js tracks
+    // daily XP earned + new-best count from this — no circular imports).
+    try{
+      window.dispatchEvent(new CustomEvent("strip:xp-awarded", {
+        detail: { reason, amount }
+      }));
+    }catch(e){}
+
     if(!opts.silent){
-      enqueueFloat("+" + amount + " XP" + (reason === "best" ? " · NEW BEST" : ""), reason === "best" ? "big" : "");
+      const label = opts.floatText || (reason === "best" ? "+" + amount + " XP · NEW BEST" : "+" + amount + " XP");
+      enqueueFloat(label, opts.floatClass || (reason === "best" ? "big" : ""));
     }
     // ceremony per level crossed (a huge trophy batch can cross several —
     // each gets its moment, queued)
     for(let l = before.level + 1; l <= after.level; l++) enqueueCeremony(l);
+    return amount;
+  }
+
+  // Round 23 — run endings. Async because "DEEP RUN" needs the cartridge's
+  // stored best (IndexedDB read). Everything else about it matches award():
+  // the daily cap gates the WHOLE reason, so no band can be farmed.
+  function awardRun(detail){
+    detail = detail || {};
+    const outcome = detail.outcome === "win" ? "win" : "over";
+    const score = Number(detail.score);
+    rollDay();
+    if(state.runToday >= RUN_DAILY_CAP) return; // depth is bounded like browsing
+    state.runToday++;
+    if(outcome === "win"){
+      applyAward("run", AWARD.runWin, { floatText: "+" + AWARD.runWin + " XP · RUN WON", floatClass: "big" });
+      return;
+    }
+    // "over" — is this run DEEP (close to the player's own best)? A best of
+    // 0 means nothing to be deep relative to: plain run.
+    const finish = (best) => {
+      const deep = best > 0 && Number.isFinite(score) && score >= best * DEEP_RUN_RATIO && score < best;
+      applyAward("run", deep ? AWARD.runDeep : AWARD.runOver,
+        deep ? { floatText: "+" + AWARD.runDeep + " XP · DEEP RUN", floatClass: "big" }
+             : { floatText: "+" + AWARD.runOver + " XP" });
+    };
+    if(window.StripDB && StripDB.getHighscore){
+      StripDB.getHighscore(detail.id).then(finish).catch(() => finish(0));
+    } else finish(0);
   }
 
   // ---------- event listeners ----------
@@ -248,6 +325,11 @@ window.XP = (function(){
     if(!id || id === lastSettledId) return; // consecutive re-settle: not a new visit
     lastSettledId = id;
     award("settle", { silent: false });
+  }
+  function onGameOver(e){
+    const d = e.detail;
+    if(!d || !d.id) return;
+    awardRun(d);
   }
   function onDailyPlayed(e){
     const streak = (e.detail && e.detail.streak) || 1;
@@ -273,6 +355,7 @@ window.XP = (function(){
   // ---------- boot ----------
   async function init(){
     window.addEventListener("strip:card-centered", onCardCentered, { passive:true });
+    window.addEventListener("strip:gameover", onGameOver, { passive:true });
     window.addEventListener("strip:daily-played", onDailyPlayed, { passive:true });
     window.addEventListener("strip:trophy-unlocked", onTrophyUnlocked, { passive:true });
     window.addEventListener("strip:fav-changed", onFavChanged, { passive:true });
@@ -285,6 +368,7 @@ window.XP = (function(){
         state = Object.assign(state, res.data);
         if(typeof state.xp !== "number" || !Number.isFinite(state.xp) || state.xp < 0) state.xp = 0;
         if(typeof state.settleToday !== "number") state.settleToday = 0;
+        if(typeof state.runToday !== "number") state.runToday = 0;
         if(typeof state.favsSeen !== "number") state.favsSeen = 0;
       }
       hydrated = true; // the store answered — writes are safe from here
@@ -302,7 +386,8 @@ window.XP = (function(){
   return {
     whenReady: () => readyPromise,
     award,                 // app.js "new best" hook + QA seam
+    awardRun,              // Round 23: QA seam for the gameover ladder
     getState: () => Object.assign({}, state, levelFor(state.xp), { title: titleFor(levelFor(state.xp).level) }),
-    _internals: { stepFor, levelFor, computeDailyXp, AWARD, SETTLE_DAILY_CAP, titleFor },
+    _internals: { stepFor, levelFor, computeDailyXp, AWARD, SETTLE_DAILY_CAP, RUN_DAILY_CAP, DEEP_RUN_RATIO, titleFor },
   };
 })();

@@ -155,6 +155,7 @@ Strip.register({
       if(nr===goal[0] && nc===goal[1]){
         won = true;
         Feedback.buzz("win");
+        api.gameover("win", moves);
         if(moves < best){
           best = moves;
           bests[SIZES[sizeIdx].key] = moves;

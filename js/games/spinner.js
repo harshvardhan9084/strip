@@ -83,6 +83,7 @@ Strip.register({
       if(Math.abs(velocity) > 2) Feedback.haptic("light");
       // the release is when a peak becomes a record
       const record = Math.round(peakRpm);
+      if(record > 0) api.gameover("over", record);
       if(record > topRpm){
         topRpm = record;
         api.setHighscore(topRpm);

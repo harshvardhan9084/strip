@@ -38,7 +38,25 @@
             return newBest;
           })
         );
-      } // returns a Promise<number> (new best)
+      }, // returns a Promise<number> (new best)
+      // Round 23 — the depth-XP seam. A game calls api.gameover(outcome, score)
+      // when a RUN truly ends: "win" (reached the goal: board cleared, AI
+      // beaten, code cracked) or "over" (arcade death, time up, streak broken).
+      // The shell turns it into strip:gameover, which XP (run ladder: +8/+5/+2,
+      // 20/day cap) and Missions (runs/wins goals) both consume — one call,
+      // every meta layer sees the play. Scores are sanitized here so a NaN
+      // from a broken game can never poison the depth math.
+      gameover(outcome, score){
+        const s = Number(score);
+        window.dispatchEvent(new CustomEvent("strip:gameover", {
+          detail: {
+            id,
+            outcome: outcome === "win" ? "win" : "over",
+            score: Number.isFinite(s) ? s : 0,
+            ts: Date.now()
+          }
+        }));
+      }
     };
   }
 

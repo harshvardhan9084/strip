@@ -1364,6 +1364,58 @@ button:disabled{ opacity:.45; cursor:not-allowed; }
   transition:width .6s cubic-bezier(.22,1,.36,1);
 }
 
+/* ---------- Trophy panel: Daily Missions (Round 23) ---------- */
+.missions-block{
+  flex:none;
+  border:1px solid rgba(var(--glow-rgb),.35); border-radius:16px;
+  background:linear-gradient(135deg, rgba(var(--glow-rgb),.06), rgba(0,0,0,.16) 70%);
+  padding:13px 14px 11px;
+  box-shadow:0 0 14px rgba(var(--glow-rgb),.08);
+}
+.missions-head{
+  font-family:var(--font-display); font-size:8px;
+  letter-spacing:.22em; color:var(--amber);
+  margin-bottom:11px;
+}
+.mission-row{ margin-bottom:11px; }
+.mission-row:last-child{ margin-bottom:2px; }
+.mission-row.done .mission-name{ color:var(--ink-dim); text-decoration:line-through; text-decoration-color:rgba(var(--glow-rgb),.5); }
+.mission-line{
+  display:flex; justify-content:space-between; align-items:baseline;
+  margin-bottom:5px; gap:8px;
+}
+.mission-name{
+  font-family:var(--font-display); font-size:8px;
+  color:var(--ink); letter-spacing:.08em;
+}
+.mission-num{
+  font-size:10px; color:var(--amber); white-space:nowrap;
+  font-family:var(--font-display);
+}
+.mission-row.done .mission-num{ color:var(--ink-dim); }
+.mission-track{
+  height:5px; border-radius:3px;
+  background:rgba(255,255,255,.08);
+  overflow:hidden;
+}
+.mission-fill{
+  height:100%; border-radius:3px;
+  background:linear-gradient(to right, var(--amber-dim), var(--amber));
+  box-shadow:0 0 8px rgba(var(--glow-rgb),.45);
+  transition:width .6s cubic-bezier(.22,1,.36,1);
+}
+html.reduce-motion .mission-fill{ transition:none !important; }
+
+/* Round 23: mission-complete pulse on the LV pill — the reward reaches the
+   eye no matter how deep in a card you are */
+#xp-pill.mission-flash{ animation:pill-flash .9s cubic-bezier(.22,1,.36,1) 1; }
+@keyframes pill-flash{
+  0%{ box-shadow:0 0 0 0 rgba(var(--glow-rgb),.55); transform:scale(1); }
+  35%{ box-shadow:0 0 22px 6px rgba(var(--glow-rgb),.55); transform:scale(1.12); }
+  100%{ box-shadow:0 0 0 0 rgba(var(--glow-rgb),0); transform:scale(1); }
+}
+html.reduce-motion #xp-pill.mission-flash{ animation:none; }
+
 /* ---------- On-screen navigation arrows ---------- */
 #nav-arrows{
   position:fixed; right:6px; top:50%; transform:translateY(-50%);

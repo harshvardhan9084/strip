@@ -190,6 +190,7 @@ Strip.register({
         solved = true;
         Feedback.buzz("win");
         const used = row + 1;
+        api.gameover("win", used);
         if(used < best){
           best = used;
           bests[S.key] = used;

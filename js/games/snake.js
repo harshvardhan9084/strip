@@ -76,6 +76,7 @@ Strip.register({
       draw();
       startBtn.disabled = false;
       startBtn.textContent = "You filled the board! Play again";
+      api.gameover("win", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#sn-best").textContent = best;
@@ -132,6 +133,7 @@ Strip.register({
       clearInterval(tickId);
       startBtn.disabled = false;
       startBtn.textContent = "Play again";
+      api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#sn-best").textContent = best;

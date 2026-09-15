@@ -114,6 +114,7 @@ Strip.register({
         solvedCount++;
         runStreak++;
         q("#us-score").textContent = solvedCount;
+        api.gameover("over", runStreak);
         api.setHighscore(runStreak).then(v => {
           best = v;
           q("#us-best").textContent = best;

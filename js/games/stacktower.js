@@ -139,6 +139,7 @@ Strip.register({
     function gameOver(){
       running = false;
       hint.textContent = "Tap to try again";
+api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#st-best").textContent = best;

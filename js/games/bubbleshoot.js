@@ -241,6 +241,7 @@ Strip.register({
         over = true;
         overMessage = "You cleared the board! Tap New game";
         Feedback.buzz("win");
+        api.gameover("win", score);
         return;
       }
       saveBest();
@@ -252,6 +253,7 @@ Strip.register({
         over = true;
         overMessage = "Game Over — tap New game";
         Feedback.buzz("lose");
+        api.gameover("over", score);
       }
     }
 

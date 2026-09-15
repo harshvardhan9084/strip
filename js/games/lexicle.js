@@ -260,6 +260,7 @@ Strip.register({
       if(guess === answer){
         over = true;
         played++;
+        api.gameover("win", TRIES - row);
         if(mode === "daily"){
           // once-per-day streak: solved today already counts once; consecutive
           // days chain, a skipped day resets (the standard daily-word rule)
@@ -284,6 +285,7 @@ Strip.register({
       if(row >= TRIES){
         over = true;
         played++;
+        api.gameover("over", 0);
         if(mode === "free") streak = 0; // a missed daily simply doesn't extend the daily streak
         api.save({ streak, played, daily });
         Feedback.buzz("lose");

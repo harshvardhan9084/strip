@@ -101,6 +101,7 @@ Strip.register({
       startBtn.textContent = "Try again";
       startBtn.disabled = false;
       if(finalRound > 0){
+        api.gameover("over", finalRound);
         api.setHighscore(finalRound).then(v => {
           best = v;
           q("#sm-best").textContent = best;

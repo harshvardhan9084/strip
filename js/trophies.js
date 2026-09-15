@@ -580,6 +580,10 @@ window.Trophies = (function(){
     // Round 14: the Daily Ritual block (streak + last-7-days + share) leads
     // the panel — it is the one trophy-adjacent thing players use daily.
     renderDailyStats();
+    // Round 23: TODAY'S MISSIONS sits between the daily ritual and the
+    // near-misses — the daily contract is exactly as alive as the streak,
+    // and it live-updates while the panel is open.
+    if(window.Missions && Missions.renderInto) Missions.renderInto(gridEl);
     renderClosest();
     for(const def of DEFS){
       const ts = state.unlocked[def.id];

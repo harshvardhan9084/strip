@@ -106,6 +106,7 @@ Strip.register({
     function endGame(){
       running = false;
       clearTimeout(timer);
+api.gameover("over", score);
       api.setHighscore(score).then(newBest => {
         best = newBest;
         q("#cs-best").textContent = best;

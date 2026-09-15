@@ -468,6 +468,7 @@ Strip.register({
       if(![...crates].every(k => goals.has(k))) return;
       done = true;
       Feedback.buzz("win");
+      api.gameover("win", moves);
       const wasDaily = dailyActive;
       if(bests[levelIdx] == null || moves < bests[levelIdx]){
         bests[levelIdx] = moves;

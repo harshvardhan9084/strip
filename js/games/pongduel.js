@@ -110,8 +110,9 @@ Strip.register({
       if(winner === 1){
         streak++;
         best = Math.max(best, streak);
+        api.gameover("win", streak);
         api.setHighscore(best); // the all-time streak survives every defeat
-      } else { streak = 0; }
+      } else { api.gameover("over", 0); streak = 0; }
       api.save({ streak, diff: diffIdx });
       statUpdate();
     }

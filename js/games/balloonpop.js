@@ -123,6 +123,7 @@ Strip.register({
       activeEls = [];
       startBtn.textContent = "Play again";
       startBtn.disabled = false;
+api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#bp-best").textContent = best;

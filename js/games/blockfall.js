@@ -311,6 +311,7 @@ Strip.register({
       startBtn.disabled = false;
       startBtn.textContent = "Piled up — retry";
       statUpdate(); // final +2s from a hard drop must show before saving
+api.gameover("over", score);
       api.setHighscore(score).then(v => { best = v; statUpdate(); });
       draw();
     }

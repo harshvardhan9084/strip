@@ -95,9 +95,19 @@ Strip.register({
     function updateComboChip(){
       const chip = q("#bm-combo");
       if(!chip) return;
-      const hot = combo >= 2 && (Date.now() - lastMergeAt) <= COMBO_MS;
+      const left = COMBO_MS - (Date.now() - lastMergeAt);
+      const hot = combo >= 2 && left > 0;
       chip.style.display = hot ? "block" : "none";
-      if(hot) chip.textContent = "COMBO ×" + combo;
+      if(!hot) return;
+      // Round 23: the chip now shows HOW LONG the chain stays alive — a
+      // draining bar under the multiplier turns "did I make it?" into a
+      // readable countdown, so chaining is a skill, not a guess.
+      const pct = Math.max(0, Math.min(100, Math.round((left / COMBO_MS) * 100)));
+      chip.innerHTML = 'COMBO ×' + combo +
+        '<span style="display:block; height:3px; margin-top:3px; border-radius:2px;' +
+        'background:rgba(255,255,255,.14); overflow:hidden;">' +
+        '<span style="display:block; height:100%; width:' + pct + '%;' +
+        'background:#6FCF97; border-radius:2px; transition:width .12s linear;"></span></span>';
     }
     // one low-rate heartbeat just for the combo chip's expiry
     const comboTick = setInterval(updateComboChip, 400);
@@ -386,6 +396,7 @@ Strip.register({
     function showJam(){
       if(jamShown) return;
       jamShown = true;
+      api.gameover("over", score);
       const banner = document.createElement("div");
       banner.style.cssText = "position:absolute; inset:0; background:rgba(10,10,16,.85); border-radius:12px; z-index:15; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center;";
       banner.innerHTML =

@@ -363,9 +363,11 @@ Strip.register({
         state.streak = (state.streak || 0) + 1;
         infoLine.textContent = "Direct hit — duel won!";
         Feedback.buzz("win");
+        api.gameover("win", state.streak);
         api.setHighscore(state.streak); // the meta finally sees the duel record
       } else {
         state.losses++;
+        api.gameover("over", 0);
         state.streak = 0;
         infoLine.textContent = "You got hit — AI wins the duel.";
         Feedback.buzz("lose");

@@ -332,6 +332,7 @@ Strip.register({
         for(let i = 0; i < W * H; i++) if(mines[i]) flagged[i] = true;
         // wins ladder + streak — the record the ladder never kept
         wins++; streak++;
+        api.gameover("win", elapsed);
         const prevBest = bestFor();
         const isBest = elapsed < prevBest;
         if(isBest){

@@ -175,6 +175,7 @@ Strip.register({
     function endRun(){
       mode = "over";
       try{ Feedback.buzz("lose"); }catch(e){}
+      api.gameover("over", score);
       shakeUntil = performance.now() + 220;
       if(score > best){
         best = score;
@@ -244,9 +245,15 @@ Strip.register({
       // base ring
       ctx.beginPath();
       ctx.arc(CX, CY, R, 0, Math.PI * 2);
-      ctx.lineWidth = 10;
+      // Round 23: in idle the ring itself breathes (width + glow), so the
+      // card visibly invites the first tap instead of waiting inertly
+      const idlePulse = mode === "idle" ? Math.sin(now / 350) : 0;
+      ctx.lineWidth = mode === "idle" ? 10 + idlePulse * 2.5 : 10;
       ctx.strokeStyle = mode === "idle" ? COLORS.ring : COLORS.ringLit;
+      ctx.shadowBlur = mode === "idle" ? 8 + idlePulse * 10 : 0;
+      ctx.shadowColor = COLORS.ring;
       ctx.stroke();
+      ctx.shadowBlur = 0;
 
       // target arc
       if(mode !== "idle"){

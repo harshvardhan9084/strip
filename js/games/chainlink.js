@@ -148,6 +148,7 @@ Strip.register({
         const title = n >= 12 ? "EPIC" : n >= 8 ? "GREAT" : n >= 5 ? "GOOD" : null;
         if(title) showChainTitle(title, n);
         if(n >= 8) Feedback.buzz("win");
+        api.gameover("over", score);
         if(score > best){
           best = score;
           api.setHighscore(best);

@@ -112,6 +112,17 @@ only the shell changes.
   the phosphor *color*, the background picks the *texture* the console sits on. Every
   texture is tinted live from the active skin's own glow channels, so all five pair
   with all four skins with zero extra wiring.
+- **Run XP — depth, not browsing** (Round 23): finishing a run now pays on its own
+  ladder — **+8 for a win** (board cleared, AI beaten, code cracked), **+5 for a DEEP
+  RUN** (a loss that still reached 60% of your own best), **+2 for any finished run**,
+  capped at 20 runs a day so it can't be farmed. Games fire one `api.gameover()`
+  call at their natural run ends; the shell does the rest.
+- **Daily Missions** (Round 23): three small goals a day — finish runs, win games,
+  set bests, play the pick, earn XP — picked deterministically from the date, so
+  every device sees the same three. They complete themselves and pay **+30 XP each,
+  +40 sweep bonus** the moment they're done (no claim button). They live in the
+  Trophy Case, the LV pill carries the count, and the first settle of each day
+  announces them once.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over
@@ -136,6 +147,8 @@ I've already built the boring parts so you don't have to:
 - the Trophy Case: shell-level achievements for exploring the deck, plus the Player
   Card (level ring, title, lifetime counters) and Closest-to-Unlock progress bars
 - the Player XP/Level engine (`js/xp.js`): one award table, one ceremony, zero per-game wiring
+- Daily Missions (`js/missions.js`, Round 23): the same deal — call `api.gameover(outcome, score)`
+  at your run ends and your cartridge feeds the run ladder AND the daily mission goals automatically
 - export/import of the entire save (`js/storage.js`) — progress ownership
 - the Daily Pick: a deterministic game-of-the-day with streaks (`js/daily.js`)
 - three CRT skins — Amber, Green, Violet — in Settings, down to the PWA titlebar color

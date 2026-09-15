@@ -179,6 +179,7 @@ Strip.register({
       solved = true;
       Feedback.buzz("win");
       const seconds = Math.round((Date.now() - startTime)/1000);
+      api.gameover("win", seconds);
       if(seconds < best){
         best = seconds;
         bests[S.key] = seconds;

@@ -115,6 +115,7 @@ Strip.register({
       feedback.style.color = "var(--danger)";
       Feedback.buzz("error");
       if(streak > 0){
+        api.gameover("over", streak);
         api.setHighscore(streak).then(v => {
           best = v;
           q("#rt-best").textContent = best;

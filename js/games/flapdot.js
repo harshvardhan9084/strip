@@ -115,6 +115,7 @@ Strip.register({
       running = false;
       Feedback.buzz("fail");
       hint.textContent = "Tap to try again";
+api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#fd-best").textContent = best;

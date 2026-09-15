@@ -137,6 +137,7 @@ Strip.register({
           updateStat();
           if(matched === S.pairs){
             Feedback.buzz("win");
+            api.gameover("win", moves);
             if(moves < best){
               best = moves;
               bests[S.key] = moves;
