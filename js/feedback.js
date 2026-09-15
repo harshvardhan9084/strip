@@ -51,6 +51,18 @@ window.Feedback = (function(){
   function hapticsEnabled(){
     try{ return !!Settings.get().haptics; }catch(e){ return true; }
   }
+  // Round 24 — UI sounds: the console's OWN voice (menus, pickers, nav
+  // arrows) is a separate dial from game audio. Games keep calling tone();
+  // shell code calls uiTone() so players can silence the chrome without
+  // muting their games. Default on, and "!== false" so legacy saves that
+  // predate the key read as on rather than silently muted.
+  function uiSoundEnabled(){
+    try{ return Settings.get().uiSounds !== false; }catch(e){ return true; }
+  }
+  function uiTone(nameOrFreq, dur){
+    if(!uiSoundEnabled()) return;
+    tone(nameOrFreq, dur);
+  }
 
   // Round 20 — master volume: the shared AudioContext gains a single
   // GainNode every note routes through. Recreating it per note would
@@ -194,5 +206,5 @@ window.Feedback = (function(){
     }
   }catch(e){}
 
-  return { tone, haptic, buzz, setVolume, getVolume, setHapticStrength, getHapticStrength };
+  return { tone, uiTone, haptic, buzz, setVolume, getVolume, setHapticStrength, getHapticStrength };
 })();

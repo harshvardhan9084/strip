@@ -164,7 +164,16 @@ window.__qa22 = (async () => {
   } catch (e) { ok('rhythm tap pins', false, e.message); }
 
   // ---- A6. background texture axis ----
+  // Round 24: the texture axis was RETIRED by user directive — the setting
+  // players actually meant by "background" was the app color scheme, so the
+  // axis became Settings → Appearance → Color scheme (dark/oled/light) and
+  // bgStyle no longer exists (settings migration v3 strips it). These pins
+  // are reported as retired-by-design on v3+ saves so a rerun here reads
+  // honestly instead of crying wolf; on a pre-v3 save they still verify.
   try {
+    if ((Settings.get().settingsVersion || 0) >= 3) {
+      ok('bg axis retired (Round 24 color scheme)', true, 'axis removed by design — see r24 suite A1-A4');
+    } else {
     for (const bg of ['grid', 'dots', 'horizon', 'scan']) {
       Settings.set({ bgStyle: bg });
       await wait(60);
@@ -178,6 +187,7 @@ window.__qa22 = (async () => {
     const layer = getComputedStyle(document.body, '::before').display;
     ok('bg solid clears layer', attr === 'solid' && layer === 'none', attr + '/' + layer);
     ok('bg mirrored for pre-paint', localStorage.getItem('strip-bg') === 'solid', localStorage.getItem('strip-bg'));
+    }
   } catch (e) { ok('background axis pins', false, e.message); }
 
   // ---- A7. drawer focus contract ----

@@ -65,6 +65,7 @@ Strip.register({
     requestAnimationFrame(fit);
 
     function drop(){
+      api.tend(); // Round 24: every drop is a tend (missions feed on it)
       balls.push({
         x: cw/2 + (Math.random()-0.5)*10,
         y: 10,

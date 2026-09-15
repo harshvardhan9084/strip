@@ -254,7 +254,7 @@ window.Trophies = (function(){
       "<span>Share today's pick</span>";
     shareBtn.setAttribute("aria-label", "Share today's pick: " + st.title);
     shareBtn.addEventListener("click", () => {
-      try{ Feedback.tone("select"); Feedback.haptic("light"); }catch(e){}
+      try{ Feedback.uiTone("select"); Feedback.haptic("light"); }catch(e){}
       Daily.share();
     });
     wrap.appendChild(shareBtn);
@@ -503,6 +503,12 @@ window.Trophies = (function(){
     stats.appendChild(stat(state.visitsTotal, "VISITS"));
     stats.appendChild(stat(unlocked + "/" + DEFS.length, "TROPHIES"));
     stats.appendChild(stat(dailyBest, "STREAK BEST"));
+    // Round 24 — RUN DEPTH: how close the last 40 finished runs landed to
+    // your own bests. Honest about having nothing to say yet: no samples,
+    // no number (an em dash), because a fake 0% is a lie either direction.
+    let depth = null;
+    try{ if(window.XP && XP.getState) depth = XP.getState().depthAvg; }catch(e){}
+    stats.appendChild(stat(depth != null ? depth + "%" : "—", "RUN DEPTH"));
     wrap.appendChild(stats);
 
     gridEl.appendChild(wrap);
@@ -661,7 +667,7 @@ window.Trophies = (function(){
     requestAnimationFrame(() => requestAnimationFrame(() => {
       overlay.querySelector("#trophy-close").focus({ preventScroll: true });
     }));
-    try{ Feedback.tone("select"); }catch(e){}
+    try{ Feedback.uiTone("select"); }catch(e){}
   }
   function close(){
     overlay.classList.remove("open");

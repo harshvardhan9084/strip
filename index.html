@@ -5,28 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#070B12">
 <script>
-/* CRT skin pre-paint (Round 12, Round 21): apply the saved theme before first
-   paint so non-default users never see a flash of the wrong console. Settings
-   hydrates from IndexedDB asynchronously; this reads the synchronous
-   localStorage mirror that js/settings.js keeps in step. Round 21: ICE joins
-   the skin family as the DEFAULT console color (one-time migration in
-   settings.js moves legacy default-amber players over; an explicit AMBER
-   pick is stored with settingsVersion 2 and always wins). Full failure-safe:
-   no localStorage, no JSON, or unknown value -> default ICE, nothing thrown. */
+/* Pre-paint (Round 12/21/24): apply the saved skin AND color scheme before
+   first paint so non-default users never see a flash of the wrong console.
+   Settings hydrates from IndexedDB asynchronously; this reads the synchronous
+   localStorage mirrors that js/settings.js keeps in step. Round 24: the
+   color-scheme axis (data-mode) joins the family, and the browser chrome
+   (theme-color meta) follows the SCHEME — dark keeps the per-skin chassis
+   color, light/oled have their own. Full failure-safe: no localStorage, no
+   JSON, or unknown value -> defaults, nothing thrown. */
 try{
   (function(){
     var t = localStorage.getItem("strip-theme") || "ice";
     if(t === "green" || t === "violet" || t === "ice" || t === "amber"){
       document.documentElement.setAttribute("data-theme", t);
-      var m = document.querySelector('meta[name="theme-color"]');
-      var bg = { green: "#090F0B", violet: "#0E0A14", ice: "#070B12", amber: "#0B0B0F" }[t];
-      if(m && bg) m.setAttribute("content", bg);
     }
-    // Round 22: the background texture axis gets the same pre-paint mirror
-    // ("solid" needs no attribute — the CSS engine only keys on textures).
-    var b = localStorage.getItem("strip-bg");
-    if(b === "grid" || b === "dots" || b === "horizon" || b === "scan"){
-      document.documentElement.setAttribute("data-bg", b);
+    var m = localStorage.getItem("strip-mode");
+    if(m === "light" || m === "oled"){
+      document.documentElement.setAttribute("data-mode", m);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      var darkBg = { green: "#090F0B", violet: "#0E0A14", ice: "#070B12", amber: "#0B0B0F" }[t];
+      var chrome = m === "light" ? "#F1EEE7" : (m === "oled" ? "#000000" : darkBg);
+      if(meta && chrome) meta.setAttribute("content", chrome);
     }
   })();
 }catch(e){}
@@ -164,6 +163,33 @@ try{
         <input type="checkbox" class="setting-toggle" data-key="navArrows">
       </label>
 
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Left-handed arrows</div>
+          <div class="setting-desc">Flip the jump buttons to the left edge — for left thumbs</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="leftHanded">
+      </label>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Keep screen awake</div>
+          <div class="setting-desc">While Strip is open, ask the browser not to dim or sleep during play</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="wakeLock" id="wakelock-toggle">
+      </label>
+      <div class="setting-note" id="wakelock-note" hidden>
+        Wake Lock isn't available in this browser, so the screen can still dim. Everything else keeps working.
+      </div>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Interface sounds</div>
+          <div class="setting-desc">Clicks and chimes from the console itself — menus, arrows, pickers. Game audio is the Sound switch above.</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="uiSounds">
+      </label>
+
       <div class="setting-row setting-row-col">
         <div class="setting-text">
           <div class="setting-label">Haptic strength</div>
@@ -178,11 +204,36 @@ try{
 
       <div class="settings-divider"></div>
 
+      <!-- Round 24 — APPEARANCE: two independent dials. COLOR SCHEME picks
+           what the console chassis is made of (the axis the retired texture
+           setting grew into); CRT SKIN picks the phosphor tint on top. -->
+      <div class="settings-section-label">APPEARANCE</div>
+
+      <div class="theme-row">
+        <div class="setting-text">
+          <div class="setting-label">Color scheme</div>
+          <div class="setting-desc">The console's chassis: classic dark glow, true-black OLED, or a paper daylight terminal. Every skin pairs with every scheme.</div>
+        </div>
+        <div class="theme-options" role="group" aria-label="Color scheme">
+          <button type="button" class="mode-seg-btn" data-mode-value="dark" aria-pressed="true">
+            <span class="theme-swatch dark" aria-hidden="true"></span>DARK
+          </button>
+          <button type="button" class="mode-seg-btn" data-mode-value="oled" aria-pressed="false">
+            <span class="theme-swatch oled" aria-hidden="true"></span>OLED
+          </button>
+          <button type="button" class="mode-seg-btn" data-mode-value="light" aria-pressed="false">
+            <span class="theme-swatch light" aria-hidden="true"></span>LIGHT
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px"></div>
+
       <!-- CRT skin picker (Round 11) -->
       <div class="theme-row">
         <div class="setting-text">
           <div class="setting-label">CRT skin</div>
-          <div class="setting-desc">Phosphor tint for the whole console. Pure palette swap — nothing else changes.</div>
+          <div class="setting-desc">Phosphor tint for the whole console — pairs with any color scheme. Pure palette swap, nothing else changes.</div>
         </div>
         <div class="theme-options" role="group" aria-label="CRT skin">
           <!-- Round 21: ICE is the new default console color — the deck's
@@ -202,26 +253,13 @@ try{
         </div>
       </div>
 
-      <div style="margin-top:12px"></div>
-
-      <!-- Round 22 — BACKGROUND: the texture axis. The skin above picks the
-           phosphor color; this picks what the console sits ON. Five static
-           textures, each tinted live by the active skin's own channels. -->
-      <div class="theme-row">
+      <label class="setting-row" style="margin-top:12px">
         <div class="setting-text">
-          <div class="setting-label">Background</div>
-          <div class="setting-desc">The texture behind the console — pairs with every skin.</div>
+          <div class="setting-label">CRT effects</div>
+          <div class="setting-desc">The scanline sheen on each cartridge and the boot flicker. Off leaves everything else — including motion — untouched.</div>
         </div>
-        <div class="theme-options bg-options" role="group" aria-label="Background style">
-          <button type="button" class="bg-seg-btn" data-bg-value="solid" aria-pressed="true">SOLID</button>
-          <button type="button" class="bg-seg-btn" data-bg-value="grid" aria-pressed="false">GRID</button>
-          <button type="button" class="bg-seg-btn" data-bg-value="dots" aria-pressed="false">DOTS</button>
-          <button type="button" class="bg-seg-btn" data-bg-value="horizon" aria-pressed="false">HORIZON</button>
-          <button type="button" class="bg-seg-btn" data-bg-value="scan" aria-pressed="false">SCAN</button>
-        </div>
-      </div>
-
-      <div style="margin-top:12px"></div>
+        <input type="checkbox" class="setting-toggle" data-key="crtEffects">
+      </label>
       <button id="install-setting-btn" class="btn" style="width:100%;">Install to play offline</button>
       <div id="install-note" class="setting-desc" style="text-align:center; margin-top:6px; display:none;">If your browser doesn't show a prompt, use the browser menu (⋮) → "Install app" or "Add to Home screen".</div>
 

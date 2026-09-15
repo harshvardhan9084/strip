@@ -44,7 +44,25 @@ window.Missions = (function(){
     { key:"pick",    need:1,  label:() => "PLAY TODAY'S PICK",           hint:"The ◎ DAILY cartridge counts" },
     { key:"visits",  need:8,  label:n => "VISIT " + n + " CARTRIDGES",   hint:"Scroll the deck and settle on cards" },
     { key:"xptoday", need:40, label:n => "EARN " + n + " XP",            hint:"Everything you do today feeds this" },
+    // Round 24 — the idle toys never emit a run end, so on a toys-only day
+    // some past pools could feel unreachable. TENDING is their run: water a
+    // plot, feed the fish, trade, drop a ball, play a hand. Unique ids only.
+    { key:"tend",    need:3,  label:n => "TEND " + n + " IDLE CARTRIDGES", hint:"Water, feed, trade, drop or deal — any idle toy counts" },
   ];
+
+  // Round 24 — a light difficulty ramp: veterans get stretched needs so the
+  // daily contract keeps its bite. Tier is snapshotted AT DAY ROLL (stable
+  // for the whole day — mid-day level-ups never move today's goalposts), and
+  // the templates themselves stay date-deterministic: same three missions
+  // for every device, only the NUMBERS scale with the player's own level.
+  function tierMult(){
+    let lv = 1;
+    try{ if(window.XP && XP.getState) lv = XP.getState().level || 1; }catch(e){}
+    return lv >= 10 ? 2 : (lv >= 5 ? 1.5 : 1);
+  }
+  function scaledNeed(def){
+    return def.key === "pick" ? 1 : Math.max(1, Math.round(def.need * tierMult()));
+  }
 
   // ---------- deterministic daily selection ----------
   // FNV-1a over the day key, then an LCG shuffle — the same three missions
@@ -71,7 +89,7 @@ window.Missions = (function(){
   }
 
   // ---------- state ----------
-  let state = { day:null, missions:[], swept:false, announcedDay:null };
+  let state = { day:null, missions:[], swept:false, announcedDay:null, tendedIds:[] };
   let hydrated = false;
   let readyResolve;
   const readyPromise = new Promise(res => { readyResolve = res; });
@@ -87,12 +105,14 @@ window.Missions = (function(){
     state.day = dk;
     state.swept = false;
     state.announcedDay = null;
+    state.tendedIds = [];
     state.missions = seededPick(dk).map(i => ({
       key: POOL[i].key,
-      need: POOL[i].need,
+      need: scaledNeed(POOL[i]),
       progress: 0,
       done: false,
     }));
+    syncBadge();
     return true;
   }
 
@@ -130,7 +150,34 @@ window.Missions = (function(){
     }
     persist();
     rerenderIfAttached();
+    syncBadge();
     checkSweep();
+  }
+
+  // ---------- Round 24 — HUD badge ----------
+  // The daily contract finally has a persistent, one-glance HUD presence —
+  // WITHOUT a new HUD slot: the trophy button (which already hosts the
+  // missions block) wears a count bubble. Remaining count while work is
+  // left; a quiet ✓ for the rest of the day once swept. The bubble sits on
+  // the opposite corner from the unseen-trophy pip, so both can coexist.
+  function syncBadge(){
+    try{
+      const btn = document.getElementById("trophy-btn");
+      if(!btn) return;
+      let b = document.getElementById("trophy-missions");
+      if(!state.missions.length){ if(b) b.classList.remove("on"); return; }
+      if(!b){
+        b = document.createElement("span");
+        b.id = "trophy-missions";
+        b.setAttribute("aria-hidden", "true");
+        btn.appendChild(b);
+      }
+      const left = state.missions.filter(m => !m.done).length;
+      const swept = left === 0;
+      b.textContent = swept ? "✓" : String(left);
+      b.classList.toggle("swept", swept);
+      b.classList.add("on");
+    }catch(e){}
   }
 
   function checkSweep(){
@@ -141,6 +188,7 @@ window.Missions = (function(){
       try{ HudToast.show("ALL MISSIONS CLEAR · +" + (window.XP ? XP._internals.AWARD.sweep : 40) + " XP SWEEP BONUS", 2400); }catch(e){}
       persist();
       rerenderIfAttached();
+      syncBadge();
     }
   }
 
@@ -166,6 +214,17 @@ window.Missions = (function(){
     announceIfNewDay();
   }
   function onDailyPlayed(){ bump("pick", 1); }
+  // Round 24 — tend events. Idle toys call api.tend() at their natural
+  // caretaking moments; only UNIQUE cartridges advance the goal per day, so
+  // watering one plot forty times farms nothing (same honesty rule as the
+  // visits dedupe).
+  function onTend(e){
+    const id = e.detail && e.detail.id;
+    if(!id) return;
+    if(state.tendedIds.indexOf(id) !== -1) return;
+    state.tendedIds.push(id);
+    bump("tend", 1);
+  }
 
   // ---------- daily discovery ----------
   // The missions live in the trophy case; a player who never opens it would
@@ -247,6 +306,7 @@ window.Missions = (function(){
     window.addEventListener("strip:xp-awarded", onXpAwarded, { passive:true });
     window.addEventListener("strip:card-centered", onCardCentered, { passive:true });
     window.addEventListener("strip:daily-played", onDailyPlayed, { passive:true });
+    window.addEventListener("strip:tend", onTend, { passive:true });
     window.addEventListener("strip:daily-rollover", () => { if(rollDay(true)){ persist(); rerenderIfAttached(); } }, { passive:true });
 
     let res = null;
@@ -257,6 +317,7 @@ window.Missions = (function(){
         // kept just long enough for rollDay to see the mismatch and reroll
         state = Object.assign(state, res.data);
         if(!Array.isArray(state.missions)) state.missions = [];
+        if(!Array.isArray(state.tendedIds)) state.tendedIds = [];
         // guard against hand-edited/partial saves: every mission must map to
         // the pool, or the day rerolls (same hostile-save policy as Garden R22)
         const valid = state.missions.length === 3 && state.missions.every(m => m && defFor(m.key) && typeof m.need === "number");
@@ -265,7 +326,24 @@ window.Missions = (function(){
       hydrated = true;
     }
     rollDay();
+    syncBadge();
     readyResolve();
+    // Round 24 — boot-race rescale: if the day rolled before XP finished
+    // hydrating its level from IndexedDB, the tier snapshot is stale. Once XP
+    // is ready, re-scale needs ONCE to the true level (progress clamps, never
+    // resets). Mid-day level-ups never re-open this window.
+    try{
+      if(window.XP && XP.whenReady) XP.whenReady().then(() => {
+        let changed = false;
+        state.missions.forEach(m => {
+          const def = defFor(m.key);
+          if(!def) return;
+          const want = scaledNeed(def);
+          if(want !== m.need){ m.need = want; m.progress = Math.min(m.progress, m.need); changed = true; }
+        });
+        if(changed){ persist(); rerenderIfAttached(); }
+      }).catch(() => {});
+    }catch(e){}
   }
   if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else init();
@@ -274,6 +352,6 @@ window.Missions = (function(){
     whenReady: () => readyPromise,
     renderInto,                                   // Trophy Case hook
     summary: () => ({ left: state.missions.filter(m => !m.done).length, swept: !!state.swept }),
-    _internals: { POOL, seededPick, dayKey, getState: () => state, bumpForTest: bump },
+    _internals: { POOL, seededPick, dayKey, getState: () => state, bumpForTest: bump, scaledNeed, tierMult, syncBadgeForTest: syncBadge },
   };
 })();

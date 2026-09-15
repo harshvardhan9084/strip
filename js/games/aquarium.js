@@ -279,6 +279,7 @@ Strip.register({
       if(state.coins < 15) return;
       state.coins -= 15;
       state.food = Math.min(10, state.food + 10);
+      api.tend(); // Round 24: feeding is the tank's caretaking beat
       Feedback.tone("place"); Feedback.haptic("light");
       persist(); renderTank();
     });

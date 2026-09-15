@@ -241,6 +241,7 @@ Strip.register({
         state.gold -= n * price;
         state.stock[key] += n;
         Feedback.tone("swap"); Feedback.haptic("light");
+        api.tend(); // Round 24: trading is the post's caretaking beat
         addFloat(key, "-" + fmt(n * price) + "g", "var(--ink-dim)");
       } else {
         n = tradeSize === "max" ? stock : Math.min(tradeSize, stock);
@@ -250,6 +251,7 @@ Strip.register({
         state.gold += proceeds;
         state.stock[key] -= n;
         Feedback.tone("select"); Feedback.haptic("light");
+        api.tend(); // Round 24: trading is the post's caretaking beat
         addFloat(key, "+" + fmt(proceeds) + "g", margin > 0 ? "#6FCF97" : "var(--ink-dim)");
       }
       checkMilestones();

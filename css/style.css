@@ -22,6 +22,16 @@
   --glow-rgb:    255,179,71;   /* primary phosphor (was --amber) */
   --accent2-rgb: 139,127,232;  /* secondary accent (was --purple) */
   --bg-rgb:      11,11,15;     /* page background */
+  /* Round 24 — mode-aware chassis channels. The color scheme (DARK/LIGHT/
+     OLED) re-derives these below, so HUD chips, scanline texture, volume
+     track and the cartridge drop shadow stay deliberate per scheme instead
+     of being inversion hacks. Games keep their own palettes on purpose:
+     a light chassis is the CONSOLE going light — the screens inside the
+     cartridges keep their phosphor look, like a pale handheld shell. */
+  --chip-bg:     rgba(0,0,0,.35);   /* HUD buttons/pills over the page bg */
+  --scan-rgb:    255,255,255;       /* scanline texture lines */
+  --track-rgb:   255,255,255;       /* volume slider unfilled track */
+  --cart-shadow: 0 20px 60px rgba(0,0,0,.45);
 }
 
 /* ---------- CRT skin engine (Round 11) ----------
@@ -74,6 +84,72 @@ html[data-theme="ice"]{
   --bg-rgb:      7,11,18;
 }
 
+/* ---------- Round 24 — COLOR SCHEME engine (the second visual axis) ----------
+   The skin (data-theme) picks the PHOSPHOR; the scheme (data-mode) picks the
+   CHASSIS the whole console is built on: DARK (the classic in-the-dark glow),
+   OLED (true-black, battery-friendly, glows pop hardest), and LIGHT (a paper
+   daylight terminal). Mode blocks come AFTER the skin blocks so the chassis
+   always wins, and each skin re-tunes its phosphor for LIGHT — the neon
+   values that glow on black are illegible on paper, so every skin ships a
+   daylight-grade accent set. Layout never changes: same contrast discipline
+   as the skin engine, no game can break.
+   Mode composition is validated in js/settings.js — unknown values fall
+   back to DARK there, so unknown data-mode never reaches this engine. */
+html[data-mode="oled"]{
+  --bg:        #000000;
+  --panel:     #0B0B0E;
+  --panel-2:   #141419;
+  --line:      #26262E;
+  --bg-rgb:      0,0,0;
+  --chip-bg:     rgba(0,0,0,.5);
+}
+html[data-mode="light"]{
+  --bg:        #F1EEE7;
+  --panel:     #FAF8F3;
+  --panel-2:   #E9E4D9;
+  --ink:       #2A2620;
+  --ink-dim:   #6E6759;
+  --line:      #D9D2C4;
+  --bg-rgb:      241,238,231;
+  --chip-bg:     rgba(255,255,255,.66);
+  --scan-rgb:    42,36,26;
+  --track-rgb:   30,26,18;
+  --cart-shadow: 0 18px 44px rgba(72,60,36,.22);
+}
+/* daylight phosphors — legible accents on paper, per skin */
+html[data-mode="light"][data-theme="ice"]{
+  --amber:     #0E7490;
+  --amber-dim: #58A8B8;
+  --purple:    #0F766E;
+  --purple-dim:#67A899;
+  --glow-rgb:    14,116,144;
+  --accent2-rgb: 15,118,110;
+}
+html[data-mode="light"][data-theme="amber"]{
+  --amber:     #B45309;
+  --amber-dim: #B99655;
+  --purple:    #6D5BD0;
+  --purple-dim:#9C93C9;
+  --glow-rgb:    180,83,9;
+  --accent2-rgb: 109,91,208;
+}
+html[data-mode="light"][data-theme="green"]{
+  --amber:     #15803D;
+  --amber-dim: #5BA871;
+  --purple:    #0F766E;
+  --purple-dim:#58A89E;
+  --glow-rgb:    21,128,61;
+  --accent2-rgb: 15,118,110;
+}
+html[data-mode="light"][data-theme="violet"]{
+  --amber:     #7C3AED;
+  --amber-dim: #A78BDB;
+  --purple:    #C2418A;
+  --purple-dim:#D98BB4;
+  --glow-rgb:    124,58,237;
+  --accent2-rgb: 194,65,138;
+}
+
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body{
   margin:0; padding:0; height:100%; overflow:hidden;
@@ -117,7 +193,7 @@ html,body{
 }
 #lock-btn, #settings-btn{
   width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
-  background:rgba(0,0,0,.35); color:var(--ink-dim); cursor:pointer;
+  background:var(--chip-bg); color:var(--ink-dim); cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   transition:border-color .15s ease, color .15s ease, background .15s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
 }
@@ -137,7 +213,7 @@ html,body{
 #install-btn:active{ transform:scale(.94); }
 #hud-index{
   font-family:var(--font-display); font-size:11px; color:var(--ink-dim);
-  background:rgba(0,0,0,.35); padding:6px 10px; border-radius:20px;
+  background:var(--chip-bg); padding:6px 10px; border-radius:20px;
   border:1px solid var(--line);
 }
 
@@ -215,7 +291,9 @@ html,body{
   background:var(--ink-dim);
   transition:transform .25s cubic-bezier(.34,1.56,.64,1), background .15s ease;
 }
-.setting-toggle:checked{ background:rgba(255,179,71,.15); border-color:var(--amber); }
+/* Round 24: was a hardcoded amber rgba — followed the skin engine everywhere
+   EXCEPT here; now the toggle follows the live phosphor like everything else */
+.setting-toggle:checked{ background:rgba(var(--glow-rgb),.15); border-color:var(--amber); }
 .setting-toggle:checked::after{ transform:translateX(18px); background:var(--amber); }
 
 .settings-divider{ height:1px; background:var(--line); margin:12px 0; }
@@ -261,7 +339,7 @@ html.scroll-locked #strip{
   border:1px solid var(--line);
   display:flex; flex-direction:column;
   overflow:hidden;
-  box-shadow:0 20px 60px rgba(0,0,0,.45);
+  box-shadow:var(--cart-shadow);
 }
 
 /* eject-tab notch */
@@ -280,7 +358,7 @@ html.scroll-locked #strip{
   content:"";
   position:absolute; inset:0; pointer-events:none; z-index:4;
   background:repeating-linear-gradient(
-    to bottom, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px,
+    to bottom, rgba(var(--scan-rgb),.025) 0px, rgba(var(--scan-rgb),.025) 1px,
     transparent 1px, transparent 3px
   );
   mix-blend-mode:overlay;
@@ -385,7 +463,7 @@ html.scroll-locked #strip{
 /* ---------- Cartridge drawer (Round 6) ---------- */
 #drawer-btn{
   width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
-  background:rgba(0,0,0,.35); color:var(--ink-dim); cursor:pointer;
+  background:var(--chip-bg); color:var(--ink-dim); cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   transition:border-color .15s ease, color .15s ease, background .15s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
 }
@@ -533,7 +611,7 @@ html.scroll-locked #strip{
 /* ---------- Keyboard focus visible everywhere interactive ---------- */
 .btn:focus-visible, .drawer-item-main:focus-visible, .drawer-item-fav:focus-visible, .setting-row:focus-within,
 #drawer-close:focus-visible, #settings-close:focus-visible, #trophy-close:focus-visible,
-#drawer-filter:focus-visible, .theme-seg-btn:focus-visible, #trophy-btn:focus-visible,
+#drawer-filter:focus-visible, .theme-seg-btn:focus-visible, .mode-seg-btn:focus-visible, #trophy-btn:focus-visible,
 #daily-chip:focus-visible, #lock-btn:focus-visible, #settings-btn:focus-visible, #install-btn:focus-visible{
   outline:2px solid var(--amber); outline-offset:2px;
   border-radius:12px;
@@ -544,7 +622,7 @@ html.scroll-locked #strip{
 /* ---------- HUD: trophy button + unseen badge ---------- */
 #trophy-btn{
   width:32px; height:32px; border-radius:50%; border:1px solid var(--line);
-  background:rgba(0,0,0,.35); color:var(--ink-dim); cursor:pointer;
+  background:var(--chip-bg); color:var(--ink-dim); cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   position:relative;
   transition:border-color .15s ease, color .15s ease, background .15s ease, transform .12s cubic-bezier(.34,1.56,.64,1);
@@ -675,20 +753,21 @@ html.scroll-locked #strip{
 .theme-options{
   display:flex; gap:8px; margin-top:10px;
 }
-.theme-seg-btn{
+/* Round 24: the color-scheme picker shares the skin picker's anatomy */
+.theme-seg-btn, .mode-seg-btn{
   flex:1; display:flex; flex-direction:column; align-items:center; gap:7px;
   padding:10px 6px 8px; border-radius:12px; cursor:pointer;
   border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim);
   font-family:var(--font-display); font-size:7px; letter-spacing:.1em;
   transition:border-color .15s ease, box-shadow .2s ease, color .15s ease, transform .12s ease;
 }
-.theme-seg-btn:active{ transform:scale(.95); }
+.theme-seg-btn:active, .mode-seg-btn:active{ transform:scale(.95); }
 .theme-swatch{
   width:26px; height:26px; border-radius:50%;
   border:2px solid transparent;
   box-shadow:inset 0 0 8px rgba(0,0,0,.5);
 }
-.theme-seg-btn[aria-pressed="true"]{
+.theme-seg-btn[aria-pressed="true"], .mode-seg-btn[aria-pressed="true"]{
   border-color:var(--amber); color:var(--ink);
   box-shadow:0 0 12px rgba(var(--glow-rgb),.2);
 }
@@ -846,7 +925,7 @@ html.reduce-motion #trophy-toast{ transition:opacity .001s !important; }
     box-shadow:0 0 12px rgba(var(--glow-rgb),.28);
   }
   #daily-chip.done:hover{ border-color:var(--line); box-shadow:none; }
-  .theme-seg-btn:hover{
+  .theme-seg-btn:hover, .mode-seg-btn:hover{
     border-color:rgba(var(--glow-rgb),.5);
     color:var(--ink);
   }
@@ -1232,7 +1311,7 @@ html.reduce-motion .cart-sparkline{ animation:none !important; }
   flex:1; height:5px; border-radius:3px; outline:none; cursor:pointer;
   background:linear-gradient(to right,
     var(--amber) 0%, var(--amber) var(--fill, 80%),
-    rgba(255,255,255,.12) var(--fill, 80%), rgba(255,255,255,.12) 100%);
+    rgba(var(--track-rgb),.12) var(--fill, 80%), rgba(var(--track-rgb),.12) 100%);
 }
 .volume-slider::-webkit-slider-thumb{
   -webkit-appearance:none; appearance:none;
@@ -1310,8 +1389,13 @@ button:disabled{ opacity:.45; cursor:not-allowed; }
 .player-sub{ font-size:10px; color:var(--ink-dim); margin-top:4px; letter-spacing:.03em; }
 .player-stats{
   grid-column:1 / -1;
-  display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;
+  /* Round 24: five identity counters (run depth joined) — 5 columns on
+     wide panels, a clean 3+2 on narrow ones instead of an orphan cell */
+  display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;
   margin-top:6px;
+}
+@media (max-width:420px){
+  .player-stats{ grid-template-columns:repeat(3, 1fr); }
 }
 .player-stat{
   text-align:center;
@@ -1425,10 +1509,12 @@ html.reduce-motion #xp-pill.mission-flash{ animation:none; }
   transition:opacity .35s ease;
 }
 #nav-arrows.on{ display:flex; opacity:1; pointer-events:auto; }
+/* Round 24 — left-handed arrows: the thumb zone flips to the other edge */
+html.left-handed #nav-arrows{ right:auto; left:6px; }
 #nav-arrows button{
   width:34px; height:34px; border-radius:50%;
   border:1px solid var(--line);
-  background:rgba(0,0,0,.42);
+  background:var(--chip-bg);
   color:var(--ink-dim);
   backdrop-filter:blur(3px);
   cursor:pointer;
@@ -1495,58 +1581,37 @@ html.reduce-motion .closest-fill{ transition:none !important; }
   .levelup-burst, .levelup-num, #xp-float{ animation:none !important; }
 }
 
-/* ---------- Round 22 — BACKGROUND TEXTURE ENGINE ----------
-   A second visual axis beside the CRT skin: the skin picks the phosphor
-   COLOR, the background picks the TEXTURE behind the console. Every layer
-   is fixed, pointer-transparent and tinted from the live --glow-rgb /
-   --accent2-rgb channels, so any background pairs with any skin with zero
-   per-theme CSS. SOLID ships no layer at all (the classic flat console).
-   reduce-motion never mattered here: every texture is a static paint. */
-body::before{
-  content:""; position:fixed; inset:0; z-index:-1;
-  pointer-events:none; display:none;
-}
-html[data-bg="grid"] body::before{
-  display:block;
-  background-image:
-    linear-gradient(rgba(var(--glow-rgb),.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(var(--glow-rgb),.045) 1px, transparent 1px),
-    linear-gradient(rgba(var(--glow-rgb),.085) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(var(--glow-rgb),.085) 1px, transparent 1px);
-  background-size:34px 34px, 34px 34px, 170px 170px, 170px 170px;
-}
-html[data-bg="dots"] body::before{
-  display:block;
-  background-image:radial-gradient(rgba(var(--glow-rgb),.11) 1px, transparent 1.7px);
-  background-size:22px 22px;
-}
-html[data-bg="horizon"] body::before{
-  display:block;
-  background:
-    radial-gradient(120% 55% at 50% 108%, rgba(var(--glow-rgb),.17), transparent 62%),
-    radial-gradient(90% 40% at 50% -12%, rgba(var(--accent2-rgb),.11), transparent 60%);
-}
-html[data-bg="scan"] body::before{
-  display:block;
-  background:
-    repeating-linear-gradient(to bottom, rgba(0,0,0,.28) 0 1px, transparent 1px 4px),
-    radial-gradient(135% 105% at 50% 50%, transparent 58%, rgba(0,0,0,.45) 100%);
-}
+/* ---------- Round 24 — CRT EFFECTS off + scheme picker swatches ----------
+   The CRT toggle (Settings → Appearance) retires the scanline overlay and
+   the boot flicker WITHOUT touching motion elsewhere — that's what the
+   reduce-motion toggle is for. Two honest, separate dials. */
+html[data-crt="off"] .cart-inner::after{ display:none; }
+html[data-crt="off"] #boot-logo{ animation:none; }
 
-/* Background picker (settings segmented control) — same anatomy as the
-   skin picker, with wrapping so 5 options never overflow a narrow panel */
-.bg-options{ flex-wrap:wrap; }
-.bg-seg-btn{
-  flex:1; min-width:56px; padding:9px 4px 8px; border-radius:12px; cursor:pointer;
-  border:1px solid var(--line); background:var(--panel-2); color:var(--ink-dim);
-  font-family:var(--font-display); font-size:7px; letter-spacing:.1em; text-align:center;
-  transition:border-color .15s ease, box-shadow .2s ease, color .15s ease, transform .12s ease;
+/* Color scheme picker — same segmented anatomy as the skin picker. The
+   swatches show the CHASSIS (dark paper / true black / daylight), not the
+   phosphor: this dial answers "what is the console made of". */
+.theme-swatch.dark{  background:radial-gradient(circle at 35% 35%, #2A3140, #13151C 60%, #05060A); border:1px solid #3A4254; }
+.theme-swatch.oled{  background:radial-gradient(circle at 35% 35%, #1A1A1E, #000 62%); border:1px solid #33333C; }
+.theme-swatch.light{ background:radial-gradient(circle at 35% 35%, #FFFFFF, #F1EEE7 62%, #C9C2B2); border:1px solid #B7AF9E; }
+
+/* ---------- Round 24 — missions badge on the trophy button ----------
+   The daily contract gets a persistent, one-glance HUD presence without a
+   new HUD slot: the trophy button (which already hosts the missions block)
+   wears a count bubble. Distinct corner from the unseen-unlock pip
+   (#trophy-btn::after sits top-right; the count sits bottom-right). */
+#trophy-missions{
+  position:absolute; bottom:-3px; right:-4px;
+  min-width:15px; height:15px; padding:0 4px;
+  border-radius:9px;
+  background:var(--amber); color:#0B0B0F;
+  font-family:var(--font-body); font-weight:700; font-size:9px; line-height:15px;
+  text-align:center;
+  box-shadow:0 0 8px rgba(var(--glow-rgb),.55);
+  opacity:0; transform:scale(0);
+  transition:opacity .25s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
 }
-.bg-seg-btn:active{ transform:scale(.95); }
-.bg-seg-btn[aria-pressed="true"]{
-  border-color:var(--amber); color:var(--ink);
-  box-shadow:0 0 12px rgba(var(--glow-rgb),.2);
-}
-@media (hover:hover){
-  .bg-seg-btn:hover{ border-color:rgba(var(--glow-rgb),.5); color:var(--ink); }
-}
+#trophy-missions.on{ opacity:1; transform:scale(1); }
+#trophy-missions.swept{ background:var(--purple); color:#0B0B0F; box-shadow:0 0 8px rgba(var(--accent2-rgb),.55); }
+html.reduce-motion #trophy-missions{ transition:none; }

@@ -7,8 +7,11 @@
   const lockBtn = document.getElementById("lock-btn");
   const lockToast = document.getElementById("lock-toast");
   const themeBtns = Array.from(document.querySelectorAll(".theme-seg-btn"));
-  // Round 22 — background texture picker
-  const bgBtns = Array.from(document.querySelectorAll(".bg-seg-btn"));
+  // Round 24 — color scheme picker (the retired bg-texture row's successor)
+  const modeBtns = Array.from(document.querySelectorAll(".mode-seg-btn"));
+  // Round 24 — wake lock support: the control is only real where the API ships
+  const wakeLockToggle = document.getElementById("wakelock-toggle");
+  const wakeLockNote = document.getElementById("wakelock-note");
   // Round 20 — controls & data wiring
   const volumeSlider = document.getElementById("volume-slider");
   const volumeReadout = document.getElementById("volume-readout");
@@ -100,19 +103,19 @@
     if(!("Notification" in window)){
       toggle.checked = false;
       showToast("Notifications unsupported in this browser");
-      Feedback.tone("error");
+      Feedback.uiTone("error");
       return;
     }
     if(Notification.permission === "granted"){
       Settings.set({ dailyNudge: true });
       showToast("Daily nudge on");
-      Feedback.tone("success");
+      Feedback.uiTone("success");
       return;
     }
     if(Notification.permission === "denied"){
       toggle.checked = false;
       showToast("Blocked — allow notifications in browser settings");
-      Feedback.tone("error");
+      Feedback.uiTone("error");
       return;
     }
     // pending window: syncToggles leaves this checkbox alone, and if the
@@ -124,11 +127,11 @@
       if(perm === "granted" && toggle.checked){
         Settings.set({ dailyNudge: true });
         showToast("Daily nudge on");
-        Feedback.tone("success");
+        Feedback.uiTone("success");
       } else if(perm !== "granted"){
         toggle.checked = false;
         showToast("Blocked — allow notifications in browser settings");
-        Feedback.tone("error");
+        Feedback.uiTone("error");
       }
       // granted but user unchecked mid-prompt: persist nothing, stay silent
     }).catch(() => { nudgePending = false; toggle.checked = false; });
@@ -144,28 +147,41 @@
     b.addEventListener("click", () => {
       if(Settings.get().theme === b.dataset.themeValue) return;
       Settings.set({ theme: b.dataset.themeValue });
-      Feedback.tone("toggle");
+      Feedback.uiTone("toggle");
       Feedback.haptic("light");
     });
   });
 
-  // ---------- Round 22 — background texture picker ----------
+  // ---------- Round 24 — color scheme picker ----------
   // Same contract as the skin picker: one settings key, instant repaint via
-  // html[data-bg]. The layer re-tints itself from the live phosphor channels,
-  // so switching skins keeps the texture harmonized with zero extra wiring.
-  function syncBgBtns(settings){
-    bgBtns.forEach(b => {
-      b.setAttribute("aria-pressed", settings.bgStyle === b.dataset.bgValue ? "true" : "false");
+  // html[data-mode]. The scheme re-derives the whole chassis (and the browser
+  // chrome via the mode-aware theme-color map); the phosphor skin composes
+  // on top, so every skin pairs with every scheme with zero extra wiring.
+  function syncModeBtns(settings){
+    modeBtns.forEach(b => {
+      b.setAttribute("aria-pressed", settings.colorMode === b.dataset.modeValue ? "true" : "false");
     });
   }
-  bgBtns.forEach(b => {
+  modeBtns.forEach(b => {
     b.addEventListener("click", () => {
-      if(Settings.get().bgStyle === b.dataset.bgValue) return;
-      Settings.set({ bgStyle: b.dataset.bgValue });
-      Feedback.tone("toggle");
+      if(Settings.get().colorMode === b.dataset.modeValue) return;
+      Settings.set({ colorMode: b.dataset.modeValue });
+      Feedback.uiTone("toggle");
       Feedback.haptic("light");
     });
   });
+
+  // ---------- Round 24 — keep-awake honesty ----------
+  // Where the Wake Lock API doesn't exist, the toggle is disabled and the
+  // note explains it — a control that silently does nothing is worse than
+  // none (same philosophy as the nudge-health note).
+  function syncWakeLockSupport(){
+    if(!wakeLockToggle || !wakeLockNote) return;
+    const supported = !!(window.Settings && Settings.wakeLockSupported && Settings.wakeLockSupported());
+    wakeLockToggle.disabled = !supported;
+    wakeLockNote.hidden = supported;
+    if(!supported) wakeLockToggle.title = "Wake Lock is not available in this browser";
+  }
 
   // ---------- Round 20 — volume slider ----------
   // Live while dragging (Feedback applies instantly), persisted on release.
@@ -186,7 +202,7 @@
   volumeSlider.addEventListener("change", () => {
     const v = Number(volumeSlider.value);
     Settings.set({ volume: v / 100 });
-    Feedback.tone("select");
+    Feedback.uiTone("select");
   });
 
   // ---------- Round 20 — haptic strength segmented control ----------
@@ -202,7 +218,7 @@
       Settings.set({ hapticStrength: b.dataset.strengthValue });
       // let the player FEEL the new strength immediately — the setting demos itself
       Feedback.haptic("medium");
-      Feedback.tone("toggle");
+      Feedback.uiTone("toggle");
     });
   });
 
@@ -256,10 +272,10 @@
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       const n = (data.counts ? data.counts.saves + data.counts.scores : 0);
       showToast("Save exported · " + n + " records");
-      Feedback.tone("success");
+      Feedback.uiTone("success");
     }).catch(() => {
       showToast("Export failed");
-      Feedback.tone("error");
+      Feedback.uiTone("error");
     });
   });
   importBtn.addEventListener("click", () => importInput.click());
@@ -271,10 +287,10 @@
     reader.onload = () => {
       let data = null;
       try{ data = JSON.parse(String(reader.result)); }
-      catch(e){ showToast("Import failed — not valid JSON"); Feedback.tone("error"); return; }
+      catch(e){ showToast("Import failed — not valid JSON"); Feedback.uiTone("error"); return; }
       if(!StripDB.validImport(data)){
         showToast("Import failed — not a Strip save");
-        Feedback.tone("error");
+        Feedback.uiTone("error");
         return;
       }
       const counts = data.counts ? " (" + data.counts.saves + " saves, " + data.counts.scores + " scores)" : "";
@@ -284,10 +300,10 @@
         setTimeout(() => location.reload(), 800);
       }).catch(() => {
         showToast("Import failed — nothing was changed");
-        Feedback.tone("error");
+        Feedback.uiTone("error");
       });
     };
-    reader.onerror = () => { showToast("Could not read that file"); Feedback.tone("error"); };
+    reader.onerror = () => { showToast("Could not read that file"); Feedback.uiTone("error"); };
     reader.readAsText(file);
   });
 
@@ -332,6 +348,6 @@
   });
 
   // reflect settings changes made anywhere (e.g. the lock button) back into the panel toggles
-  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncBgBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
-  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncBgBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
+  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
+  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); syncWakeLockSupport(); });
 })();

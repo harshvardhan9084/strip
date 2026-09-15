@@ -302,6 +302,7 @@ Strip.register({
       box.addEventListener("click", () => {
         const p = state.plants[idx];
         if(!p) return;
+        api.tend(); // Round 24: a plot tap is tending (missions feed on it)
         if(p.dead){
           // compost: the loss is honest, the rebate is a token
           state.plants[idx] = null;

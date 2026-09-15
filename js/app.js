@@ -56,6 +56,16 @@
             ts: Date.now()
           }
         }));
+      },
+      // Round 24 — the idle toys' run-end. Garden/aquarium/anthill/tradingpost/
+      // plinko/blackjack never "finish a run", so the depth-XP ladder and the
+      // missions pool never saw them. A tend() is their natural caretaking
+      // beat — watering, feeding, trading, dropping, dealing — and missions
+      // (not XP) consume it: TEND goals count unique cartridges per day.
+      tend(){
+        window.dispatchEvent(new CustomEvent("strip:tend", {
+          detail: { id, ts: Date.now() }
+        }));
       }
     };
   }
@@ -293,7 +303,7 @@
     while(target >= cards.length && guard++ < 10) appendCards(BATCH_SIZE);
     if(target >= cards.length) return;
     stripEl.scrollTo({ top: target * h, behavior: "smooth" });
-    try{ Feedback.tone("tap"); Feedback.haptic("light"); }catch(e){}
+    try{ Feedback.uiTone("tap"); Feedback.haptic("light"); }catch(e){}
   }
   function applyNavArrowSetting(on){
     buildNavArrows();

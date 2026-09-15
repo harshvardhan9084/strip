@@ -360,7 +360,7 @@ window.Daily = (function(){
         tag.innerHTML = "TODAY'S PICK <span class=\"cart-daily-x\">×2</span>" + SHARE_ICON;
         tag.addEventListener("click", (e) => {
           e.stopPropagation();
-          try{ Feedback.tone("select"); Feedback.haptic("light"); }catch(err){}
+          try{ Feedback.uiTone("select"); Feedback.haptic("light"); }catch(err){}
           share();
         });
         // sit next to the game's own tag pill (or as the sole right-side item)
@@ -544,10 +544,10 @@ window.Daily = (function(){
     if(tpLastFocus && tpLastFocus.focus) tpLastFocus.focus({ preventScroll: true });
     tpLastFocus = null;
     if(commit){
-      try{ Feedback.tone("swap"); Feedback.haptic("medium"); }catch(e){}
+      try{ Feedback.uiTone("swap"); Feedback.haptic("medium"); }catch(e){}
       if(todayMod && window.StripShell) StripShell.jumpToModule(todayMod);
     } else {
-      try{ Feedback.tone("toggle"); }catch(e){}
+      try{ Feedback.uiTone("toggle"); }catch(e){}
     }
   }
   function requestTeleport(){
@@ -565,7 +565,7 @@ window.Daily = (function(){
         : " Playing it keeps your <span style='color:var(--amber)'>" + (state.streak ? (state.streak + 1) + "-day streak" : "streak") + "</span> alive · bests count <span style='color:var(--amber)'>×2</span> today.");
     tpLastFocus = document.activeElement;
     tpSheet.style.display = "flex";
-    try{ Feedback.tone("toggle"); Feedback.haptic("light"); }catch(e){}
+    try{ Feedback.uiTone("toggle"); Feedback.haptic("light"); }catch(e){}
     const go = tpSheet.querySelector("#daily-teleport-go");
     requestAnimationFrame(() => requestAnimationFrame(() => { if(go) go.focus({ preventScroll: true }); }));
   }

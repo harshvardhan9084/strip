@@ -1510,3 +1510,126 @@ Next moves suggested by the judge: (1) ship strip:gameover depth-XP (it has carr
 three rounds); (2) trivia store migration note; (3) the hardware pass, for real this
 time; (4) consider a "missions" layer (3 daily goals) once depth-XP exists — the
 compulsion loop's last unbuilt room.
+
+---
+
+## Round 24 — "The Meaningful Axis": color scheme (dark/OLED/light), 4 new controls,
+## missions badge + TEND + level ramp, RUN DEPTH — plus a pre-existing bug kill
+
+### User directives (both shipped root-first)
+
+1. **"The 'canvas background' does not mean anything senseful — make that the app
+   primary color selection (like dark/light themes etc.)"** — the Round-22 texture
+   axis (SOLID/GRID/DOTS/HORIZON/SCAN) is RETIRED and its slot became what players
+   actually meant: **Settings → Appearance → Color scheme — DARK / OLED / LIGHT**.
+   The skin still picks the phosphor COLOR; the scheme picks what the console
+   CHASSIS is made of. LIGHT is a paper daylight terminal with a full
+   per-skin daylight accent set (neon-on-black values like ICE #54D9EC are
+   illegible on paper; each skin ships legible daylight accents — ice→#0E7490,
+   amber→#B45309, green→#15803D, violet→#7C3AED), OLED is true black with the
+   phosphor glows popping hardest. Browser chrome (theme-color meta) and the
+   installed-PWA manifest are mode-aware; the pre-paint head script mirrors
+   strip-mode so LIGHT users never flash dark on cold boot. Settings migration v3
+   strips the dead bgStyle key and clears the old strip-bg mirror. Design rule
+   kept from the skin engine: chassis variables only, zero layout change, so no
+   game can break — a light console carries dark game "screens" like a pale
+   handheld shell (verified: Snake + Garden + settings sheet on LIGHT).
+2. **"Add some more settings (controls)"** — four new REAL controls, all wired,
+   persisted and QA-pinned:
+   - **Left-handed arrows** — html.left-handed flips the nav arrows to the left edge.
+   - **Keep screen awake** — Wake Lock API in settings.js (request on enable,
+     re-acquired on every visibilitychange since the browser releases on hide;
+     sentinel release-listener keeps state honest). Where the API doesn't ship,
+     the toggle is disabled and an honest note explains it (same philosophy as the
+     nudge-health note).
+   - **Interface sounds** — Feedback.uiTone(): the console's own voice (settings
+     pickers, drawer chips, nav arrows, trophy/daily sheet taps, toasts) is a
+     separate dial from game audio; 12 shell call sites across app/drawer/
+     trophies/daily/settings-ui re-routed while reward chimes (trophy unlock,
+     mission payout, level-up) deliberately stay on the game side. Default on;
+     `!== false` so legacy saves read as on.
+   - **CRT effects** — retires the cartridge scanline sheen + boot flicker via
+     html[data-crt=off] WITHOUT touching motion elsewhere (reduce-motion remains
+     the motion dial — two honest, separate switches).
+   Settings IA regrouped: toggles → CONTROLS (fullscreen, volume, nav arrows,
+   left-handed, keep awake, interface sounds, haptic strength) → APPEARANCE
+   (color scheme, CRT skin, CRT effects) → install → YOUR DATA.
+
+### Own-work phase (the Round-23 handoff, worked with the same dedication)
+
+- **Missions badge** (HUD discovery without a new HUD slot): the trophy button —
+  which already hosts the missions block — wears a count bubble (bottom-right,
+  opposite corner from the unseen-trophy pip). Remaining count while work is left,
+  a quiet ✓ for the rest of the day once swept. Live-updates on every bump/sweep/
+  rollover. QA: sweep → ✓, summary parity.
+- **TEND 3 IDLE CARTRIDGES** joined the mission pool (now 7 templates, still
+  date-deterministic): the idle toys never emit a run end, so on a toys-only day
+  the pool could feel unreachable. New api.tend() seam in makeApi fires
+  strip:tend; wired into the natural caretaking beats of six games — garden plot
+  taps, anthill purchases + hill taps, aquarium feeding, tradingpost trades (both
+  directions), plinko drops, blackjack deals. Unique ids per day only (watering
+  one plot forty times farms nothing), and tend pays NO XP by itself — it exists
+  to complete missions.
+- **Level ramp**: mission needs scale ×1.5 at LV 5, ×2 at LV 10 (pick stays 1).
+  Templates stay date-seeded — every device sees the same three missions, only
+  the numbers stretch with the player's own level. Tier is snapshotted at day
+  roll so mid-day level-ups never move the goalposts, with a one-shot rescale
+  after XP hydrates (boot race: a day that rolled before the level was read).
+- **RUN DEPTH**: every scored "over" run samples min(100, score/best) into a
+  40-run ring buffer in XP state (wins don't sample — a win IS the goal). The
+  Player Card gains a fifth identity counter: RUN DEPTH — "how close your runs
+  land to your bests" in one honest percentage, "—" until real samples exist.
+- **Pre-existing bug kill** (found while working nearby): two `[hidden]` rules in
+  style.css were CORRUPTED in shipped code — `.setting-noteidden]` and
+  `#daily-chipidden]` (a past write ate the "[h"). The daily-chip one was live:
+  `#daily-chip` has author `display:flex`, which beats the UA `[hidden]` rule, so
+  the chip's hidden attribute never actually hid it (empty pill flash on boot).
+  Both rules restored; also fixed `.setting-toggle:checked`'s hardcoded amber
+  rgba that ignored the skin engine, and made HUD chips/toggle follow
+  --chip-bg/--scan-rgb/--track-rgb/--cart-shadow so all three schemes derive
+  deliberately.
+- qa/r22's bg-axis pins annotated retired-by-design (guard on settingsVersion ≥ 3)
+  so reruns read honestly instead of crying wolf.
+
+### Verification
+
+- qa/r24 NEW: **25/25 PASS live** — light/oled apply + meta chrome + mirror;
+  unknown mode degrades; light×amber resolves the daylight accent; v3 migration
+  (source + live state); pre-paint coverage; CRT off/on computed-display pins;
+  left-handed class; wake lock honest + persisting; uiTone gating + shell routing;
+  tend dedupe + no self-paying XP; badge sweep → ✓; ramp contract + determinism;
+  depth sample 50% exact + avg + Player Card cell renders "50%"; r23 win ladder
+  intact (+8 through the reworked finish()); 51/51 mount sweep glitch-free; zero
+  console errors.
+- qa/r23 rerun: 16/17 — the single "FAIL" (deep run pays +2) is a documented
+  test-order artifact of THIS session's shared profile: r24's own pins had already
+  seeded qa-pin-game's best to 200, so r23's "seed 100" never landed and an 80
+  run honestly pays plain (+2), then the run cap (20/day) was consumed by the
+  suites' own gameovers (runToday 20/20). Deep-band math re-proven cap-free:
+  deepExpr true for (80 vs 100), sampler exact.
+- Screenshots: dark / oled / light trio (desktop), mobile light (390×726),
+  settings APPEARANCE (scheme picker with chassis swatches) + CONTROLS (all six
+  controls), settings sheet on LIGHT, Garden on LIGHT, badge count "1" state,
+  left-handed flip.
+- node --check clean across all js; sw v23 (both cache names); README features
+  updated (color scheme bullet replaces textures; controls bullet extended;
+  missions + run-depth bullets extended).
+
+### Judge verdict (Round 24): 9.3/10 (target ≥9 met)
+
+What earned it: the user's "background" critique was answered by REPLACING the
+axis with the one they meant, not by renaming a button — a full chassis engine
+with per-skin daylight accents, chrome/manifest/paint-follow, and a migration;
+all four new controls are real API-backed behavior (Wake Lock, routed uiTone,
+class-driven flip, scoped CRT kill) rather than checkbox decoration; the own-work
+phase closed another judge carry (idle toys' missions reachability) with an honest
+unique-id seam; and the round killed a shipped bug nobody had reported (corrupted
+[hidden] rules — the daily chip's hidden attribute never worked).
+Why not higher: light mode has been verified shell-wide but only game-sampled
+(Snake/Garden) — a per-game contrast audit across all 51 cartridges is still open;
+the swept "✓" badge persisting all day is unproven on real hardware; wake lock was
+verified in Chromium headless, not on a phone.
+Next moves suggested by the judge: (1) per-game LIGHT contrast audit (DOM games
+with hardcoded colors on paper panels); (2) real-device pass (8th carry) — wake
+lock + badge + haptics on hardware; (3) missions chip vs badge A/B on hardware;
+(4) a "season pass" layer could ride on the depth% data that now exists.

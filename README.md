@@ -59,7 +59,10 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
   slider (rides on one shared gain node — games, chimes, everything), **haptic
   strength** (Light / Normal / Strong — it demos itself when you tap), on-screen
   **navigation arrows** for one-tap cartridge hops (and a scroll-lock that no longer
-  strands you).
+  strands you). Round 24 adds **left-handed arrows** (flip the hop buttons to the
+  other thumb), **keep screen awake** (Wake Lock — the screen stops dimming
+  mid-run, honestly disabled where the API doesn't exist), and **interface
+  sounds** (the console's own clicks and chimes, separate from game audio).
 - **Your data, yours** (Settings → Your Data): export every save, highscore, trophy,
   streak and XP as one JSON file; import it on any device to pick up exactly where
   you left off. Device settings (volume, skin, motion) stay put on import.
@@ -107,22 +110,32 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
 One tap re-tints the entire console — glows, panels, browser chrome, and (for installed
 PWAs) the launch splash / titlebar color follow along. Games keep their own colors;
 only the shell changes.
-- **Background textures** (Round 22): Settings → Background — **SOLID / GRID / DOTS /
-  HORIZON / SCAN**. A second visual axis, fully independent of the skin: the skin picks
-  the phosphor *color*, the background picks the *texture* the console sits on. Every
-  texture is tinted live from the active skin's own glow channels, so all five pair
-  with all four skins with zero extra wiring.
+- **Color scheme** (Round 24): Settings → Appearance — **DARK / OLED / LIGHT**. The
+  axis the old texture setting grew into: the skin picks the phosphor *color*, the
+  scheme picks what the console *chassis* is made of — the classic dark glow, true
+  black (battery-friendly, glows pop hardest), or a paper daylight terminal. Every
+  skin ships a daylight-grade accent set for LIGHT (neon-on-black values are
+  illegible on paper), the browser chrome and installed-PWA launch colors follow,
+  and a **CRT effects** toggle retires the scanline sheen + boot flicker without
+  touching motion elsewhere.
 - **Run XP — depth, not browsing** (Round 23): finishing a run now pays on its own
   ladder — **+8 for a win** (board cleared, AI beaten, code cracked), **+5 for a DEEP
   RUN** (a loss that still reached 60% of your own best), **+2 for any finished run**,
   capped at 20 runs a day so it can't be farmed. Games fire one `api.gameover()`
-  call at their natural run ends; the shell does the rest.
+  call at their natural run ends; the shell does the rest. Your last 40 runs build
+  a **RUN DEPTH** profile on the Player Card — how close your runs land to your own
+  bests, in one honest percentage.
 - **Daily Missions** (Round 23): three small goals a day — finish runs, win games,
   set bests, play the pick, earn XP — picked deterministically from the date, so
   every device sees the same three. They complete themselves and pay **+30 XP each,
   +40 sweep bonus** the moment they're done (no claim button). They live in the
-  Trophy Case, the LV pill carries the count, and the first settle of each day
-  announces them once.
+  Trophy Case, the LV pill carries the count, a **count bubble on the trophy
+  button** keeps them one glance away (Round 24), and the first settle of each day
+  announces them once. Round 24: **TEND 3 IDLE CARTRIDGES** joined the pool — the
+  idle toys (garden, aquarium, anthill, trading post, plinko, blackjack) never end
+  a run, so watering, feeding, trading, dropping or dealing is their run — and
+  needs scale gently with your level (×1.5 at LV 5, ×2 at LV 10) so veterans stay
+  stretched.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

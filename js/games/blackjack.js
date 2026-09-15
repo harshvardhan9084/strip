@@ -182,6 +182,7 @@ Strip.register({
 
     function deal(){
       if(phase !== "bet" || bet <= 0) return;
+      api.tend(); // Round 24: a dealt hand is a tend (missions feed on it)
       if(deck.length < 15) newDeck();
       player = [draw(), draw()];
       dealer = [draw(), draw()];

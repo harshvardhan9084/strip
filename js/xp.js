@@ -102,7 +102,7 @@ window.XP = (function(){
   }
 
   // ---------- state ----------
-  let state = { xp: 0, day: null, settleToday: 0, favsSeen: 0, runToday: 0 };
+  let state = { xp: 0, day: null, settleToday: 0, favsSeen: 0, runToday: 0, depthRuns: [] };
   let hydrated = false;   // disk-write gate (Daily's pattern)
   let readyResolve;
   const readyPromise = new Promise(res => { readyResolve = res; });
@@ -122,6 +122,25 @@ window.XP = (function(){
   function persist(){
     if(!hydrated) return; // defaults must never overwrite a record we couldn't read
     StripDB.saveState(STORE_ID, state).catch(() => {});
+  }
+
+  // Round 24 — RUN DEPTH: a rolling profile of how close your finished runs
+  // land to your own bests (the same ratio the DEEP RUN band uses). "60% avg
+  // depth" reads as an honest skill story — not a raw score, not a win rate,
+  // but how often you play AT your edge. Ring buffer of the last 40 "over"
+  // runs with a real best to compare against; wins don't sample (a win IS
+  // the goal, there's no edge to measure). Surfaces on the Player Card.
+  const DEPTH_SAMPLES = 40;
+  function recordDepthSample(score, best){
+    if(!(best > 0) || !Number.isFinite(score) || score <= 0) return;
+    if(!Array.isArray(state.depthRuns)) state.depthRuns = [];
+    state.depthRuns.push(Math.min(100, Math.round((score / best) * 100)));
+    if(state.depthRuns.length > DEPTH_SAMPLES) state.depthRuns = state.depthRuns.slice(-DEPTH_SAMPLES);
+  }
+  function depthAvg(){
+    if(!Array.isArray(state.depthRuns) || !state.depthRuns.length) return null;
+    const sum = state.depthRuns.reduce((a, b) => a + b, 0);
+    return Math.round(sum / state.depthRuns.length);
   }
 
   // ---------- HUD ----------
@@ -309,6 +328,10 @@ window.XP = (function(){
     // 0 means nothing to be deep relative to: plain run.
     const finish = (best) => {
       const deep = best > 0 && Number.isFinite(score) && score >= best * DEEP_RUN_RATIO && score < best;
+      if(deep || (best > 0 && Number.isFinite(score) && score > 0)){
+        recordDepthSample(score, best); // every scored over-run feeds the profile
+        persist();
+      }
       applyAward("run", deep ? AWARD.runDeep : AWARD.runOver,
         deep ? { floatText: "+" + AWARD.runDeep + " XP · DEEP RUN", floatClass: "big" }
              : { floatText: "+" + AWARD.runOver + " XP" });
@@ -370,6 +393,9 @@ window.XP = (function(){
         if(typeof state.settleToday !== "number") state.settleToday = 0;
         if(typeof state.runToday !== "number") state.runToday = 0;
         if(typeof state.favsSeen !== "number") state.favsSeen = 0;
+        if(!Array.isArray(state.depthRuns) || state.depthRuns.some(n => typeof n !== "number" || !Number.isFinite(n))){
+          state.depthRuns = [];
+        }
       }
       hydrated = true; // the store answered — writes are safe from here
     }
@@ -387,7 +413,7 @@ window.XP = (function(){
     whenReady: () => readyPromise,
     award,                 // app.js "new best" hook + QA seam
     awardRun,              // Round 23: QA seam for the gameover ladder
-    getState: () => Object.assign({}, state, levelFor(state.xp), { title: titleFor(levelFor(state.xp).level) }),
-    _internals: { stepFor, levelFor, computeDailyXp, AWARD, SETTLE_DAILY_CAP, RUN_DAILY_CAP, DEEP_RUN_RATIO, titleFor },
+    getState: () => Object.assign({}, state, levelFor(state.xp), { title: titleFor(levelFor(state.xp).level), depthAvg: depthAvg() }),
+    _internals: { stepFor, levelFor, computeDailyXp, AWARD, SETTLE_DAILY_CAP, RUN_DAILY_CAP, DEEP_RUN_RATIO, titleFor, recordDepthSample, depthAvg },
   };
 })();

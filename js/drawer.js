@@ -101,7 +101,7 @@
         activeCat = (activeCat === value) ? null : value; // tap again = back to ALL
         renderChips();
         renderGrid();
-        try{ Feedback.tone("toggle"); Feedback.haptic("light"); }catch(e){}
+        try{ Feedback.uiTone("toggle"); Feedback.haptic("light"); }catch(e){}
       });
       return c;
     };

@@ -23,16 +23,22 @@ window.Settings = (function(){
     // only if they never explicitly re-picked a skin after the migration
     // (settingsVersion gates that). "amber" | "green" | "violet" | "ice".
     theme: "ice",
-    settingsVersion: 2,
+    settingsVersion: 3,
     dailyNudge: false, // Round 14: opt-in local notification on the day flip
     // Round 20 — controls & feel:
     volume: 0.8,          // master loudness 0..1 (Feedback master gain)
     hapticStrength: "normal", // "light" | "normal" | "strong"
     navArrows: true,      // on-screen ▲▼ jump buttons on the strip edges
-    // Round 22 — background texture: a separate axis from the phosphor skin.
-    // The skin picks the COLOR of the console; the background picks the
-    // TEXTURE behind it ("solid" | "grid" | "dots" | "horizon" | "scan").
-    bgStyle: "solid",
+    // Round 24 — COLOR SCHEME: the axis the old bg-texture setting grew into.
+    // The skin picks the phosphor COLOR; this picks what the console CHASSIS
+    // is made of: "dark" (classic glow) | "oled" (true black) | "light"
+    // (paper daylight terminal). Validated on apply — unknown degrades to dark.
+    colorMode: "dark",
+    // Round 24 — more controls:
+    crtEffects: true,     // scanline overlay + boot flicker (motion stays; that's reduceMotion's job)
+    leftHanded: false,    // nav arrows flip to the left edge (thumb-zone choice)
+    uiSounds: true,       // shell clicks/chimes (menus, arrows) — game audio stays on "Sound"
+    wakeLock: false,      // keep the screen awake during play sessions (Wake Lock API)
   };
 
   const THEME_META_COLORS = {
@@ -41,13 +47,22 @@ window.Settings = (function(){
     green:  "#090F0B",
     violet: "#0E0A14",
   };
+  // Round 24 — browser-chrome colors per color scheme. DARK keeps the per-skin
+  // chassis colors; OLED is true black; LIGHT is the paper chassis (the same
+  // value for every skin — the phosphor lives INSIDE the screen, the chrome
+  // follows the chassis).
+  const MODE_META_COLORS = {
+    dark:  null,          // falls through to THEME_META_COLORS[theme]
+    oled:  "#000000",
+    light: "#F1EEE7",
+  };
+  const THEME_MODES = ["dark", "oled", "light"];
   // localStorage mirror of just the theme key — IndexedDB hydrates async, which
   // meant green/violet users saw an amber flash on every cold boot. The inline
   // <head> script in index.html reads this synchronously before first paint.
   const THEME_LS_KEY = "strip-theme";
-  // Round 22 — same pre-paint mirror for the background texture axis.
-  const BG_LS_KEY = "strip-bg";
-  const BG_STYLES = ["solid", "grid", "dots", "horizon", "scan"];
+  // Round 24 — same pre-paint mirror for the color scheme axis.
+  const MODE_LS_KEY = "strip-mode";
 
   // Per-theme manifest (Round 13): an installed PWA's window chrome reads the
   // manifest's theme_color at launch, which was hardcoded to amber — green/violet
@@ -57,13 +72,15 @@ window.Settings = (function(){
   let staticManifest = null;   // parsed cache of manifest.json
   let manifestBlobURL = null;  // the copy we currently own (revoked on change)
 
-  function applyManifestTheme(theme){
+  function applyManifestTheme(theme, mode){
     const link = document.querySelector('link[rel="manifest"]');
     if(!link) return;
     const origHref = link.dataset.origHref || link.getAttribute("href");
 
-    if(theme === "ice" || !THEME_META_COLORS[theme]){
-      // default skin: restore the real manifest so install semantics stay
+    // Round 24: the chrome color is now mode-aware. DARK uses the per-skin
+    // chassis color; LIGHT/OLED use their own (skin-independent) chassis.
+    if(mode === "dark" && (theme === "ice" || !THEME_META_COLORS[theme])){
+      // default skin+scheme: restore the real manifest so install semantics stay
       // 100% conventional (same-origin file, stable id resolution).
       // Round 21: the default is ICE now, and the static manifest.json ships
       // ICE's theme_color to match.
@@ -73,7 +90,7 @@ window.Settings = (function(){
     }
 
     link.dataset.origHref = origHref;
-    const bg = THEME_META_COLORS[theme];
+    const bg = mode === "dark" ? THEME_META_COLORS[theme] : MODE_META_COLORS[mode];
     const ready = staticManifest
       ? Promise.resolve(staticManifest)
       : fetch(origHref).then(r => r.json()).then(j => { staticManifest = j; return j; });
@@ -111,20 +128,54 @@ window.Settings = (function(){
   function applyToDocument(){
     document.documentElement.classList.toggle("reduce-motion", !!current.reduceMotion);
     document.documentElement.classList.toggle("scroll-locked", !!current.lockScroll);
+    document.documentElement.classList.toggle("left-handed", !!current.leftHanded);
     // CRT skin: one attribute swap re-tints every glow/veil via the --*-rgb
     // custom properties; the browser UI chrome follows via theme-color meta.
     const theme = THEME_META_COLORS[current.theme] ? current.theme : "ice";
     document.documentElement.dataset.theme = theme;
+    // Round 24 — color scheme (chassis axis): validated, then one attribute
+    // swap re-builds every chassis channel via the CSS mode engine.
+    const mode = THEME_MODES.includes(current.colorMode) ? current.colorMode : "dark";
+    document.documentElement.dataset.mode = mode;
     const meta = document.querySelector('meta[name="theme-color"]');
-    if(meta) meta.setAttribute("content", THEME_META_COLORS[theme]);
-    applyManifestTheme(theme);
+    const chrome = mode === "dark" ? THEME_META_COLORS[theme] : MODE_META_COLORS[mode];
+    if(meta && chrome) meta.setAttribute("content", chrome);
+    // Round 24 — CRT effects dial: scanlines + boot flicker (motion elsewhere
+    // is reduceMotion's job — two honest, separate switches).
+    document.documentElement.dataset.crt = current.crtEffects === false ? "off" : "on";
+    applyManifestTheme(theme, mode);
     try{ localStorage.setItem(THEME_LS_KEY, theme); }catch(e){}
-    // Round 22 — background texture axis (CSS engine keys off html[data-bg];
-    // "solid" is the absence of a layer, so we only mirror non-solid values
-    // for the pre-paint script — an unknown/stale value degrades to solid).
-    const bg = BG_STYLES.includes(current.bgStyle) ? current.bgStyle : "solid";
-    document.documentElement.dataset.bg = bg;
-    try{ localStorage.setItem(BG_LS_KEY, bg); }catch(e){}
+    try{ localStorage.setItem(MODE_LS_KEY, mode); }catch(e){}
+    applyWakeLock();
+  }
+
+  // Round 24 — Wake Lock ("keep awake"). A screen that dims mid-run kills
+  // the flow the whole deck is built on; the API is exactly one request()
+  // away, so the control is real wherever the browser ships it and honestly
+  // disabled where it doesn't (the settings panel reads the same support
+  // check). The sentinel is re-acquired on every visibility flip — the
+  // browser releases the lock whenever the tab is hidden, and the player
+  // coming back should not have to re-toggle the setting.
+  let wakeLockSentinel = null;
+  async function applyWakeLock(){
+    const wanted = !!current.wakeLock && "wakeLock" in navigator;
+    try{
+      if(wanted){
+        if(!wakeLockSentinel){
+          wakeLockSentinel = await navigator.wakeLock.request("screen");
+          wakeLockSentinel.addEventListener("release", () => { wakeLockSentinel = null; });
+        }
+      } else if(wakeLockSentinel){
+        await wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+    }catch(e){ wakeLockSentinel = null; }
+  }
+  document.addEventListener("visibilitychange", () => {
+    if(!document.hidden) applyWakeLock();
+  });
+  function wakeLockSupported(){
+    return "wakeLock" in navigator;
   }
 
   async function hydrate(){
@@ -140,7 +191,18 @@ window.Settings = (function(){
     if((current.settingsVersion || 0) < 2 && current.theme === "amber"){
       current.theme = "ice";
     }
-    current.settingsVersion = 2;
+    // Round 24 — the bg-texture axis is RETIRED (players read it as noise;
+    // the meaningful version of "background" is the color scheme). Migration
+    // 3 strips the dead key from every save and clears the old pre-paint
+    // mirror so no stale data-bg attribute can resurface, then seeds the
+    // new axis at its default. One-way: version 3 saves never re-migrate.
+    if((current.settingsVersion || 0) < 3){
+      delete current.bgStyle;
+      try{ localStorage.removeItem("strip-bg"); }catch(e){}
+      document.documentElement.removeAttribute("data-bg");
+      current.colorMode = DEFAULTS.colorMode;
+    }
+    current.settingsVersion = 3;
     ready = true;
     applyToDocument();
     readyResolve();
@@ -173,5 +235,5 @@ window.Settings = (function(){
 
   hydrate();
 
-  return { get, set, onChange, whenReady };
+  return { get, set, onChange, whenReady, wakeLockSupported };
 })();

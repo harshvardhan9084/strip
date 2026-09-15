@@ -185,6 +185,7 @@ Strip.register({
         }
         state.food -= c;
         state[role]++;
+        api.tend(); // Round 24: growing the colony is tending
         if(role === "farmers") state.fertility = 1 + state.farmers * 0.03;
         if((role === "foragers" || role === "farmers") && state[role] % MILESTONE_EVERY === 0){
           // the milestone lands at the exact tap that earned it — seen, heard, felt
@@ -277,6 +278,7 @@ Strip.register({
       const gain = TAP_YIELD();
       state.food += gain;
       state.lifetimeFood += gain;
+      api.tend(); // Round 24: tapping the hill IS the caretaking beat
       spawnFloat(`+${gain.toFixed(1)}`, hillBtn);
       Feedback.haptic("light");
       Feedback.tone("tap");
