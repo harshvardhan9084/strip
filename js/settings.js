@@ -39,6 +39,9 @@ window.Settings = (function(){
     leftHanded: false,    // nav arrows flip to the left edge (thumb-zone choice)
     uiSounds: true,       // shell clicks/chimes (menus, arrows) — game audio stays on "Sound"
     wakeLock: false,      // keep the screen awake during play sessions (Wake Lock API)
+    // Round 25 — SCREEN GLOW: "full" | "soft" | "off". The bloom multiplier
+    // (--glow-mul) re-grades every glow at once; off = flat terminal.
+    glow: "full",
   };
 
   const THEME_META_COLORS = {
@@ -143,6 +146,9 @@ window.Settings = (function(){
     // Round 24 — CRT effects dial: scanlines + boot flicker (motion elsewhere
     // is reduceMotion's job — two honest, separate switches).
     document.documentElement.dataset.crt = current.crtEffects === false ? "off" : "on";
+    // Round 25 — screen glow dial: one attribute swap re-grades every glow
+    // through --glow-mul (1 / .35 / 0). Unknown values degrade to full.
+    document.documentElement.dataset.glow = ["full", "soft", "off"].includes(current.glow) ? current.glow : "full";
     applyManifestTheme(theme, mode);
     try{ localStorage.setItem(THEME_LS_KEY, theme); }catch(e){}
     try{ localStorage.setItem(MODE_LS_KEY, mode); }catch(e){}

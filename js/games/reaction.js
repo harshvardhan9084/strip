@@ -33,11 +33,13 @@ Strip.register({
     function startRound(){
       state = "waiting";
       zone.style.background = "var(--danger)";
+      zone.style.color = "#fff"; // R25: reset from the ink "too soon" state — white passes on both danger grades at this display size
       zone.textContent = "Wait for green…";
       const delay = 1200 + Math.random()*2500;
       timeoutId = setTimeout(() => {
         state = "ready";
-        zone.style.background = "#6FCF97";
+        zone.style.background = "var(--good, #6FCF97)";
+        zone.style.color = "var(--on-accent)";
         zone.textContent = "TAP NOW";
         startTime = performance.now();
       }, delay);
@@ -51,12 +53,18 @@ Strip.register({
         state = "idle";
         Feedback.buzz("error");
         zone.style.background = "var(--amber-dim)";
+        zone.style.color = "var(--ink)"; // R25: white failed on the daylight amber-dim; ink passes both chassis
         zone.textContent = "Too soon! Tap to retry";
       } else if(state === "ready"){
         const ms = Math.round(performance.now() - startTime);
         state = "done";
         Feedback.tone("success"); Feedback.haptic("medium");
+        // Round 25: the result surface is --purple with --ink text — the old
+        // default white text failed on the daylight violet (2.7:1) and the
+        // ready surface below uses the semantic --good/--on-accent pair,
+        // since raw mint + white failed 1.8:1 in BOTH chassis.
         zone.style.background = "var(--purple)";
+        zone.style.color = "var(--ink)";
         // Round 19 (TOY hook): rolling last-5 average + an honest human
         // baseline — self-calibration is the hook this toy was missing
         recent.push(ms);

@@ -117,7 +117,11 @@ only the shell changes.
   skin ships a daylight-grade accent set for LIGHT (neon-on-black values are
   illegible on paper), the browser chrome and installed-PWA launch colors follow,
   and a **CRT effects** toggle retires the scanline sheen + boot flicker without
-  touching motion elsewhere.
+  touching motion elsewhere. Round 25 completed the light chassis: a semantic
+  color layer (--good/--info/--warn/--danger/--on-accent) re-grades every
+  game-side status color at daylight values, so scores, deltas, costs, hearts and
+  active tabs stay legible on the paper shell — the same audit that verified the
+  shell in Round 24 now covers all 51 cartridges' DOM text.
 - **Run XP — depth, not browsing** (Round 23): finishing a run now pays on its own
   ladder — **+8 for a win** (board cleared, AI beaten, code cracked), **+5 for a DEEP
   RUN** (a loss that still reached 60% of your own best), **+2 for any finished run**,
@@ -132,10 +136,15 @@ only the shell changes.
   Trophy Case, the LV pill carries the count, a **count bubble on the trophy
   button** keeps them one glance away (Round 24), and the first settle of each day
   announces them once. Round 24: **TEND 3 IDLE CARTRIDGES** joined the pool — the
-  idle toys (garden, aquarium, anthill, trading post, plinko, blackjack) never end
+  idle toys (garden, aquarium, anthill, trading post, plinko, blackjack — Round 25
+  adds kaleidoscope and etch: keeping a design counts) never end
   a run, so watering, feeding, trading, dropping or dealing is their run — and
   needs scale gently with your level (×1.5 at LV 5, ×2 at LV 10) so veterans stay
-  stretched.
+  stretched. Round 25: the **DEPTH LEAGUE** on the Player Card turns your rolling
+  run-depth into an honest solo ladder (Paper → Neon → Phosphor → Plasma →
+  Supernova — no opponents, the ceiling is your own bests), and a **Screen glow**
+  dial (full/soft/off) re-grades every bloom in the console through one
+  multiplier — off is the flat terminal for photosensitivity and OLED care.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

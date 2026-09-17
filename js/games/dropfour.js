@@ -43,7 +43,7 @@ Strip.register({
       DIFFS.forEach(([key]) => {
         const active = difficulty === key;
         diffBtns[key].style.background = active ? "var(--amber)" : "var(--panel-2)";
-        diffBtns[key].style.color = active ? "#000" : "var(--ink-dim)";
+        diffBtns[key].style.color = active ? "var(--on-accent)" : "var(--ink-dim)";
       });
     }
     wrap.appendChild(diffRow);

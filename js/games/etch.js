@@ -103,6 +103,7 @@ Strip.register({
         a.click();
         a.remove();
         Feedback.tone("success");
+        api.tend(); // R25: keeping a drawing is the toy's caretaking beat (missions feed on it)
       }catch(e){ Feedback.tone("error"); }
     });
 

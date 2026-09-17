@@ -50,7 +50,7 @@ Strip.register({
       if(!t){
         t = document.createElement("div");
         t.className = "st-banner";
-        t.style.cssText = "position:absolute; left:0; right:0; top:30%; text-align:center; font-family:var(--font-display); font-size:15px; color:#6FCF97; letter-spacing:2px; pointer-events:none; text-shadow:0 2px 8px rgba(0,0,0,.7);";
+        t.style.cssText = "position:absolute; left:0; right:0; top:30%; text-align:center; font-family:var(--font-display); font-size:15px; color:var(--good, #6FCF97); letter-spacing:2px; pointer-events:none; text-shadow:0 2px 8px rgba(0,0,0,.7);";
         canvas.parentElement.appendChild(t);
       }
       t.textContent = text;

@@ -75,7 +75,7 @@ Strip.register({
       diffBtns.forEach((b, i) => {
         const active = i === diffIdx;
         b.style.background = active ? "var(--amber)" : "var(--panel-2)";
-        b.style.color = active ? "#000" : "var(--ink-dim)";
+        b.style.color = active ? "var(--on-accent)" : "var(--ink-dim)";
       });
     }
     wrap.appendChild(diffRow);
@@ -147,7 +147,7 @@ Strip.register({
     const NUM_COLORS = ["", "#6FA8FF", "#5AC98A", "#E8637F", "#B58CF2", "#FFB347", "#5FD4D0", "#EDEAE3", "#8B8A94"];
 
     function statUpdate(){
-      statRow.innerHTML = `<div>MINES <span style="color:var(--danger)">${MINES - flags}</span></div><div>TIME <span style="color:var(--amber)">${elapsed}s</span></div><div>BEST <span style="color:var(--purple)">${bestFor() === Infinity ? "-" : bestFor() + "s"}</span></div><div>WINS <span style="color:var(--ink)">${wins}</span>${streak > 1 ? ` · <span style="color:#6FCF97">×${streak} streak</span>` : ""}</div>`;
+      statRow.innerHTML = `<div>MINES <span style="color:var(--danger)">${MINES - flags}</span></div><div>TIME <span style="color:var(--amber)">${elapsed}s</span></div><div>BEST <span style="color:var(--purple)">${bestFor() === Infinity ? "-" : bestFor() + "s"}</span></div><div>WINS <span style="color:var(--ink)">${wins}</span>${streak > 1 ? ` · <span style="color:var(--good, #6FCF97)">×${streak} streak</span>` : ""}</div>`;
     }
 
     function render(){

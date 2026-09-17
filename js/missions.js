@@ -47,7 +47,7 @@ window.Missions = (function(){
     // Round 24 — the idle toys never emit a run end, so on a toys-only day
     // some past pools could feel unreachable. TENDING is their run: water a
     // plot, feed the fish, trade, drop a ball, play a hand. Unique ids only.
-    { key:"tend",    need:3,  label:n => "TEND " + n + " IDLE CARTRIDGES", hint:"Water, feed, trade, drop or deal — any idle toy counts" },
+    { key:"tend",    need:3,  label:n => "TEND " + n + " IDLE CARTRIDGES", hint:"Water, feed, trade, drop, deal or keep a design — any idle toy counts" },
   ];
 
   // Round 24 — a light difficulty ramp: veterans get stretched needs so the
@@ -89,7 +89,10 @@ window.Missions = (function(){
   }
 
   // ---------- state ----------
-  let state = { day:null, missions:[], swept:false, announcedDay:null, tendedIds:[] };
+  // sweptAt — when the sweep happened (ms epoch). Rides the same daily record;
+  // drives the R25 badge fade: the ✓ retires quietly ~3h after the sweep
+  // instead of staring at the player until midnight (noise on the HUD).
+  let state = { day:null, missions:[], swept:false, sweptAt:null, announcedDay:null, tendedIds:[] };
   let hydrated = false;
   let readyResolve;
   const readyPromise = new Promise(res => { readyResolve = res; });
@@ -104,6 +107,7 @@ window.Missions = (function(){
     if(!force && state.day === dk) return false;
     state.day = dk;
     state.swept = false;
+    state.sweptAt = null;
     state.announcedDay = null;
     state.tendedIds = [];
     state.missions = seededPick(dk).map(i => ({
@@ -176,14 +180,36 @@ window.Missions = (function(){
       const swept = left === 0;
       b.textContent = swept ? "✓" : String(left);
       b.classList.toggle("swept", swept);
+      b.classList.toggle("fade-out", badgePastFade());
       b.classList.add("on");
     }catch(e){}
+  }
+
+  // ---------- Round 25 — swept-✓ retirement ----------
+  // The ✓ earns its keep for ~3h after the sweep (a quiet record of the
+  // day's win), then fades out — a badge that never leaves becomes wallpaper
+  // (the R24 handoff's hardware-noise concern). A 60s re-check crosses the
+  // 3-hour boundary while the tab stays open. Pre-R25 saves that swept
+  // without a timestamp keep the all-day ✓ (honest fallback, no fake fade).
+  const SWEPT_FADE_MS = 3 * 60 * 60 * 1000;
+  let fadeTimer = null;
+  function badgePastFade(){
+    return !!(state.swept && state.sweptAt && (Date.now() - state.sweptAt) > SWEPT_FADE_MS);
+  }
+  function armBadgeFade(){
+    if(fadeTimer) return;
+    fadeTimer = setInterval(() => {
+      if(!state.swept || !state.sweptAt){ clearInterval(fadeTimer); fadeTimer = null; return; }
+      if(badgePastFade()) syncBadge();
+    }, 60000);
   }
 
   function checkSweep(){
     if(state.swept || !state.missions.length) return;
     if(state.missions.every(m => m.done)){
       state.swept = true;
+      state.sweptAt = Date.now();
+      armBadgeFade();
       if(window.XP && XP.award) XP.award("sweep");
       try{ HudToast.show("ALL MISSIONS CLEAR · +" + (window.XP ? XP._internals.AWARD.sweep : 40) + " XP SWEEP BONUS", 2400); }catch(e){}
       persist();
@@ -327,6 +353,7 @@ window.Missions = (function(){
     }
     rollDay();
     syncBadge();
+    if(state.swept && state.sweptAt) armBadgeFade(); // R25: boot after a sweep — resume the ✓ retirement clock
     readyResolve();
     // Round 24 — boot-race rescale: if the day rolled before XP finished
     // hydrating its level from IndexedDB, the tier snapshot is stale. Once XP

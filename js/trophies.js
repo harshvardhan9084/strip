@@ -511,6 +511,36 @@ window.Trophies = (function(){
     stats.appendChild(stat(depth != null ? depth + "%" : "—", "RUN DEPTH"));
     wrap.appendChild(stats);
 
+    // Round 25 — DEPTH LEAGUE: one honest ladder riding the rolling depth%.
+    // No opponents, no seasons, no fake scarcity — the only ceiling is your
+    // own bests, which is exactly the number depth% already measures. No
+    // samples → no row at all (an absent row can't lie).
+    try{
+      if(depth != null){
+        const TIERS = [
+          { min: 95, name: "SUPERNOVA" },
+          { min: 80, name: "PLASMA" },
+          { min: 60, name: "PHOSPHOR" },
+          { min: 40, name: "NEON" },
+          { min: 0,  name: "PAPER" },
+        ];
+        const tier = TIERS.find(t => depth >= t.min);
+        const next = TIERS[TIERS.indexOf(tier) - 1] || null;
+        const league = document.createElement("div");
+        league.className = "player-league";
+        const lname = document.createElement("span");
+        lname.className = "player-league-name";
+        lname.textContent = tier.name + " LEAGUE";
+        const lnote = document.createElement("span");
+        lnote.className = "player-league-note";
+        lnote.textContent = next
+          ? "avg " + depth + "% of best · " + next.min + "% to " + next.name
+          : "avg " + depth + "% of best — the ceiling is you";
+        league.appendChild(lname); league.appendChild(lnote);
+        wrap.appendChild(league);
+      }
+    }catch(e){}
+
     gridEl.appendChild(wrap);
   }
 

@@ -9,6 +9,8 @@
   const themeBtns = Array.from(document.querySelectorAll(".theme-seg-btn"));
   // Round 24 — color scheme picker (the retired bg-texture row's successor)
   const modeBtns = Array.from(document.querySelectorAll(".mode-seg-btn"));
+  // Round 25 — screen glow dial (full/soft/off → one --glow-mul attribute)
+  const glowBtns = Array.from(document.querySelectorAll(".glow-seg-btn"));
   // Round 24 — wake lock support: the control is only real where the API ships
   const wakeLockToggle = document.getElementById("wakelock-toggle");
   const wakeLockNote = document.getElementById("wakelock-note");
@@ -166,6 +168,24 @@
     b.addEventListener("click", () => {
       if(Settings.get().colorMode === b.dataset.modeValue) return;
       Settings.set({ colorMode: b.dataset.modeValue });
+      Feedback.uiTone("toggle");
+      Feedback.haptic("light");
+    });
+  });
+
+  // ---------- Round 25 — screen glow dial ----------
+  // Same contract as the scheme picker: one settings key, instant repaint via
+  // html[data-glow] → --glow-mul. The dial is pure presentation — it changes
+  // luminance, never layout or color identity, so no game can break.
+  function syncGlowBtns(settings){
+    glowBtns.forEach(b => {
+      b.setAttribute("aria-pressed", (settings.glow || "full") === b.dataset.glowValue ? "true" : "false");
+    });
+  }
+  glowBtns.forEach(b => {
+    b.addEventListener("click", () => {
+      if(Settings.get().glow === b.dataset.glowValue) return;
+      Settings.set({ glow: b.dataset.glowValue });
       Feedback.uiTone("toggle");
       Feedback.haptic("light");
     });
@@ -348,6 +368,6 @@
   });
 
   // reflect settings changes made anywhere (e.g. the lock button) back into the panel toggles
-  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
-  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); syncWakeLockSupport(); });
+  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
+  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); syncWakeLockSupport(); });
 })();

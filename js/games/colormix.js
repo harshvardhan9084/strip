@@ -73,12 +73,13 @@ Strip.register({
     ["R","G","B"].forEach((label, i) => {
       const row = document.createElement("div");
       row.style.cssText = "display:flex; align-items:center; gap:8px;";
+      const SEM = ["var(--danger, #E8637F)", "var(--good, #6FCF97)", "var(--info, #56B4E9)"]; // R25: semantic vars keep R/G/B labels legible on the paper chassis
       const tag = document.createElement("span");
       tag.textContent = label;
-      tag.style.cssText = `font-family:var(--font-display); font-size:10px; width:14px; color:${["#E8637F","#6FCF97","#56B4E9"][i]};`;
+      tag.style.cssText = `font-family:var(--font-display); font-size:10px; width:14px; color:${SEM[i]};`;
       const slider = document.createElement("input");
       slider.type = "range"; slider.min = 0; slider.max = 255; slider.value = 128;
-      slider.style.cssText = "flex:1; accent-color: " + ["#E8637F","#6FCF97","#56B4E9"][i] + ";";
+      slider.style.cssText = "flex:1; accent-color: " + SEM[i] + ";";
       slider.addEventListener("input", () => {
         rgb[i] = +slider.value;
         tweakCount++; // every nudge counts toward the fewest-tweaks record

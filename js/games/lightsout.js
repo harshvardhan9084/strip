@@ -56,7 +56,7 @@ Strip.register({
       sizeBtns.forEach((b, i) => {
         const active = i === sizeIdx;
         b.style.background = active ? "var(--amber)" : "var(--panel-2)";
-        b.style.color = active ? "#000" : "var(--ink-dim)";
+        b.style.color = active ? "var(--on-accent)" : "var(--ink-dim)";
       });
     }
     wrap.appendChild(sizeRow);
@@ -90,7 +90,7 @@ Strip.register({
       for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
         const el = cells[r*SIZE+c];
         el.style.background = grid[r][c] ? "var(--amber)" : "var(--panel-2)";
-        el.style.boxShadow = grid[r][c] ? "0 0 14px rgba(var(--glow-rgb),.5)" : "none";
+        el.style.boxShadow = grid[r][c] ? "0 0 14px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1)))" : "none";
       }
       statRow.textContent = solved ? `SOLVED in ${moves} — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
     }

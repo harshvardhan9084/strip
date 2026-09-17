@@ -379,7 +379,7 @@ Strip.register({
         b.emoji.textContent = p.stage >= STAGES.length - 1 ? sp.emoji : STAGES[p.stage];
         b.emoji.style.opacity = 1;
         b.healthFill.style.width = p.health + "%";
-        b.healthFill.style.background = p.health > 50 ? "#6FCF97" : p.health > 20 ? "var(--amber)" : "var(--danger)";
+        b.healthFill.style.background = p.health > 50 ? "var(--good, #6FCF97)" : p.health > 20 ? "var(--amber)" : "var(--danger)";
         // Round 21: the label no longer lies. "Growing" means growing —
         // the hidden 60-health gate is gone; a thirsty-but-alive plant
         // says so, and a weak one asks for water while still progressing.

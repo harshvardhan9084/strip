@@ -85,7 +85,7 @@ Strip.register({
         const ch = phrase[i];
         if(i < typed.length){
           const correct = typed[i] === ch;
-          html += `<span style="color:${correct ? "#6FCF97" : "var(--danger)"}; ${correct?"":"text-decoration:underline;"}">${ch}</span>`;
+          html += `<span style="color:${correct ? "var(--good, #6FCF97)" : "var(--danger)"}; ${correct?"":"text-decoration:underline;"}">${ch}</span>`;
         } else {
           html += `<span style="color:var(--ink-dim);">${ch}</span>`;
         }

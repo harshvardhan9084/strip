@@ -46,7 +46,7 @@ Strip.register({
       diffBtns.forEach((b, i) => {
         const active = i === diffIdx;
         b.style.background = active ? "var(--amber)" : "var(--panel-2)";
-        b.style.color = active ? "#000" : "var(--ink-dim)";
+        b.style.color = active ? "var(--on-accent)" : "var(--ink-dim)";
       });
     }
     wrap.appendChild(statRow);

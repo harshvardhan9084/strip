@@ -33,7 +33,9 @@ Strip.register({
     wrap.appendChild(bankRow);
 
     const table = document.createElement("div");
-    table.style.cssText = "width:min(78vw,280px); min-height:150px; border-radius:12px; background:rgba(16,16,24,.8); padding:10px; display:flex; flex-direction:column; gap:8px;";
+    // Round 25: the felt is a SHELL surface (not a CRT screen), so it follows
+    // the chassis via --felt — dark ink on it stays legible on the paper rig.
+    table.style.cssText = "width:min(78vw,280px); min-height:150px; border-radius:12px; background:var(--felt, rgba(16,16,24,.8)); padding:10px; display:flex; flex-direction:column; gap:8px;";
     wrap.appendChild(table);
 
     const dealerRow = document.createElement("div");
@@ -167,7 +169,7 @@ Strip.register({
 
     function render(msg){
       bankRow.innerHTML = `BANK <span style="color:var(--amber)">${bank}</span> · BET <span style="color:var(--purple)">${bet}</span>` +
-        (streak > 1 ? ` · <span style="color:#6FCF97">streak ×${streak}</span>` : "");
+        (streak > 1 ? ` · <span style="color:var(--good, #6FCF97)">streak ×${streak}</span>` : "");
       renderRow(dealerRow, dealer, !holeRevealed && dealer.length);
       renderRow(playerRow, player, false);
       rebuildChips();

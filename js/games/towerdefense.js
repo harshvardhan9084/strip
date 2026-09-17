@@ -109,16 +109,18 @@ Strip.register({
     container.appendChild(wrap);
 
     const TOWER_TYPES = {
-      arrow:  { cost: 15, range: 2.4, dmg: 8,  rate: 350, color: "#FFB347", splash: 0, slow: 0 },
-      cannon: { cost: 30, range: 2.0, dmg: 18, rate: 900, color: "#E8637F", splash: 1.1, slow: 0 },
-      frost:  { cost: 25, range: 1.8, dmg: 3,  rate: 500, color: "#56B4E9", splash: 0, slow: 0.5 },
+      // R25: cssVar — semantic color for DOM surfaces on the shell (paper
+      // chassis re-grades it); `color` stays the raw CRT value for canvas art.
+      arrow:  { cost: 15, range: 2.4, dmg: 8,  rate: 350, color: "#FFB347", cssVar: "var(--warn, #FFB347)", splash: 0, slow: 0 },
+      cannon: { cost: 30, range: 2.0, dmg: 18, rate: 900, color: "#E8637F", cssVar: "var(--danger, #E8637F)", splash: 1.1, slow: 0 },
+      frost:  { cost: 25, range: 1.8, dmg: 3,  rate: 500, color: "#56B4E9", cssVar: "var(--info, #56B4E9)", splash: 0, slow: 0.5 },
     };
     let selectedType = "arrow";
     let selectedTower = null; // the tower currently shown in the upgrade panel
 
     Object.entries(TOWER_TYPES).forEach(([key, t]) => {
       const btn = document.createElement("button");
-      btn.style.cssText = `padding:6px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer; font-size:10px; color:${t.color};`;
+      btn.style.cssText = `padding:6px 10px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2); cursor:pointer; font-size:10px; color:${t.cssVar};`;
       btn.innerHTML = `${key[0].toUpperCase()+key.slice(1)}<br><span style="color:var(--ink-dim)">${t.cost}g</span>`;
       btn.addEventListener("click", () => { selectedType = key; selectTower(null); updateTowerButtons(); });
       btn._key = key;

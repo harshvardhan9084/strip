@@ -111,7 +111,7 @@ Strip.register({
       statRow.innerHTML = `
         <div>DAY<br><span style="color:var(--ink); font-size:12px;">${state.day}</span></div>
         <div>GOLD<br><span style="color:var(--amber); font-size:12px;">${fmt(state.gold)}</span></div>
-        <div>FOOD<br><span style="color:#6FCF97; font-size:12px;">${fmt(state.food)}</span></div>
+        <div>FOOD<br><span style="color:var(--good, #6FCF97); font-size:12px;">${fmt(state.food)}</span></div>
         <div>POP<br><span style="color:var(--purple); font-size:12px;">${state.population}/${state.houses*POP_CAP_PER_HOUSE}</span></div>
         <div>BEST<br><span style="color:var(--ink-dim); font-size:12px;">${best}</span></div>
       `;

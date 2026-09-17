@@ -252,7 +252,7 @@ Strip.register({
         state.stock[key] -= n;
         Feedback.tone("select"); Feedback.haptic("light");
         api.tend(); // Round 24: trading is the post's caretaking beat
-        addFloat(key, "+" + fmt(proceeds) + "g", margin > 0 ? "#6FCF97" : "var(--ink-dim)");
+        addFloat(key, "+" + fmt(proceeds) + "g", margin > 0 ? "var(--good, #6FCF97)" : "var(--ink-dim)");
       }
       checkMilestones();
       persist();
@@ -337,7 +337,7 @@ Strip.register({
         // trend arrow vs base price — the market's shape at a glance
         const delta = state.prices[g.key] / g.basePrice - 1;
         r.info.querySelector(".trend").innerHTML =
-          delta >= 0.15 ? `<span style="color:#6FCF97">▲</span>` :
+          delta >= 0.15 ? `<span style="color:var(--good, #6FCF97)">▲</span>` :
           delta <= -0.15 ? `<span style="color:var(--danger)">▼</span>` : `<span style="color:var(--ink-dim)">–</span>`;
         // 30-tick sparkline
         const h = state.history[g.key] || [];

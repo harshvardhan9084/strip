@@ -253,6 +253,23 @@ try{
         </div>
       </div>
 
+      <div style="margin-top:12px"></div>
+
+      <!-- Round 25 — SCREEN GLOW: the whole console's bloom flows through one
+           --glow-mul multiplier, so this dial re-grades every glow at once.
+           OFF is the flat terminal (photosensitivity / OLED burn-in care). -->
+      <div class="theme-row">
+        <div class="setting-text">
+          <div class="setting-label">Screen glow</div>
+          <div class="setting-desc">The phosphor bloom on titles, chips and accents. Soft keeps a whisper of it; off gives a flat terminal look that's easier on sensitive eyes and OLED batteries.</div>
+        </div>
+        <div class="theme-options" role="group" aria-label="Screen glow">
+          <button type="button" class="glow-seg-btn" data-glow-value="full" aria-pressed="true">FULL</button>
+          <button type="button" class="glow-seg-btn" data-glow-value="soft" aria-pressed="false">SOFT</button>
+          <button type="button" class="glow-seg-btn" data-glow-value="off" aria-pressed="false">OFF</button>
+        </div>
+      </div>
+
       <label class="setting-row" style="margin-top:12px">
         <div class="setting-text">
           <div class="setting-label">CRT effects</div>
