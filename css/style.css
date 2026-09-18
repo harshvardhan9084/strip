@@ -1746,6 +1746,50 @@ html[data-theme="ice"] .drawer-item-depth.t-phosphor{ color:var(--warn); }
 html.reduce-motion .drawer-item-depth.chip-pop,
 html.reduce-motion .drawer-item-depth.tier-up{ animation:none; }
 
+/* ---------- Round 28 — the chip gains a direction ----------
+   Trend arrows: the recent half of the ring vs the earlier half. ↑ green
+   (landing deeper lately), ↓ red (shallower), flat stays BARE — a quiet chip
+   is an honest chip. Colors ride the R25 semantic layer, so LIGHT is
+   auto-graded like every other semantic use. */
+.drawer-item-depth .depth-trend{
+  font-weight:700; font-size:9px; line-height:1;
+  margin-left:1px;
+}
+.drawer-item-depth .depth-trend.trend-up{   color:var(--good); }
+.drawer-item-depth .depth-trend.trend-down{ color:var(--danger); }
+
+/* Tier-up float — the deck-level moment: the reached tier's name rises off
+   the row and fades. One-shot (the node removes itself), never queued twice;
+   reduce-motion players get the chip glow only (which reduce-motion already
+   silences — the information stays in the re-graded chip itself). */
+.drawer-item .depth-float{
+  position:absolute; right:10px; top:2px;
+  font-family:var(--font-display); font-size:9px; letter-spacing:.14em;
+  pointer-events:none;
+  animation:depth-float-rise 1.3s cubic-bezier(.22,.9,.36,1) both;
+  z-index:2;
+}
+.drawer-item .depth-float.neon{      color:var(--info); }
+.drawer-item .depth-float.phosphor{  color:var(--amber); }
+html[data-theme="ice"] .drawer-item .depth-float.phosphor{ color:var(--warn); }
+.drawer-item .depth-float.plasma{    color:var(--purple); }
+.drawer-item .depth-float.supernova{ color:var(--good); }
+@keyframes depth-float-rise{
+  0%{ opacity:0; transform:translateY(4px); }
+  18%{ opacity:1; }
+  100%{ opacity:0; transform:translateY(-16px); }
+}
+html.reduce-motion .drawer-item .depth-float{ animation:none; opacity:0; }
+
+/* Live sparkline depth readout — a one-breath highlight when the readout on
+   the centered card re-grades because a run JUST ended on this game. */
+@keyframes depth-live-flash{
+  0%{ color:var(--good); text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.6*var(--glow-mul,1))); }
+  100%{ text-shadow:0 0 0 rgba(var(--glow-rgb),0); }
+}
+.cart-sparkline-depth.depth-live{ animation:depth-live-flash 1.1s ease-out both; }
+html.reduce-motion .cart-sparkline-depth.depth-live{ animation:none; }
+
 /* ---------- DEPTH readout on the centered card's sparkline chip ---------- */
 .cart-sparkline-depth{
   font-family:var(--font-display); font-size:9px; letter-spacing:.08em;

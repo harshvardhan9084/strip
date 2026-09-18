@@ -394,6 +394,33 @@
     // QA seam (Round 20, same precedent as Daily._internals): the api factory
     // itself, so headless regression pins exercise the EXACT production XP
     // hook (new-best award) instead of a copy of it.
-    _testMakeApi: makeApi
+    _testMakeApi: makeApi,
+    // QA seam (Round 28): which cartridge is centered right now — lets the
+    // live-sparkline pin WAIT for the jump to actually land instead of
+    // guessing sleep durations over smooth scroll.
+    _centeredMod: () => (cards[currentCenterIdx] || {}).mod || null
   };
+
+  // Round 28 (R27 handoff #1) — the sparkline goes LIVE. Its depth readout
+  // was signature-graded but only re-checked on scroll frames / a 15s TTL,
+  // so a run finished on the centered cartridge left the card showing the
+  // stale average until you scrolled. The shell knows which card is centered
+  // (cards[currentCenterIdx]) and the sparkline's cache lives on the cart
+  // element — so the shell is the right place to close the loop: on a depth
+  // update for the CENTERED game, bust the TTL cache and re-grade now. The
+  // readout only flashes when the chip actually rebuilt (a no-op signature
+  // never celebrates — same honesty rule as the drawer chip).
+  window.addEventListener("strip:depth-updated", (e) => {
+    const d = e.detail;
+    if(!d || !d.id) return;
+    const entry = cards[currentCenterIdx];
+    if(!entry || !entry.mod || entry.mod.id !== d.id || !entry.el) return;
+    const before = entry.el.querySelector(".cart-sparkline-depth");
+    entry.el._sparkRec = null; // the new sample must land NOW, not at the TTL
+    if(window.Sparkline) Sparkline.badge(entry.el, entry.mod);
+    setTimeout(() => {
+      const after = entry.el.querySelector(".cart-sparkline-depth");
+      if(after && after !== before) after.classList.add("depth-live");
+    }, 250);
+  }, { passive:true });
 })();

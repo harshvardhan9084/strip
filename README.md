@@ -158,7 +158,13 @@ only the shell changes.
   celebration), ghost ids from removed cartridges are pruned on the daily
   rollover, a **▼ DEEP** chip flattens the drawer into DEEPEST FIRST order
   (unmeasured games trail honestly), and on the Ice skin the Phosphor tier
-  wears warm gold so adjacent tiers never read as one color.
+  wears warm gold so adjacent tiers never read as one color. Round 28 closes
+  the loop: the centered card's **DEPTH readout updates live** the moment a
+  run ends on it, chips grow a **trend arrow** (↑ green when your recent runs
+  are landing deeper than the earlier half, ↓ red when shallower, bare when
+  flat — no arrow without at least four runs to split), the DEEP sort is
+  **remembered** across visits, and a tier boundary crossing floats the
+  reached tier's name right off the row.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

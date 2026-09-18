@@ -116,6 +116,29 @@ window.Depth = (function(){
     return Array.isArray(arr) ? arr.length : 0;
   }
 
+  // ---------- Round 27 — trend: is the player landing DEEPER lately? ----------
+  // The avg answers "how deep am I usually"; this answers "which way am I
+  // moving" — the second question a player actually asks before opening a
+  // cartridge. Honest by construction: the ring is split in half (recent
+  // ⌈n/2⌉ vs the rest), and only a split with enough samples on both sides
+  // (n >= 4 → at least 2 per half) may speak. A |delta| under the threshold
+  // is a FLAT trend — reported as flat, never dressed up as movement.
+  const TREND_MIN_SAMPLES = 4;   // at least 2 per half
+  const TREND_THRESHOLD  = 3;    // percentage points that count as movement
+  function trendFor(id){
+    const arr = state.games[id];
+    if(!Array.isArray(arr) || arr.length < TREND_MIN_SAMPLES) return null;
+    const n = arr.length;
+    const half = Math.ceil(n / 2);
+    const older = arr.slice(0, n - half);
+    const recent = arr.slice(n - half);
+    const mean = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+    const delta = Math.round(mean(recent) - mean(older));
+    if(delta >= TREND_THRESHOLD) return { dir: "up", delta };
+    if(delta <= -TREND_THRESHOLD) return { dir: "down", delta };
+    return { dir: "flat", delta };
+  }
+
   // The Player Card league's own thresholds (trophies.js) drive the chip's
   // tier — one vocabulary everywhere, never two names for the same number.
   const TIERS = [
@@ -148,16 +171,28 @@ window.Depth = (function(){
   // ---------- drawer chip ----------
   // Inserted BEFORE the star so the row keeps its anatomy (main · depth · ★).
   // No data → no chip: an absent chip can't lie, same rule as the league row.
+  // Round 28 — the chip may also carry a trend arrow (↑/↓) when the recent
+  // half of the ring really is landing deeper/shallower than the earlier
+  // half; a flat trend stays bare (a quiet chip is an honest chip).
   function decorateDrawerItem(row, id){
     const avg = avgFor(id);
     if(avg == null) return;
     const tier = tierFor(avg);
     const n = countFor(id);
+    const trend = trendFor(id);
     const chip = document.createElement("span");
     chip.className = "drawer-item-depth " + tier.cls;
-    chip.innerHTML = "<i></i>" + avg + "%";
+    chip.innerHTML = "<i></i>" + avg + "%" +
+      (trend && trend.dir !== "flat"
+        ? '<b class="depth-trend trend-' + trend.dir + '" aria-hidden="true">' +
+          (trend.dir === "up" ? "\u2191" : "\u2193") + "</b>"
+        : "");
     chip.title = "Depth: your last " + n + " finished run" + (n === 1 ? "" : "s") +
-      " averaged " + avg + "% of your own best — " + tier.name + " tier";
+      " averaged " + avg + "% of your own best — " + tier.name + " tier" +
+      (trend && trend.dir !== "flat"
+        ? " · recent runs landing " + (trend.dir === "up" ? "deeper" : "shallower") +
+          " (" + (trend.dir === "up" ? "+" : "") + trend.delta + " vs earlier half)"
+        : "");
     chip.setAttribute("role", "img");
     chip.setAttribute("aria-label", chip.title);
     const star = row.querySelector(".drawer-item-fav");
@@ -184,7 +219,9 @@ window.Depth = (function(){
     whenReady: () => readyPromise,
     avgFor,
     countFor,
+    trendFor,
     decorateDrawerItem,
-    _internals: { record, sanitize, SAMPLES, TIERS, tierFor, pruneGhosts },
+    _internals: { record, sanitize, SAMPLES, TIERS, tierFor, pruneGhosts,
+                  TREND_MIN_SAMPLES, TREND_THRESHOLD },
   };
 })();

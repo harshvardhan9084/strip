@@ -19,6 +19,7 @@
   let recents = [];
   let activeCat = null;   // Round 20: chip filter — null = ALL, "__favs" = favorites, else a category label
                           // Round 27: "__deep" = the whole deck flattened, deepest runs first
+  let deepSortPref = false; // Round 28: persisted — the drawer reopens in DEEP sort if it was left there
 
   // ---------- persistence ----------
   async function loadMeta(){
@@ -26,10 +27,16 @@
       const data = await StripDB.loadState(META_ID);
       if(data && Array.isArray(data.favorites)) favorites = new Set(data.favorites);
       if(data && Array.isArray(data.recents)) recents = data.recents.slice(0, RECENTS_MAX);
+      // Round 28 (R27 handoff #2) — the DEEP sort graduated from a session
+      // state to a preference: if the player browsed deepest-first last time,
+      // the drawer opens that way again. It is a SORT, not a filter — it
+      // never hides cartridges, so restoring it can't strand a row.
+      deepSortPref = !!(data && data.deepSort);
+      if(deepSortPref) activeCat = "__deep";
     }catch(e){}
   }
   function saveMeta(){
-    StripDB.saveState(META_ID, { favorites: [...favorites], recents }).catch(()=>{});
+    StripDB.saveState(META_ID, { favorites: [...favorites], recents, deepSort: deepSortPref }).catch(()=>{});
   }
 
   // ---------- recents tracking ----------
@@ -105,7 +112,20 @@
       const chip = row.querySelector(".drawer-item-depth");
       if(chip){
         chip.classList.add("chip-pop");
-        if(d.tierUp) chip.classList.add("tier-up");
+        if(d.tierUp){
+          chip.classList.add("tier-up");
+          // Round 28 — the deck-level moment (R27 judge note: the celebration
+          // was chip-scale only): the reached tier name rises off the row and
+          // fades — readable once, gone, never queued twice per event.
+          if(!row.querySelector(".depth-float")){
+            const float = document.createElement("span");
+            float.className = "depth-float " + (d.tier || "").toLowerCase();
+            float.textContent = "\u25b2 " + d.tier;
+            float.setAttribute("aria-hidden", "true");
+            row.appendChild(float);
+            setTimeout(() => float.remove(), 1400);
+          }
+        }
         try{ Feedback.haptic(d.tierUp ? "medium" : "light"); }catch(err){}
       }
     }, { passive:true });
@@ -125,6 +145,11 @@
       c.setAttribute("aria-pressed", activeCat === value ? "true" : "false");
       c.addEventListener("click", () => {
         activeCat = (activeCat === value) ? null : value; // tap again = back to ALL
+        // Round 28 — only the DEEP sort is a persisted preference; filters
+        // (★, categories, ALL) stay session-only, and leaving DEEP — by any
+        // means — clears the preference honestly.
+        deepSortPref = (activeCat === "__deep");
+        saveMeta();
         renderChips();
         renderGrid();
         try{ Feedback.uiTone("toggle"); Feedback.haptic("light"); }catch(e){}

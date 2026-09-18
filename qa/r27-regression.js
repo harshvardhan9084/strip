@@ -91,6 +91,13 @@ window.__qa27 = (async () => {
     const rowFor = (id) => grid.querySelector('.drawer-item[data-id="' + id + '"]');
     const snakeRow = rowFor(idSnake);
     const hadChipBefore = !!(snakeRow && snakeRow.querySelector('.drawer-item-depth'));
+    // R28 amendment: the "focus kept" conjunct read document.activeElement,
+    // which is environment-flaky in headless (the PAGE itself can hold no
+    // focus — activeElement stays <body> with the panel focused-or-not).
+    // The mechanism the pin actually protects is "no grid re-render" — that
+    // is provable STRONGER via row-node identity: a re-render builds new row
+    // nodes; the in-place refresh mutates children of the SAME node.
+    const rowNodeBefore = snakeRow;
     window.dispatchEvent(new CustomEvent('strip:gameover', {
       detail: { id: idSnake, outcome: 'over', score: 62, ts: Date.now() }
     }));
@@ -99,8 +106,8 @@ window.__qa27 = (async () => {
     const chip = row2 && row2.querySelector('.drawer-item-depth');
     const appeared = !!chip && chip.textContent.trim() === '62%' &&
       chip.classList.contains('chip-pop');
-    // focused element survived (no grid re-render stole it)
-    const focusKept = document.activeElement === document.getElementById('drawer-panel');
+    // same node = the grid was NOT re-rendered (the property that keeps focus safe)
+    const inPlace = row2 === rowNodeBefore;
     // second event re-grades the SAME chip in place — never a duplicate
     window.dispatchEvent(new CustomEvent('strip:gameover', {
       detail: { id: idSnake, outcome: 'over', score: 62, ts: Date.now() }
@@ -111,9 +118,9 @@ window.__qa27 = (async () => {
     const regraded = chips.length === 1 && chip2 &&
       Math.abs(parseFloat(chip2.textContent) - Depth.avgFor(idSnake)) < 0.01;
     ok('A2 live chip refresh in place (no re-render, no duplicate)',
-       !hadChipBefore && appeared && focusKept && regraded,
+       !hadChipBefore && appeared && inPlace && regraded,
        'before=' + hadChipBefore + ' appeared=' + appeared +
-       ' focus=' + focusKept + ' chips=' + chips.length);
+       ' sameNode=' + inPlace + ' chips=' + chips.length);
   }
 
   // ---------- A3: tier-up on a real boundary crossing ----------

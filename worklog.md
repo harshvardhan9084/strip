@@ -1790,3 +1790,61 @@ tests as a primary mode; (3) weekly league expansion (rolling 7-day tiers)
 needs a retention argument first; (4) real-device pass (11th carry): haptics on
 tier-up, wake lock, badge fade, iOS PWA install; (5) mission pool tuning once
 tend + depth data accumulates.
+
+## Round 28 — "The Loop Closes" (live sparkline + trend arrows + DEEP persistence + tier float)
+
+(QA baseline on the untouched R27 deck: r27 10/10 after one suite hardening,
+r26 15/15, r25 18/18, r24 25/25, r23 16/17 — the 1 = documented run-cap
+artifact. Focus came from the R27 handoff #1/#2 plus one own feature.)
+
+### What the round did
+
+(1) LIVE SPARKLINE: the shell — which owns cards[] and the centered index —
+listens to strip:depth-updated; when the affected game is the CENTERED
+cartridge it busts the sparkline TTL cache and re-grades immediately, so the
+card's DEPTH readout updates the moment a run ends on it, no scroll needed.
+The .depth-live flash fires only when the chip actually rebuilt (an unchanged
+signature never celebrates). (2) TREND ARROWS: Depth.trendFor splits the ring
+into recent ⌈n/2⌉ vs the earlier half; ±3 points and n≥4 or no opinion —
+chips wear a green ↑ / red ↓ (--good/--danger, LIGHT auto-graded), flat stays
+bare, and the title explains the delta. (3) DEEP PERSISTENCE: __deck_meta__
+.deepSort survives reloads — the drawer reopens DEEPEST FIRST with the chip
+lit; any other chip tap clears it honestly (a sort, never a filter). (4)
+TIER-UP FLOAT: a boundary crossing floats "▲ TIER" off the drawer row in the
+tier's own hue — the deck-level moment the R27 judge noted — one-shot,
+self-removing, reduce-motion silent. sw v27; README updated; new QA seam
+StripShell._centeredMod() (suites poll instead of sleeping through smooth
+scroll).
+
+### Verification
+
+qa/r28-regression.js NEW: 9 asserts — trend math + exported constants; chip
+arrow render with flat-bare and title copy; live centered re-grade 60%→68%
+with flash (polled); game-scoped negative with the flash class pre-stripped;
+DEEP persistence round-trip through the real store; best-independent tier-up
+float loop; 51/51 mount; zero console errors. Two initial FAILs were TEST bugs
+(a CSSStyleDeclaration===Element nonsense comparison; fixed sleeps racing
+smooth scroll + the sparkline's history≥2 floor) — both fixed and documented.
+Regressions: r27 10/10, r26 15/15, r25 18/18, r24 23/23, r23 14/17 (all 3 the
+documented run-cap artifact; runToday 20/20 verified; r24's mid-session win
+pin passed). Live visual: arrows at 68%↑/82%↑, DEEP boot-restore, snake chip
+73→85% live with t-plasma flip, LIGHT arrows daylight-graded (computed
+21,128,61). Flow test 0 errors.
+
+### Judge verdict (Round 28): 9.4/10 (target ≥9 met)
+
+What earned it: the R27 handoff's last "not alive yet" surface (the centered
+card's readout) closed with the same honesty rules as the drawer chip (no
+flash on no-op signatures); the trend arrow answers a real player question
+with a real threshold and an honest FLAT (not a styled zero); DEEP
+persistence respects user choice without ever hiding a row; the float gives
+the celebration the deck-level moment; and the round's own QA caught two of
+its own bugs before push while hardening an older suite's flaky pin.
+Why not higher: the trend split is the crude half-vs-half of a 40-ring
+(recency weighting needs real ring data to tune); DEEP persistence has no
+explanatory affordance; the float is drawer-scale (a centered-card tier-up
+moment still doesn't exist); real-device pass carries the 12th time.
+Next moves suggested by the judge: (1) recency-weighted trend once rings
+fill; (2) a centered-card tier-up moment (the card the run just ended on);
+(3) weekly league expansion, still parked pending a retention argument; (4)
+real-device pass (12th carry); (5) mission pool tuning once data accumulates.
