@@ -59,10 +59,51 @@ window.Depth = (function(){
   function record(id, score, best){
     if(!id || typeof id !== "string") return;
     if(!(best > 0) || !Number.isFinite(score) || score <= 0) return;
+    // Round 27 — capture the pre-run average BEFORE the sample lands, so the
+    // live-refresh event can tell the drawer whether this run just crossed a
+    // tier boundary (the first data point never celebrates: no "before" means
+    // no story about movement, just a fact appearing).
+    const before = avgFor(id);
     const arr = state.games[id] || (state.games[id] = []);
     arr.push(Math.min(100, Math.round((score / best) * 100)));
     if(arr.length > SAMPLES) state.games[id] = arr.slice(-SAMPLES);
     persist();
+    // Round 27 — the drawer re-grades JUST the affected row's chip from this
+    // event (R26 handoff #1: chips used to snapshot at drawer-open, so a run
+    // finished while browsing left the row stale until the next open).
+    try{
+      const after = avgFor(id);
+      const rank = (t) => TIERS.indexOf(t);
+      const tierUp = before != null && after != null &&
+        rank(tierFor(after)) < rank(tierFor(before));
+      window.dispatchEvent(new CustomEvent("strip:depth-updated", {
+        detail: { id, avg: after, count: countFor(id), tierUp,
+                  tier: tierFor(after).name }
+      }));
+    }catch(e){}
+  }
+
+  // ---------- Round 27 — ghost-id pruning (safe at rollover) ----------
+  // Depth keys are game ids; when a cartridge is renamed or removed, its
+  // samples survive as ghosts that no row will ever render — dead weight in
+  // the store, the export file, and the future DEEP sort. Boot-time pruning
+  // stays UNSAFE (script order: depth.js initializes before games register,
+  // so an early registry read would wipe everything — the R26 analysis), but
+  // strip:daily-rollover fires only after the async boot chain, by which
+  // point the synchronous game scripts have long registered. Guarded anyway:
+  // pruning runs only when the registry is non-empty AND the session is
+  // hydrated, so a failed read can never erase real records.
+  function pruneGhosts(){
+    if(!hydrated) return [];
+    if(!window.Strip || typeof Strip.all !== "function") return [];
+    const known = new Set(Strip.all().map(m => m.id));
+    if(!known.size) return []; // empty registry = registry not loaded yet
+    const removed = [];
+    for(const id in state.games){
+      if(!known.has(id)){ removed.push(id); delete state.games[id]; }
+    }
+    if(removed.length) persist();
+    return removed;
   }
 
   function avgFor(id){
@@ -98,6 +139,12 @@ window.Depth = (function(){
     }
   }
 
+  // Round 27 — daily rollover is the one moment the registry is guaranteed
+  // loaded (see pruneGhosts): retire ghost ids, keep the store honest.
+  function onRollover(){
+    try{ pruneGhosts(); }catch(e){}
+  }
+
   // ---------- drawer chip ----------
   // Inserted BEFORE the star so the row keeps its anatomy (main · depth · ★).
   // No data → no chip: an absent chip can't lie, same rule as the league row.
@@ -120,6 +167,7 @@ window.Depth = (function(){
 
   async function init(){
     window.addEventListener("strip:gameover", onGameOver, { passive:true });
+    window.addEventListener("strip:daily-rollover", onRollover, { passive:true });
     let res = null;
     try{ res = await StripDB.loadStateChecked(STORE_ID); }catch(e){ res = null; }
     if(res && res.status === "ok"){
@@ -137,6 +185,6 @@ window.Depth = (function(){
     avgFor,
     countFor,
     decorateDrawerItem,
-    _internals: { record, sanitize, SAMPLES, TIERS, tierFor },
+    _internals: { record, sanitize, SAMPLES, TIERS, tierFor, pruneGhosts },
   };
 })();

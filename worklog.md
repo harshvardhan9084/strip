@@ -1732,3 +1732,61 @@ pruning on daily rollover (registry fully loaded by then); (3) per-game depth
 could drive drawer sort or a weekly league expansion — the data now exists;
 (4) real-device pass (10th carry): haptics, wake lock, badge fade, iOS PWA
 install flow; (5) mission pool second tuning pass once tend data accumulates.
+
+## Round 27 — "The Living Chip" (live depth refresh + rollover pruning + DEEP sort + ICE tier hue)
+
+(Session resumed with a fresh PAT; the FIRST act was closing Round 26's only
+unfinished step — the blocked push: remote URL updated, f22c838 landed on
+origin/main, Pages 200. The round itself ran on the R26 handoff, judge 9.4/10.)
+
+### What the round did
+
+All four named handoff items shipped. (1) LIVE DEPTH CHIP: depth.record()
+captures the pre-run average, then dispatches strip:depth-updated after
+persisting; the drawer — whose rows now carry data-id — re-grades just the
+affected row in place (stale chip out, fresh chip in), so a run finished while
+browsing updates the list the moment it lands, with keyboard focus untouched.
+Crossing a tier boundary adds the .tier-up glow + medium haptic (the drawer's
+smallest celebration); a first data point never celebrates. Both animations
+respect reduce-motion. (2) GHOST PRUNING: pruneGhosts() retires depth keys no
+registered cartridge owns, wired to strip:daily-rollover — the one moment the
+registry is guaranteed loaded (boot-time stays unsafe per the R26 script-order
+analysis) — triple-guarded (hydrated + non-empty registry + removed-list
+return) and idempotent. (3) DEEP SORT: a "▼ DEEP" chip flattens the drawer into
+one DEEPEST FIRST group ordered by average depth, unmeasured games trailing
+honestly after every measured one; ALL restores the shelves. (4) ICE TIER HUE:
+on the ice skin PHOSPHOR now wears --warn warm gold instead of frost-cyan, so
+PHOSPHOR and NEON sit on opposite palette sides; other skins unchanged; LIGHT
+auto-grades ride the R25 semantic layer. sw v26; README updated.
+
+### Verification
+
+qa/r27-regression.js NEW: 11 asserts, 10/10 on a clean session (event shape
+incl. first-sample-never-celebrates; in-place refresh with focus kept and no
+duplicate chip; tier-up on crossing only; rollover pruning + idempotence; DEEP
+sort contract incl. nulls-last and ALL-restore; ICE hue; data-id anatomy; 51/51
+mount sweep; zero console errors). Regressions: r26 15/15, r25 18/18, r24
+23/23, r23 14/17 — the 3 fails are the documented run-cap artifact (profile at
+20/20 after the suites' own gameovers; r24's win-ladder pin passed mid-session,
+proving the ladder). Live screenshots: DEEPEST FIRST list, the 92%→95%
+SUPERNOVA glow caught in the drawer, ice gold/blue separation, light-chassis
+chips legible.
+
+### Judge verdict (Round 27): 9.4/10 (target ≥9 met)
+
+What earned it: every R26 handoff item shipped AND was caught verified — the
+live chip closes the "snapshot at open" wound with focus discipline intact,
+the pruning is the honest version (the unsafe moment was understood and
+avoided, not papered over), DEEP sort is a real browsing order built from real
+data rather than a decoration, and the mandatory styling/features dimensions
+both landed with two TEST bugs caught and documented by the round's own QA.
+Why not higher: the sparkline still re-grades only on re-render (the chip is
+alive, the card readout is not); DEEP sort is session-state (unpersisted by
+design, unproven as a primary mode); the tier-up celebration is chip-scale
+only — no deck-level moment; real-device pass carries the 11th time.
+Next moves suggested by the judge: (1) a live path for the centered card's
+sparkline depth readout; (2) persist the DEEP choice in __deck_meta__ if it
+tests as a primary mode; (3) weekly league expansion (rolling 7-day tiers)
+needs a retention argument first; (4) real-device pass (11th carry): haptics on
+tier-up, wake lock, badge fade, iOS PWA install; (5) mission pool tuning once
+tend + depth data accumulates.

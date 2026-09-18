@@ -1717,6 +1717,34 @@ html.reduce-motion #trophy-missions{ transition:none; }
 .drawer-item-depth.t-plasma{    color:var(--purple); }
 .drawer-item-depth.t-supernova{ color:var(--good); text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1))); }
 html[data-mode="light"] .drawer-item-depth.t-supernova{ text-shadow:none; }
+/* Round 27 — tier hue separation (R26 handoff #4): on the ICE skin --amber
+   is frost-cyan #54D9EC and NEON is --info blue #56B4E9 — two blues a few
+   degrees apart, reading as one tier. PHOSPHOR wears --warn there instead
+   (warm gold, untouched by the ice remap): adjacent tiers now sit on opposite
+   sides of the palette. Every other skin keeps var(--amber) — on amber/green/
+   violet the two hues were already clearly distinct, so no visual change. */
+html[data-theme="ice"] .drawer-item-depth.t-phosphor{ color:var(--warn); }
+
+/* ---------- Round 27 — the live chip ----------
+   chip-pop: any live re-grade (a run finished while the drawer is open) —
+   a quick breath so the row reads as freshly updated, not repainted.
+   tier-up: the boundary crossing — the drawer's smallest celebration, a
+   glow flash on the chip that just got promoted. Both respect the
+   reduce-motion contract like every other shell animation. */
+@keyframes depth-chip-pop{
+  0%{ transform:scale(.72); opacity:.4; }
+  55%{ transform:scale(1.14); opacity:1; }
+  100%{ transform:scale(1); opacity:.92; }
+}
+.drawer-item-depth.chip-pop{ animation:depth-chip-pop .34s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes depth-chip-tierup{
+  0%{ transform:scale(1); box-shadow:0 0 0 rgba(var(--glow-rgb),0); }
+  35%{ transform:scale(1.22); box-shadow:0 0 14px rgba(var(--glow-rgb),calc(.75*var(--glow-mul,1))); }
+  100%{ transform:scale(1); box-shadow:0 0 0 rgba(var(--glow-rgb),0); }
+}
+.drawer-item-depth.tier-up{ animation:depth-chip-pop .34s cubic-bezier(.34,1.56,.64,1) both, depth-chip-tierup .9s ease-out .1s both; }
+html.reduce-motion .drawer-item-depth.chip-pop,
+html.reduce-motion .drawer-item-depth.tier-up{ animation:none; }
 
 /* ---------- DEPTH readout on the centered card's sparkline chip ---------- */
 .cart-sparkline-depth{

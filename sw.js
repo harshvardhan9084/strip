@@ -1,5 +1,5 @@
-const SHELL_CACHE = 'strip-shell-v25';
-const RUNTIME_CACHE = 'strip-runtime-v25';
+const SHELL_CACHE = 'strip-shell-v26';
+const RUNTIME_CACHE = 'strip-runtime-v26';
 
 // Bump BOTH version strings every round that touches any shell file —
 // installed PWAs key their caches on these names, so a stale version means

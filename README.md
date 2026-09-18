@@ -153,7 +153,12 @@ only the shell changes.
   OS **reduced-motion** preference on first boot (an explicit motion choice in
   Settings always wins). The drawer also gained an open cascade, and the feed
   reads with a subtle depth-of-field focus pull — the centered cartridge is the
-  sharp one.
+  sharp one. Round 27 makes the chip alive: finish a run while the drawer is
+  open and its chip re-grades in place (a tier boundary crossing gets a glow
+  celebration), ghost ids from removed cartridges are pruned on the daily
+  rollover, a **▼ DEEP** chip flattens the drawer into DEEPEST FIRST order
+  (unmeasured games trail honestly), and on the Ice skin the Phosphor tier
+  wears warm gold so adjacent tiers never read as one color.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

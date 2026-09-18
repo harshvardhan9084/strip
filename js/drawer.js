@@ -18,6 +18,7 @@
   let favorites = new Set();
   let recents = [];
   let activeCat = null;   // Round 20: chip filter — null = ALL, "__favs" = favorites, else a category label
+                          // Round 27: "__deep" = the whole deck flattened, deepest runs first
 
   // ---------- persistence ----------
   async function loadMeta(){
@@ -83,6 +84,31 @@
     window.addEventListener("strip:daily-rollover", () => {
       if(isOpen()) renderGrid(false);
     }, { passive:true });
+    // Round 27 (R26 handoff #1) — LIVE depth chip. The chip used to snapshot
+    // at drawer-open: finish a run while browsing and the row stayed stale
+    // until the next open. Now strip:depth-updated re-grades just the affected
+    // row — old chip out, fresh chip in, pop animation tells you the list is
+    // alive. A tier boundary crossed adds the tier-up flash: the drawer
+    // celebrates the run WITH you, at the exact moment the row is on screen.
+    window.addEventListener("strip:depth-updated", (e) => {
+      const d = e.detail;
+      if(!d || !d.id || !isOpen() || !grid) return;
+      let row = null;
+      try{ row = grid.querySelector('.drawer-item[data-id="' + CSS.escape(d.id) + '"]'); }
+      catch(err){ return; }
+      if(!row) return;
+      const stale = row.querySelector(".drawer-item-depth");
+      if(stale) stale.remove();
+      try{
+        if(window.Depth && Depth.decorateDrawerItem) Depth.decorateDrawerItem(row, d.id);
+      }catch(err){}
+      const chip = row.querySelector(".drawer-item-depth");
+      if(chip){
+        chip.classList.add("chip-pop");
+        if(d.tierUp) chip.classList.add("tier-up");
+        try{ Feedback.haptic(d.tierUp ? "medium" : "light"); }catch(err){}
+      }
+    }, { passive:true });
   }
 
   // ---------- Round 20: category chips ----------
@@ -107,6 +133,14 @@
     };
     chipsEl.appendChild(chip(null, "ALL"));
     chipsEl.appendChild(chip("__favs", "★"));
+    // Round 27 — DEEP sort: the depth data the engine already keeps becomes a
+    // browsing order. "Which cartridge am I actually playing DEEPEST?" is a
+    // question the category shelves can't answer; this flat view can. Games
+    // with no run history sort AFTER every measured game (absent data is not
+    // a zero — it just hasn't happened yet).
+    const deep = chip("__deep", "▼ DEEP");
+    deep.title = "Order by depth — your finished runs closest to their own bests first";
+    chipsEl.appendChild(deep);
     cats.forEach(cat => chipsEl.appendChild(chip(cat, cat)));
   }
 
@@ -153,6 +187,10 @@
     b.setAttribute("role", "listitem");
     // category spine (CSS keys off data-cat for the colored left bar)
     b.dataset.cat = (mod.label || "STRIP").toUpperCase();
+    // Round 27 — rows are now addressable by game id, so the live depth
+    // refresh can re-grade ONE row instead of re-rendering the grid (a
+    // re-render would steal focus from a button a keyboard user is on).
+    b.dataset.id = mod.id;
 
     const main = document.createElement("button");
     main.className = "drawer-item-main";
@@ -269,6 +307,16 @@
     if(activeCat === "__favs"){
       const favsOnly = mods.filter(m => favorites.has(m.id) && match(m));
       section(favsOnly.length ? "FAVORITES" : "", favsOnly, stagger);
+    } else if(activeCat === "__deep"){
+      // Round 27 — DEEPEST FIRST: one flat list, avg depth descending, then
+      // the unmeasured in registry order. The avg lives in the depth engine;
+      // rows keep their chips, so the ordering is self-evidencing.
+      const deepMods = mods.filter(match).slice().sort((a, b) => {
+        const da = (window.Depth && Depth.avgFor) ? Depth.avgFor(a.id) : null;
+        const db = (window.Depth && Depth.avgFor) ? Depth.avgFor(b.id) : null;
+        return (db == null ? -1 : db) - (da == null ? -1 : da);
+      });
+      section(deepMods.length ? "DEEPEST FIRST" : "", deepMods, stagger);
     } else {
       const favMods = mods.filter(m => favorites.has(m.id) && match(m) && catFilter(m));
       const recentMods = recents.map(id => mods.find(m => m.id === id)).filter(m => m && !favorites.has(m.id) && match(m) && catFilter(m));
