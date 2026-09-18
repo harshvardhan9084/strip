@@ -204,6 +204,7 @@
   let settleTimer = null;
   const SETTLE_MS = 220;
   let currentCenterIdx = 0; // live center card — the input-arbitration source of truth
+  let lastDimmedIdx = -1;   // Round 26 — which card currently wears data-centered
 
   function syncViewport(){
     const scrollTop = stripEl.scrollTop;
@@ -223,6 +224,19 @@
       // its recent plays. Internally TTL-cached per element — one IndexedDB
       // read at most every 15s per card, no-op when the chip already matches.
       if(window.Sparkline) Sparkline.badge(centerEntry.el, centerEntry.mod);
+    }
+
+    // Round 26 — focus pull (depth of field): the centered cartridge is the
+    // live one; its neighbors pull back so the feed reads like a physical
+    // wheel at rest. Attribute flips only on CHANGE (guarded), and it's
+    // opacity-only CSS — compositing-cheap, no layout, no canvas repaints.
+    // Scoped to #strip so QA harnesses that build their own cart-like shells
+    // are unaffected.
+    if(centerEntry && lastDimmedIdx !== centerIdx){
+      const prev = cards[lastDimmedIdx];
+      if(prev && prev.el) prev.el.removeAttribute("data-centered");
+      centerEntry.el.setAttribute("data-centered", "1");
+      lastDimmedIdx = centerIdx;
     }
 
     cards.forEach((entry, i) => {

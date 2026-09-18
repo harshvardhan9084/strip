@@ -145,6 +145,15 @@ only the shell changes.
   Supernova — no opponents, the ceiling is your own bests), and a **Screen glow**
   dial (full/soft/off) re-grades every bloom in the console through one
   multiplier — off is the flat terminal for photosensitivity and OLED care.
+  Round 26 takes the league per-cartridge: every drawer row wears a small
+  **DEPTH chip** — how close your finished runs in *that* game land to *its*
+  best, in the league's own tiers — and the centered card's sparkline reads
+  **BEST n · DEPTH n%**; no run data, no chip. Wins never sample (a win is the
+  goal), the ring keeps the last 40 runs per game, and the deck now honors your
+  OS **reduced-motion** preference on first boot (an explicit motion choice in
+  Settings always wins). The drawer also gained an open cascade, and the feed
+  reads with a subtle depth-of-field focus pull — the centered cartridge is the
+  sharp one.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

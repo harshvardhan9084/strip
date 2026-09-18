@@ -89,8 +89,12 @@ window.__qa24 = (async () => {
      /settingsVersion = 3/.test(settingsSrc),
      'source pins');
   const liveS = Settings.get();
-  ok('A5 live settings v3, no bgStyle', liveS.settingsVersion === 3 && !('bgStyle' in liveS),
+  ok('A5 live settings v4, no bgStyle', liveS.settingsVersion === 4 && !('bgStyle' in liveS),
      'v=' + liveS.settingsVersion + ' bgStyle=' + ('bgStyle' in liveS));
+  // R26 amendment: this pin pinned v3 because v3 WAS the shipped migration
+  // when r24 landed. Round 26 ships settingsVersion 4 (OS reduce-motion
+  // adoption); the contract it actually guards — "the shipped version, and
+  // the retired bg key stays retired" — now pins 4.
 
   // ---------- A6: pre-paint head script covers strip-mode ----------
   const headScript = document.querySelector('head script');
@@ -147,7 +151,13 @@ window.__qa24 = (async () => {
      'routed+persisted, threw=' + uiThrew);
 
   // ---------- A11: TEND unique-id dedupe, no self-paying XP ----------
+  // R26 amendment: force a fresh daily board first. Suite runs re-use one QA
+  // profile, and a previous run's A12 sweep-bump leaves tend.progress at its
+  // cap while tendedIds stays event-honest — the pin below assumed a clean
+  // board. rollDayForTest(true) is missions' own real day-roll (same path a
+  // midnight flip takes), so the pin now always sees a pristine board.
   const MI = window.Missions && Missions._internals;
+  if (MI && MI.rollDayForTest) { MI.rollDayForTest(true); Missions._internals.syncBadgeForTest && Missions._internals.syncBadgeForTest(); }
   ok('A11a missions internals live', !!MI, 'internals ' + !!MI);
   if (MI) {
     const xpBefore = XP.getState().xp;

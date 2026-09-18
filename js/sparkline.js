@@ -70,6 +70,17 @@ window.Sparkline = (function(){
     const bestReal = decode(mod, rec.best);
     const lowerBetter = !!(mod && mod.scoreEncoding === "inverted");
 
+    // Round 26 — per-cartridge depth rides the same chip: BEST is what you
+    // reached once; DEPTH is how often you play near it. Only over-runs
+    // sample (Depth's contract), and no data means no readout.
+    let depth = null, depthN = 0;
+    try{
+      if(window.Depth && Depth.avgFor){
+        depth = Depth.avgFor(mod.id);
+        depthN = Depth.countFor(mod.id) || 0;
+      }
+    }catch(e){}
+
     const chip = document.createElement("div");
     chip.className = "cart-sparkline";
     chip.dataset.sig = sig;
@@ -79,16 +90,21 @@ window.Sparkline = (function(){
       '</svg>' +
       '<span class="cart-sparkline-best">BEST ' + fmt(bestReal) +
         (lowerBetter ? ' <span class="cart-sparkline-note">· FEWER WINS</span>' : '') +
-      '</span>';
+      '</span>' +
+      (depth != null
+        ? '<span class="cart-sparkline-depth">· DEPTH ' + depth + '%</span>'
+        : '');
     // "lower is better" only reads honestly if we also say what the chart is
     const n = real.length;
     chip.title = "Your last " + n + " play" + (n > 1 ? "s" : "") +
       " of " + (mod.title || mod.id) +
-      (lowerBetter ? " — fewer moves/faster wins, so a dip is good" : " — higher is better");
+      (lowerBetter ? " — fewer moves/faster wins, so a dip is good" : " — higher is better") +
+      (depth != null ? " · your last " + depthN + " finished runs averaged " + depth + "% of your best" : "");
     chip.setAttribute("role", "img");
     chip.setAttribute("aria-label",
       "Recent scores for " + (mod.title || mod.id) + ": last " + n + " plays, best " + fmt(bestReal) +
-      (lowerBetter ? " (lower is better on this one)" : ""));
+      (lowerBetter ? " (lower is better on this one)" : "") +
+      (depth != null ? ", average run depth " + depth + "%" : ""));
     return chip;
   }
 
@@ -97,10 +113,20 @@ window.Sparkline = (function(){
   // a new play at the cap (concat + slice(-20)) can tie the previous score
   // without changing best, leaving the triple identical over a DIFFERENT
   // 12-point picture. The window's first drawn point closes that hole.
+  // Round 26: the depth readout lives on this chip, so its avg + sample
+  // count join the signature — a new run re-grades the chip even when the
+  // score history itself didn't move.
   function signature(mod, rec){
     const h = (rec && Array.isArray(rec.history)) ? rec.history : [];
     const firstDrawn = h.length > MAX_POINTS ? h[h.length - MAX_POINTS] : (h.length ? h[0] : "");
-    return mod.id + "|" + (rec ? rec.best : 0) + "|" + h.length + "|" + (h.length ? h[h.length - 1] : "") + "|" + firstDrawn;
+    let d = "";
+    try{
+      if(window.Depth && Depth.avgFor){
+        const avg = Depth.avgFor(mod.id);
+        d = "|" + (avg == null ? "-" : avg) + "/" + Depth.countFor(mod.id);
+      }
+    }catch(e){}
+    return mod.id + "|" + (rec ? rec.best : 0) + "|" + h.length + "|" + (h.length ? h[h.length - 1] : "") + "|" + firstDrawn + d;
   }
 
   // Called by app.js on every scroll frame for the CENTERED card. Three

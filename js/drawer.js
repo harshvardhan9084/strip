@@ -81,7 +81,7 @@
     // of showing yesterday's marker until the next open (daily.js dispatches
     // strip:daily-rollover right after re-resolving the pick)
     window.addEventListener("strip:daily-rollover", () => {
-      if(isOpen()) renderGrid();
+      if(isOpen()) renderGrid(false);
     }, { passive:true });
   }
 
@@ -122,7 +122,7 @@
   function open(){
     ensureDom();
     renderChips();
-    renderGrid();
+    renderGrid(true); // opening: rows cascade in
     overlay.classList.add("open");
     try{ filterInput.value = ""; }catch(e){}
     // Round 22 (user ask): the filter no longer STEALS focus on open. The old
@@ -213,6 +213,13 @@
     try{
       if(window.Daily && Daily.decorateDrawerItem) Daily.decorateDrawerItem(b, mod.id);
     }catch(e){}
+    // Round 26 — per-cartridge DEPTH chip (the R25 handoff's named surface):
+    // how deep your finished runs land vs your own best in THIS game. Sits
+    // before the star; absent entirely when there's no run data — a chip
+    // that isn't there can't lie.
+    try{
+      if(window.Depth && Depth.decorateDrawerItem) Depth.decorateDrawerItem(b, mod.id);
+    }catch(e){}
     return b;
   }
 
@@ -223,7 +230,12 @@
     star.setAttribute("aria-label", (fav ? "Unpin " : "Pin ") + (mod.title || mod.id) + (fav ? " from favorites" : " to favorites"));
   }
 
-  function renderGrid(){
+  // Round 26 — stagger param: the rows cascade in when the drawer OPENS,
+  // but filter typing / chip taps re-render the grid many times a second —
+  // those renders pass falsy so the list snaps instantly (a stagger on every
+  // keystroke reads as lag, not polish).
+  function renderGrid(stagger){
+    grid.classList.toggle("stagger", !!stagger);
     const mods = Strip.all();
     const q = (filterInput.value || "").trim().toLowerCase();
     const match = (m) => !q || (m.title || "").toLowerCase().includes(q) || (m.id || "").includes(q) || (m.label || "").toLowerCase().includes(q);
@@ -239,32 +251,38 @@
     grid.innerHTML = "";
     const frag = document.createDocumentFragment();
 
-    const section = (name, list) => {
+    const section = (name, list, stagger) => {
       if(!list.length) return;
       const h = document.createElement("div");
       h.className = "drawer-group-label";
       h.textContent = name;
       frag.appendChild(h);
-      list.forEach(m => frag.appendChild(itemFor(m)));
+      list.forEach((m, i) => {
+        const row = itemFor(m);
+        // capped cascade: the first visible rows ripple; past the fold the
+        // delay would only be felt as latency when scrolling down
+        if(stagger && i < 14) row.style.animationDelay = (i * 24) + "ms";
+        frag.appendChild(row);
+      });
     };
 
     if(activeCat === "__favs"){
       const favsOnly = mods.filter(m => favorites.has(m.id) && match(m));
-      section(favsOnly.length ? "FAVORITES" : "", favsOnly);
+      section(favsOnly.length ? "FAVORITES" : "", favsOnly, stagger);
     } else {
       const favMods = mods.filter(m => favorites.has(m.id) && match(m) && catFilter(m));
       const recentMods = recents.map(id => mods.find(m => m.id === id)).filter(m => m && !favorites.has(m.id) && match(m) && catFilter(m));
       const rest = mods.filter(m => !favorites.has(m.id) && !recents.includes(m.id) && match(m) && catFilter(m));
 
-      section(favMods.length ? "FAVORITES" : "", favMods);
-      section(recentMods.length ? "RECENT" : "", recentMods);
+      section(favMods.length ? "FAVORITES" : "", favMods, stagger);
+      section(recentMods.length ? "RECENT" : "", recentMods, stagger);
       const groups = new Map();
       rest.forEach(m => {
         const k = m.label || "STRIP";
         if(!groups.has(k)) groups.set(k, []);
         groups.get(k).push(m);
       });
-      [...groups.keys()].sort().forEach(k => section(k, groups.get(k)));
+      [...groups.keys()].sort().forEach(k => section(k, groups.get(k), stagger));
     }
 
     if(!frag.childNodes.length){

@@ -337,8 +337,8 @@ Strip.register({
         // trend arrow vs base price — the market's shape at a glance
         const delta = state.prices[g.key] / g.basePrice - 1;
         r.info.querySelector(".trend").innerHTML =
-          delta >= 0.15 ? `<span style="color:var(--good, #6FCF97)">▲</span>` :
-          delta <= -0.15 ? `<span style="color:var(--danger)">▼</span>` : `<span style="color:var(--ink-dim)">–</span>`;
+          delta >= 0.15 ? `<span style="color:var(--good, #6FCF97); font-weight:700;">▲</span>` :
+          delta <= -0.15 ? `<span style="color:var(--danger); font-weight:700;">▼</span>` : `<span style="color:var(--ink-dim)">–</span>`;
         // 30-tick sparkline
         const h = state.history[g.key] || [];
         h.push(state.prices[g.key]);

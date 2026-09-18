@@ -211,11 +211,31 @@ window.__qa25 = (async () => {
      'kal=' + kalSrc.includes('api.tend()') + ' etch=' + etchSrc.includes('api.tend()'));
 
   // ---------- A10: Depth League ----------
+  // R26 amendment: this pin used to assume a clean global depth ring and
+  // assert PHOSPHOR from a single seeded 75. Later suites (r23/r26) dispatch
+  // REAL gameover events whose samples legitimately accumulate in the same
+  // persistent ring, so the seeded 75 alone no longer pins the average.
+  // The pin now derives the expected tier/note from the ring's actual
+  // contents — same math trophies.js runs — so it validates the LEAGUE
+  // LOGIC deterministically no matter what the ring has seen.
   XP._internals.recordDepthSample(75, 100);
+  const ringState = XP.getState();
+  const ring = Array.isArray(ringState.depthRuns) ? ringState.depthRuns : [75];
+  const ringAvg = Math.round(ring.reduce((a, b) => a + b, 0) / ring.length);
+  const TIERS = [
+    { min: 95, name: 'SUPERNOVA' }, { min: 80, name: 'PLASMA' }, { min: 60, name: 'PHOSPHOR' },
+    { min: 40, name: 'NEON' }, { min: 0, name: 'PAPER' },
+  ];
+  const tierIdx = TIERS.findIndex(t => ringAvg >= t.min);
+  const expTier = TIERS[tierIdx].name;
+  const expNext = TIERS[tierIdx - 1] || null; // trophies.js: index-1 = next tier UP
   document.getElementById('trophy-btn').click();
   await wait(700);
   const league = document.querySelector('.player-league');
-  const leagueOk = league && /PHOSPHOR LEAGUE/.test(league.textContent) && /80% to PLASMA/.test(league.textContent);
+  const noteRe = expNext
+    ? new RegExp('avg ' + ringAvg + '% of best · ' + expNext.min + '% to ' + expNext.name)
+    : new RegExp('avg ' + ringAvg + '% of best');
+  const leagueOk = league && new RegExp(expTier + ' LEAGUE').test(league.textContent) && noteRe.test(league.textContent);
   document.getElementById('trophy-close').click();
   await wait(200);
   ok('A10 depth league tier + honest note', !!leagueOk, league ? league.textContent.slice(0, 60) : 'no league row');

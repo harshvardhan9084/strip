@@ -1633,3 +1633,102 @@ Next moves suggested by the judge: (1) per-game LIGHT contrast audit (DOM games
 with hardcoded colors on paper panels); (2) real-device pass (8th carry) — wake
 lock + badge + haptics on hardware; (3) missions chip vs badge A/B on hardware;
 (4) a "season pass" layer could ride on the depth% data that now exists.
+
+---
+## Round 26 — "The Drawer Reads Your Depth" (per-cartridge depth + OS motion respect + focus pull)
+
+(Round 25 — the LIGHT-chassis contrast audit, semantic color layer, screen-glow
+dial, swept-✓ retirement and Depth League — shipped between R24 and R26 with
+judge 9.4/10; its full record lives in the shell-side handoff worklog.)
+
+### What the round did
+
+The R25 handoff named the drawer as the next honest compulsion surface: the
+Depth League told the whole-deck story on the Player Card, but nothing told the
+per-cartridge story where the player actually decides what to open. Round 26
+built it end to end:
+
+- **js/depth.js (new)** — per-cartridge depth engine. Listens to strip:gameover;
+  only "over" runs with a real best (>0) and score (>0) sample — a win IS the
+  goal, there's no edge to measure; the seven inverted-encoding games emit only
+  "win" gameovers, so the inverted scale can never poison the ratio by design.
+  Sample = min(100, round(score/best*100)); ring of the last 40 per game;
+  persists under the reserved id "__depth__" (rides export/import naturally);
+  same disk-write gate as XP/Daily (a failed boot read keeps the session
+  in-memory). sanitize() drops junk BEFORE Number coercion (Number(null) is 0,
+  not NaN — the naive map would turn garbage into real zero samples).
+- **Drawer DEPTH chips** — every row with run data wears a small tiered chip
+  (PAPER/NEON/PHOSPHOR/PLASMA/SUPERNOVA — the league's own thresholds, one
+  vocabulary everywhere) between the title and the star. Colors ride the R25
+  semantic layer, so the LIGHT chassis gets daylight grades with zero per-mode
+  work. No data → no chip: an absent chip can't lie.
+- **Sparkline DEPTH readout** — the centered card's chart chip now reads
+  "BEST n · DEPTH n%"; depth avg + sample count joined the chip's signature,
+  so a new run re-grades it even when the score history didn't move.
+- **Settings v4 — honor the OS** — reduceMotion used to be opt-in only; the
+  OS-level prefers-reduced-motion signal went unread. The v4 migration adopts
+  the OS preference ONE TIME for players without an explicit choice; toggling
+  the control records reduceMotionChosen:true and always wins thereafter.
+  (A passive "false" in an old save was ambiguous — the marker is what makes
+  the migration honest.)
+- **Styling details**: drawer open cascade (rows ripple in, capped at 14 so
+  the fold never feels laggy; filter typing re-renders without it); focus
+  pull — the centered cartridge is sharp while neighbors sit at 0.64 opacity
+  (compositing-only, attribute flips guarded to change-only, scoped to #strip
+  so QA harness shells are unaffected); SUPERNOVA chips glow.
+- **Fixes found by the round's own QA**: (1) the focus pull originally dimmed
+  .cart-inner and silently did nothing — the entrance animation's fill-mode
+  both retains opacity:1 forever, outranking normal cascade rules; the dim now
+  lives on .cart, which has no animation. (2) At 390px the 2-column drawer
+  grid left ~176px per row and the chip collapsed titles to zero width — the
+  grid is single-column below 480px now (full titles everywhere). (3) trading
+  post trend arrows render at font-weight:700 (closes R25's 3.96:1 cosmetic
+  margin — handoff item).
+- **QA hardening**: qa/r26-regression.js (15 pins: engine math, junk-proof
+  guards, ring cap, hostile-save sanitize, tier thresholds, real event wiring
+  with wins exempt, persistence, drawer chip render+absence, sparkline
+  readout+live re-grade, cascade-on-open-only, focus pull follows the center,
+  v4 migration contract, tp weight, mount sweep, zero console errors).
+  r25's depth-league pin was made ring-agnostic (later suites' real gameover
+  samples legitimately accumulate in the shared persistent ring — the pin now
+  derives the expected tier from the ring's actual contents, same math as
+  trophies.js). r24's tend pin force-rerolls the daily board first via the new
+  missions rollDayForTest seam (a previous suite run's sweep-bump left
+  progress at cap while tendedIds stayed event-honest). r24's settings pin
+  now pins v4 (v3 was the shipped truth when it landed).
+- sw v25 (both cache names, js/depth.js precached); README depth bullet
+  extended; node --check clean across all touched files.
+
+### Verification
+
+- qa/r26 15/15 live; qa/r25 18/18 (amended pin); qa/r24 23/23 (A14a/b+B1 take
+  the documented run-cap skip path — their else-branch pushes 2 auto-passes vs
+  4 asserts); qa/r23 16/17 (the 1 = the documented run-cap session artifact);
+  51/51 mount sweep zero failures, console clean; clean-session flow test
+  (mode+glow flips, 4 game jumps, drawer+settings open/close) zero errors.
+- Screenshots: drawer chips dark (85% PLASMA purple / 52% NEON) + tiers
+  (96% SUPERNOVA green glow, 90/69/59/45) + LIGHT chassis (all legible) +
+  mobile 390px single column ("Snake" title + 67% chip coexist); sparkline
+  "BEST 100 · DEPTH 69%" dark and glow-off (handoff #2 visual check — the
+  flat terminal reads coherently, no shadow/tint split needed).
+
+### Judge verdict (Round 26): 9.4/10 (target ≥9 met)
+
+What earned it: the handoff's named surface shipped as a real engine (not a
+decorative chip) with the league's own vocabulary and its honesty rules intact;
+the a11y migration is the honest version (explicit choice > OS > defaults, with
+the marker that makes the distinction real); both mandatory dimensions landed
+styling AND features with three bugs caught by the round's own QA before push;
+and the older suites were left deterministic for every future round.
+Why not higher: depth chips snapshot at drawer-open (a run finished while the
+drawer is open refreshes only on reopen); ghost ids (removed games) stay in
+__depth__ — bounded at 40 numbers each but unpruned (boot-time pruning is
+unsafe: depth.js initializes before the games register); on the ICE skin the
+PHOSPHOR (amber) and NEON (info) chip hues are close cousins; the focus pull
+is only perceptible mid-scroll by design; real-device pass carries the 10th time.
+Next moves suggested by the judge: (1) live chip refresh — a drawer-open
+strip:gameover listener re-grading just the affected row; (2) safe ghost-id
+pruning on daily rollover (registry fully loaded by then); (3) per-game depth
+could drive drawer sort or a weekly league expansion — the data now exists;
+(4) real-device pass (10th carry): haptics, wake lock, badge fade, iOS PWA
+install flow; (5) mission pool second tuning pass once tend data accumulates.

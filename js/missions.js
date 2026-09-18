@@ -379,6 +379,6 @@ window.Missions = (function(){
     whenReady: () => readyPromise,
     renderInto,                                   // Trophy Case hook
     summary: () => ({ left: state.missions.filter(m => !m.done).length, swept: !!state.swept }),
-    _internals: { POOL, seededPick, dayKey, getState: () => state, bumpForTest: bump, scaledNeed, tierMult, syncBadgeForTest: syncBadge },
+    _internals: { POOL, seededPick, dayKey, getState: () => state, bumpForTest: bump, scaledNeed, tierMult, syncBadgeForTest: syncBadge, rollDayForTest: rollDay },
   };
 })();

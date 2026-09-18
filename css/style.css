@@ -559,6 +559,13 @@ html.scroll-locked #strip{
   display:grid; grid-template-columns:1fr 1fr; gap:8px;
   align-content:start;
 }
+/* Round 26 — single column on narrow screens: at 390px a 2-col row leaves
+   ~176px per row, where a title ellipsizing to "This …" AND a depth chip
+   cannot coexist (the title collapsed to 0 width in live testing). A
+   full-width row reads the shelf honestly; the list is still one flick away. */
+@media (max-width: 480px){
+  #drawer-grid{ grid-template-columns:1fr; }
+}
 .drawer-group-label{
   grid-column:1 / -1;
   font-family:var(--font-display); font-size:9px; color:var(--ink-dim);
@@ -1681,3 +1688,61 @@ html[data-crt="off"] #boot-logo{ animation:none; }
    never leaves becomes wallpaper. */
 #trophy-missions.fade-out{ opacity:0 !important; transform:scale(0) !important; transition:opacity 1.2s ease, transform 1.2s ease; }
 html.reduce-motion #trophy-missions{ transition:none; }
+
+/* ================================================================
+   Round 26 — "The Drawer Reads Your Depth"
+   ================================================================ */
+
+/* ---------- Per-cartridge DEPTH chip (drawer rows) ----------
+   The Player Card league (R25) tells the whole-deck story; this chip tells
+   the per-cartridge one, right where the player decides what to open.
+   Tier colors reuse the semantic layer (--info/--good/--warn etc.), so the
+   LIGHT chassis gets the daylight grades automatically — no per-mode work. */
+.drawer-item-depth{
+  flex:none;
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:var(--font-display); font-size:8px; letter-spacing:.05em;
+  color:var(--ink-dim);
+  padding:3px 7px; border-radius:999px;
+  border:1px solid currentColor;
+  opacity:.92;
+  white-space:nowrap;
+}
+.drawer-item-depth i{
+  width:5px; height:5px; border-radius:50%;
+  background:currentColor; flex:none;
+}
+.drawer-item-depth.t-neon{      color:var(--info); }
+.drawer-item-depth.t-phosphor{  color:var(--amber); }
+.drawer-item-depth.t-plasma{    color:var(--purple); }
+.drawer-item-depth.t-supernova{ color:var(--good); text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1))); }
+html[data-mode="light"] .drawer-item-depth.t-supernova{ text-shadow:none; }
+
+/* ---------- DEPTH readout on the centered card's sparkline chip ---------- */
+.cart-sparkline-depth{
+  font-family:var(--font-display); font-size:9px; letter-spacing:.08em;
+  color:var(--ink); opacity:.85;
+}
+
+/* ---------- Drawer open cascade ----------
+   Rows ripple in when the drawer OPENS (renderGrid(true)); filter typing
+   and chip taps re-render without the class, so the list snaps instantly. */
+#drawer-grid.stagger .drawer-item{
+  animation:drawer-row-in .4s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes drawer-row-in{
+  from{ opacity:0; transform:translateY(7px) scale(.99); }
+  to{ opacity:1; transform:none; }
+}
+html.reduce-motion #drawer-grid.stagger .drawer-item{ animation:none !important; }
+
+/* ---------- Focus pull (depth of field on the feed) ----------
+   The centered cartridge is the live one; its neighbors pull back so the
+   feed reads like a physical wheel at rest. Opacity-only on a composited
+   layer — no layout, no canvas repaints; scoped to #strip so QA harness
+   shells (which build their own .cart-like containers) are unaffected.
+   NOTE: the dim lives on .cart, NOT .cart-inner — the inner shell's entrance
+   animation (fill-mode: both) retains opacity:1 forever, which outranks any
+   normal cascade rule; the parent has no animation, so the dim applies. */
+#strip .cart{ transition:opacity .4s ease; }
+#strip .cart:not([data-centered]){ opacity:.64; }

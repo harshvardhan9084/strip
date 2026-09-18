@@ -74,6 +74,12 @@
         maybeGrantNudge(t);
         return;
       }
+      // Round 26 — an explicit motion choice is RECORDED as a choice: the
+      // v4 OS-adoption migration must never override it on a later boot.
+      if(t.dataset.key === "reduceMotion"){
+        Settings.set({ reduceMotion: t.checked, reduceMotionChosen: true });
+        return;
+      }
       Settings.set({ [t.dataset.key]: t.checked });
     });
   });

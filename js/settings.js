@@ -16,6 +16,13 @@ window.Settings = (function(){
   const DEFAULTS = {
     lockScroll: false,
     reduceMotion: false,
+    // Round 26 — the marker that separates an EXPLICIT motion choice from a
+    // passive default.reduceMotion: false in a save used to be ambiguous
+    // ("they chose it" vs "they never opened settings"), so the OS-level
+    // prefers-reduced-motion signal could never be honored honestly. From
+    // v4: toggling the control records reduceMotionChosen:true and the
+    // migration adopts the OS preference exactly once for everyone else.
+    reduceMotionChosen: false,
     haptics: true,
     sound: true,
     // Round 21: ICE is the new default skin. A one-time migration below
@@ -184,6 +191,21 @@ window.Settings = (function(){
     return "wakeLock" in navigator;
   }
 
+  // Round 26 — settingsVersion 4: honor the OS. reduceMotion was opt-in
+  // only; a player whose device asks for reduced motion (vestibular
+  // disorders, OS-level accessibility setting) got the full animation
+  // package anyway unless they happened to find the toggle. The migration
+  // adopts the OS preference ONE TIME for players without an explicit
+  // choice marker; an explicit choice — past (post-marker) or future —
+  // always wins. Idempotent: v4 saves never re-migrate.
+  function migrateV4(current, osReduce){
+    if((current.settingsVersion || 0) < 4 && !current.reduceMotionChosen){
+      current.reduceMotion = !!osReduce;
+    }
+    current.settingsVersion = 4;
+    return current;
+  }
+
   async function hydrate(){
     let saved = null;
     try{ saved = await StripDB.loadState(SETTINGS_ID); }catch(e){}
@@ -209,6 +231,7 @@ window.Settings = (function(){
       current.colorMode = DEFAULTS.colorMode;
     }
     current.settingsVersion = 3;
+    migrateV4(current, !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches));
     ready = true;
     applyToDocument();
     readyResolve();
@@ -241,5 +264,5 @@ window.Settings = (function(){
 
   hydrate();
 
-  return { get, set, onChange, whenReady, wakeLockSupported };
+  return { get, set, onChange, whenReady, wakeLockSupported, _internals: { migrateV4, DEFAULTS } };
 })();
