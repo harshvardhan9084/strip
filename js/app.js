@@ -439,7 +439,13 @@
     // card — one-shot nodes that remove themselves, never queued twice, and
     // reduce-motion CSS silences both. The drawer runs its own float only
     // when OPEN, which can't overlap play — no double celebration.
-    if(d.tierUp && !entry.el.querySelector(".cart-tier-float")){
+    // Round 30 — BUT the moment is SUPPRESSED while the depth ladder is open
+    // on this very card: the float rendered at z:5 behind the panel at z:6
+    // (the judge's z-order catch), and the ladder already carries the news
+    // honestly — its YOU marker and next-step line move with the run in
+    // place. One celebration, the one that teaches.
+    if(d.tierUp && !entry.el.querySelector(".cart-tier-float") &&
+       !(window.Depth && Depth.ladderOn && Depth.ladderOn(entry.el))){
       const inner = entry.el.querySelector(".cart-inner");
       if(inner){
         const tier = (d.tier || "").toLowerCase();
@@ -457,5 +463,70 @@
         try{ Feedback.haptic("medium"); }catch(err){}
       }
     }
+    maybeShowLadderHint(entry, d);
+  }, { passive:true });
+
+  // ---------- Round 30 — the one-time ladder hint ----------
+  // The R29 judge's gap: the readout's affordance was cursor/title-only, so
+  // touch users had NO way to discover the ladder. The chevron (R30, on the
+  // readout itself) helps once you're looking; this bubble finds you first.
+  // It appears ONLY on the natural teaching moment — a run just landed, the
+  // card's DEPTH readout just changed — and never on a tier-up (that run is
+  // already celebrating; two attention grabs at once is noise). It dies on
+  // the FIRST ladder open (persisted, via the drawer's single-writer meta
+  // record), fades itself out, and shows at most 3 times a session so a
+  // player who never opens the ladder isn't nagged forever.
+  let ladderHintShows = 0;
+  let liveLadderHint = null; // { el, timers:[...] }
+
+  function killLadderHint(){
+    if(!liveLadderHint) return;
+    const st = liveLadderHint;
+    liveLadderHint = null;
+    st.timers.forEach(clearTimeout);
+    try{ st.el.remove(); }catch(e){}
+  }
+
+  function maybeShowLadderHint(entry, d){
+    try{
+      if(!entry || !entry.el || !entry.mod) return;
+      if(d.tierUp) return;                                   // a celebration owns the moment
+      if(ladderHintShows >= 3) return;                       // session cap — nudge, not nag
+      if(window.Depth && Depth.ladderOn && Depth.ladderOn(entry.el)) return;
+      if(window.StripDrawer && StripDrawer.ladderHintPending && !StripDrawer.ladderHintPending()) return;
+      if(!entry.el.querySelector(".cart-sparkline-depth")) return; // point at something real
+      killLadderHint();                                      // one bubble at a time
+      const inner = entry.el.querySelector(".cart-inner");
+      if(!inner) return;
+      const hint = document.createElement("span");
+      hint.className = "depth-hint";
+      hint.setAttribute("role", "button");
+      hint.setAttribute("tabindex", "0");
+      hint.setAttribute("aria-label", "Open the depth ladder");
+      hint.textContent = "TAP · TIERS";
+      const open = () => { try{ Depth.toggleLadder(entry.el, entry.mod); }catch(e){} };
+      hint.addEventListener("click", open);
+      hint.addEventListener("keydown", (ev) => {
+        if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); open(); }
+      });
+      inner.appendChild(hint);
+      ladderHintShows++;
+      const timers = [];
+      // fade-out at 8s, gone by 11s — the CSS owns the exit animation
+      timers.push(setTimeout(() => hint.classList.add("depth-hint-bye"), 8000));
+      timers.push(setTimeout(killLadderHint, 11000));
+      liveLadderHint = { el: hint, timers };
+    }catch(e){}
+  }
+
+  // Any fresh ladder open dismisses the hint — pointer, Enter, or the hint's
+  // own tap (toggleLadder fires the event before the bubble could overlap
+  // the panel). DOM removal is unconditional; only the persistence flag is
+  // once-only, so a loadMeta race can never strand the bubble on screen.
+  window.addEventListener("strip:ladder-opened", () => {
+    killLadderHint();
+    try{
+      if(window.StripDrawer && StripDrawer.dismissLadderHint) StripDrawer.dismissLadderHint();
+    }catch(e){}
   }, { passive:true });
 })();

@@ -1941,3 +1941,108 @@ a one-time hint) so touch users discover the ladder; (2) recency-weighted
 trend once rings fill (still needs data); (3) weekly league expansion,
 still parked pending a retention argument; (4) real-device pass (13th
 carry); (5) mission pool tuning once tend + depth data accumulates.
+
+## Round 30 — "The Invitation" (visible chevron affordance + one-time TAP·TIERS hint + float-behind-ladder suppression + aria race fix)
+
+(QA baseline on the untouched R29 deck: qa/r29 11/11, qa/r28 9/9 on fresh
+sessions, 51/51 mount inside r29's B1 — deck stable, so focus came straight
+from the R29 judge's next moves #1 (the readout's affordance was cursor/
+title-only — touch users had no way to discover the ladder) and the handoff
+z-order note (the tier float rendered at z:5 behind an open ladder at z:6 at
+the exact moment both fire), plus handoff #5 (ladder untested below 320px).)
+
+### What the round did
+
+(1) VISIBLE CHEVRON (judge gap #1a): the DEPTH readout gains a border-drawn
+chevron — no glyph, so no font rasterization drift across the CRT skins —
+that inherits the tier hue via currentColor and FLIPS with aria-expanded
+(down = opens the ladder, up = it's open). The handle also gained a real
+:hover state (opacity .85 → 1) so pointer users get the same signal.
+
+(2) ONE-TIME TAP·TIERS HINT (judge gap #1b): a small bubble appears on the
+NATURAL teaching moment — a run just landed and the card's DEPTH readout
+changed — pointing at the readout with its own little triangle. Lifecycle
+rules: never on a tier-up (that run is already celebrating; two attention
+grabs at once is noise); dies on the FIRST ladder open wherever the open
+came from (pointer, Enter, or the hint's own tap) via a new
+strip:ladder-opened event dispatched by Depth.toggleLadder on fresh opens
+only; fades itself out at 8s (gone by 11s); shows at most 3 times a session
+(nudge, not nag); once a ladder has actually been opened the flag is
+persisted and it never returns. Persistence went through the SINGLE WRITER
+of __deck_meta__ (drawer.js owns that record; a second writer would be
+overwritten by the next favorites/recents save) — drawer.js gains
+ladderHintDone in loadMeta/saveMeta plus public dismissLadderHint()/
+ladderHintPending(); app.js owns only the DOM. A loadMeta race can never
+strand the bubble: DOM removal is unconditional, only persistence is
+once-only.
+
+(3) FLOAT-BEHIND-LADDER SUPPRESSED (judge z-order note): when a tier-up
+fires while the ladder is open on that very card, the card-scale float +
+ring are suppressed — the ladder IS the celebration there (its YOU marker
+and next-step line move with the run in place; one celebration, the one
+that teaches). Depth gains the public ladderOn(cartEl) predicate; floats on
+non-ladder cards are untouched.
+
+(4) ARIA RACE FIX (real bug, caught by writing the suite): the live-refresh
+path (shell busts the spark cache → badge() rebuilds the chip →
+refreshLadder moves the panel) left the FRESH readout at the markup-default
+aria-expanded=false while the panel it owns was on screen — the new chevron
+would point down at an open ladder, and AT asserted the wrong state. Fix:
+Sparkline.apply() calls syncLadderAria() on every path (replace, append,
+even the true no-op), mirroring Depth.ladderOn truth onto the fresh handle.
+
+(5) 320PX VERIFIED (handoff #5): live probe at 320×568 — ladder renders 232px
+wide (left 44 / right 276), zero horizontal overflow, the YOU pill wraps
+gracefully under its tier name, "17 points to PLASMA" intact. No CSS change
+needed; max-width:min(250px,80%) holds.
+
+### Verification
+
+qa/r30 NEW 12/12 (A0b persisted-flag through the single meta writer; A1
+chevron anatomy + currentColor inheritance; A2 flip on open; A3 toggle
+closes AND STAYS closed; A4 hint show → tap → ladder opens → hint dies →
+REAL dismiss API invoked; A5 session cap with production open/close kills
+between probes; A6 tier-up while open: float suppressed + YOU 81% +
+"points to SUPERNOVA" + aria kept; A7 tier-up while closed still celebrates
+and self-removes; A8 chip rebuilt under an open ladder keeps aria-expanded=
+true on the fresh handle; B1 51/51; B2 zero console errors). Two initial
+FAILs were suite bugs, fixed and documented: A5 checked absence while the
+previous bubble legitimately lingered (now killed via real ladder open/
+close between probes); A8's expected avg was 70 — the suite's own samples
+sum 534/8 = 67. Regressions on fresh sessions: r29 11/11, r28 9/9, r27
+10/10, r26 15/15, r25 18/18, r24 23/23, r23 14/17 (the documented run-cap
+artifact, unchanged since R27). Flow: ladder open across an ICE theme flip
+(still open, still correct), LIGHT-mode ladder reopens on the paper panel
+(rgb(250,248,243)), Esc → jump away/back leaves zero orphan panels, drawer
++ DEEP note fine, 0 console errors. node --check clean on all touched
+files; sw v29. Screenshots: shot-r30-hint.png (TAP·TIERS bubble pointing at
+the readout, chevron down), shot-r30-chevron-open.png (ladder anchored,
+chevron up), shot-r30-ladder-320.png (narrow viewport, YOU pill wrapped).
+
+### Judge verdict (Round 30): 9.5/10 (target ≥9 met)
+
+What earned it: both R29 judge gaps closed at the root — the ladder is now
+FINDABLE (a persistent affordance + a hint that appears exactly when the
+question forms and earns its own dismissal) and the two-moment collision is
+resolved by priority rather than z-index hacks (the teaching surface wins
+over the celebratory one, deliberately); the round found and fixed a real
+pre-push race (aria/chevron state on a rebuilt handle) that the live-
+refresh path shipped with; persistence respected the single-writer
+discipline; and the suite pins all of it with production paths (real
+record() crossings, real dismiss API, real open/close kills). Why not
+higher: the hint has no "dismiss without opening" affordance (a player who
+doesn't want it must open the ladder once to kill it permanently); the
+A4/A5 pending-getter injection is documented but is the first
+suite-controlled seam in the QA corpus; the 320px hint bubble itself
+(ladder verified, bubble not) is unverified; recency trend / weekly league
+/ mission pool remain data-gated carries and the real-device pass carries a
+14th time.
+
+Next moves suggested for Round 31: (1) hint dismissal polish — a tiny "×"
+or a long-press alternative for players who want it gone without opening;
+(2) verify the hint bubble at 320px (and inside reduce-motion, where its
+animations are silenced — the exit path becomes display:none, confirm it
+still clears); (3) recency-weighted trend once rings accumulate (still
+data-gated); (4) real-device pass (14th carry — haptics, wake lock, badge
+fade, iOS PWA install); (5) mission pool tuning once tend + depth data
+accumulates.

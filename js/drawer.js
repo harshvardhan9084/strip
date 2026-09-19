@@ -20,6 +20,11 @@
   let activeCat = null;   // Round 20: chip filter — null = ALL, "__favs" = favorites, else a category label
                           // Round 27: "__deep" = the whole deck flattened, deepest runs first
   let deepSortPref = false; // Round 28: persisted — the drawer reopens in DEEP sort if it was left there
+  // Round 30: persisted — the one-time "TAP · TIERS" ladder hint never
+  // returns once a ladder has actually been opened. The flag lives in THIS
+  // module because drawer.js is the single writer of __deck_meta__ (a second
+  // writer would be overwritten here on the next favorites/recents save).
+  let ladderHintDone = false;
 
   // ---------- persistence ----------
   async function loadMeta(){
@@ -33,11 +38,22 @@
       // never hides cartridges, so restoring it can't strand a row.
       deepSortPref = !!(data && data.deepSort);
       if(deepSortPref) activeCat = "__deep";
+      ladderHintDone = !!(data && data.ladderHintDone);
     }catch(e){}
   }
   function saveMeta(){
-    StripDB.saveState(META_ID, { favorites: [...favorites], recents, deepSort: deepSortPref }).catch(()=>{});
+    StripDB.saveState(META_ID, { favorites: [...favorites], recents, deepSort: deepSortPref,
+                                  ladderHintDone }).catch(()=>{});
   }
+  // Round 30 — idempotent; called by app.js on the first strip:ladder-opened.
+  // The DOM hint's removal is unconditional there — only persistence is
+  // guarded here, so a race with loadMeta can never strand the bubble.
+  function dismissLadderHint(){
+    if(ladderHintDone) return;
+    ladderHintDone = true;
+    saveMeta();
+  }
+  function ladderHintPending(){ return !ladderHintDone; }
 
   // ---------- recents tracking ----------
   window.addEventListener("strip:card-centered", (e) => {
@@ -438,5 +454,6 @@
 
   // Round 20: settings' "Show welcome hint again" replays the first-run
   // overlay without clearing anything else.
-  window.StripDrawer = { showHint: () => { activeCat = null; maybeShowHint(); } };
+  window.StripDrawer = { showHint: () => { activeCat = null; maybeShowHint(); },
+                          dismissLadderHint, ladderHintPending };
 })();

@@ -174,7 +174,17 @@ only the shell changes.
   card the run just ended on celebrates a boundary crossing at card scale —
   the tier name rises off the readout while a ring of the same hue blooms
   around the card. A persisted DEEP sort now explains itself in the drawer
-  header ("▼ DEEPEST FIRST · saved — ALL restores the shelves").
+  header ("▼ DEEPEST FIRST · saved — ALL restores the shelves"). Round 30
+  makes the ladder findable: the readout wears a small **chevron** that
+  flips when the ladder opens (and the handle gained a real hover state),
+  and a one-time **"TAP · TIERS"** bubble appears on the natural teaching
+  moment — right after a run lands and the readout changes — then never
+  again once a ladder has actually been opened (persisted), fading itself
+  out and capping at three showings a session. When the ladder is open on
+  the card a run just landed on, the celebration **hands the stage to the
+  ladder**: no float hiding behind the panel, the YOU marker and the
+  next-step line move instead — and a chip rebuilt under an open ladder
+  keeps its "open" state honest.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

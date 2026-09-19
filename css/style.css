@@ -1803,6 +1803,62 @@ html.reduce-motion .cart-sparkline-depth.depth-live{ animation:none; }
   outline-offset:2px; opacity:1;
 }
 
+/* ---------- Round 30 — the affordance becomes visible ----------
+   The R29 judge: the readout's affordance was cursor/title-only — touch
+   users got no hint the number was tappable. A border-drawn chevron now
+   rides the readout: it inherits the tier hue via currentColor (no glyph,
+   so no font rasterization drift across CRT skins), flips with
+   aria-expanded (down = opens, up = open), and the handle gains a real
+   hover state. */
+.cart-sparkline-depth .depth-chev{
+  display:inline-block; width:5px; height:5px;
+  border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg);
+  margin-left:4px; vertical-align:2px;
+  transition:transform .18s ease;
+}
+.cart-sparkline-depth[aria-expanded="true"] .depth-chev{
+  transform:rotate(-135deg); vertical-align:1px;
+}
+.cart-sparkline-depth:hover{ opacity:1; }
+
+/* ---------- Round 30 — the one-time ladder hint ----------
+   A small bubble that appears on the natural teaching moment (a run just
+   landed and the card's DEPTH readout changed), points at the readout, and
+   dies on the first ladder open (persisted) or fades itself out. Same dark
+   pill DNA as the sparkline chip it anchors to — deliberately UNthemed in
+   LIGHT (the chip itself keeps its dark pill there). z:4: above the chip,
+   below the tier float (z:5) and the ladder (z:6) — a celebration or an
+   open panel always outranks a nudge. */
+.depth-hint{
+  position:absolute; bottom:58px; left:50%; transform:translateX(-50%);
+  padding:4px 9px; border-radius:999px;
+  background:rgba(0,0,0,.58);
+  border:1px solid rgba(var(--glow-rgb),calc(.3*var(--glow-mul,1)));
+  color:var(--amber);
+  font-family:var(--font-display); font-size:8px; letter-spacing:.16em;
+  white-space:nowrap; z-index:4; cursor:pointer; pointer-events:auto;
+  animation:depth-hint-in .3s cubic-bezier(.22,1,.36,1) both;
+}
+.depth-hint::after{
+  content:""; position:absolute; top:100%; left:50%; margin-left:-3.5px;
+  border:3.5px solid transparent; border-top-color:rgba(0,0,0,.58);
+}
+.depth-hint:focus-visible{
+  outline:1px solid rgba(var(--glow-rgb),calc(.7*var(--glow-mul,1)));
+  outline-offset:2px;
+}
+.depth-hint.depth-hint-bye{ animation:depth-hint-out .3s ease both; }
+@keyframes depth-hint-in{
+  from{ opacity:0; transform:translateX(-50%) translateY(4px); }
+  to{   opacity:1; transform:translateX(-50%) translateY(0); }
+}
+@keyframes depth-hint-out{
+  to{ opacity:0; transform:translateX(-50%) translateY(-4px); }
+}
+html.reduce-motion .depth-hint{ animation:none; }
+html.reduce-motion .depth-hint.depth-hint-bye{ display:none; }
+
 /* ---------- Round 29 — ONE tier vocabulary, every surface ----------
    Drawer chips (R26), the card readout and the ladder rows (R29) all wear
    these. LIGHT auto-grades via the semantic layer; ICE phosphor wears warm

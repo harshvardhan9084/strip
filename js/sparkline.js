@@ -99,7 +99,12 @@ window.Sparkline = (function(){
       (depth != null
         ? '<span class="cart-sparkline-depth' + tierCls + '" role="button" tabindex="0"' +
           ' aria-haspopup="dialog" aria-expanded="false"' +
-          ' title="Depth ' + depth + '% of your best · tap for the ladder">· DEPTH ' + depth + '%</span>'
+          ' title="Depth ' + depth + '% of your best · tap for the ladder">· DEPTH ' + depth + '%' +
+          // Round 30 — the affordance becomes VISIBLE: a chevron that flips
+          // with aria-expanded (down = opens the ladder, up = it's open).
+          // Glyph-free (border-drawn) so it can't rasterize differently
+          // across CRT skins, and it inherits the tier hue via currentColor.
+          '<i class="depth-chev" aria-hidden="true"></i></span>'
         : '');
     // "lower is better" only reads honestly if we also say what the chart is
     const n = real.length;
@@ -198,13 +203,35 @@ window.Sparkline = (function(){
       return;
     }
     const sig = signature(mod, rec);
-    if(existing && existing.dataset.sig === sig) return; // DOM already correct — true no-op
+    if(existing && existing.dataset.sig === sig){
+      // Round 30 — even a true no-op rebuild must not outlive its aria
+      // state: if the ladder is open on this card, the handle says so.
+      syncLadderAria(cartEl);
+      return; // DOM already correct — true no-op
+    }
     if(existing){
       existing.replaceWith(buildChip(mod, rec, sig));
+      syncLadderAria(cartEl);
       return;
     }
     const inner = cartEl.querySelector(".cart-inner");
-    if(inner) inner.appendChild(buildChip(mod, rec, sig));
+    if(inner){
+      inner.appendChild(buildChip(mod, rec, sig));
+      syncLadderAria(cartEl);
+    }
+  }
+
+  // Round 30 — a chip rebuilt while its ladder is open (live refresh path:
+  // the shell busts the cache, badge() rebuilds, refreshLadder moves the
+  // panel) would otherwise boot with the markup-default aria-expanded=false
+  // while the panel it owns is on screen — and the new chevron would point
+  // the wrong way. Depth owns the truth; we only mirror it.
+  function syncLadderAria(cartEl){
+    try{
+      if(!window.Depth || !Depth.ladderOn || !Depth.ladderOn(cartEl)) return;
+      const r = cartEl.querySelector(".cart-sparkline-depth");
+      if(r) r.setAttribute("aria-expanded", "true");
+    }catch(e){}
   }
 
   return { badge };

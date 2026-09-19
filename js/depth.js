@@ -223,6 +223,16 @@ window.Depth = (function(){
     }catch(e){}
   }
 
+  // Round 30 — "is a ladder open on THIS card right now?" The shell needs
+  // exactly one boolean for two contracts: suppress the card-scale tier
+  // float while the ladder is open (the panel IS the celebration there —
+  // its marker and next-step line move with the run), and re-sync a rebuilt
+  // sparkline's aria-expanded so the fresh handle doesn't claim "closed"
+  // while the panel it owns is on screen.
+  function ladderOn(cartEl){
+    return !!(ladderState && cartEl && ladderState.cart === cartEl);
+  }
+
   function toggleLadder(cartEl, mod){
     if(!cartEl || !mod) return;
     if(ladderState && ladderState.cart === cartEl){ closeLadders(); return; }
@@ -241,6 +251,12 @@ window.Depth = (function(){
     document.addEventListener("pointerdown", onDocDown, true);
     window.addEventListener("keydown", onKey, true);
     ladderState = { cart: cartEl, panel, mod, onDocDown, onKey };
+    // Round 30 — the deck bus hears about every FRESH open (refreshes don't
+    // re-fire it): the shell dismisses the one-time ladder hint on the first
+    // open, wherever the open came from — pointer, Enter, or the hint itself.
+    try{
+      window.dispatchEvent(new CustomEvent("strip:ladder-opened", { detail:{ id: mod.id } }));
+    }catch(e){}
     // focus moves in for keyboard parity — immediately (headless pages
     // throttle rAF, and a focus that only fires on a rendered frame is a
     // focus that sometimes never happens), then again post-layout as a
@@ -349,6 +365,7 @@ window.Depth = (function(){
     toggleLadder,
     refreshLadder,
     closeLadders,
+    ladderOn,
     noteLadderScroll,
     _internals: { record, sanitize, SAMPLES, TIERS, tierFor, pruneGhosts,
                   TREND_MIN_SAMPLES, TREND_THRESHOLD },
