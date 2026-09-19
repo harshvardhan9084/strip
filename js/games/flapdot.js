@@ -20,8 +20,19 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "background:#12121a; border-radius:12px; touch-action:none; width:min(70vw,240px); height:min(50vh,320px);";
+    canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; touch-action:none; width:min(70vw,240px); height:min(50vh,320px);";
     wrap.appendChild(canvas);
+
+    // R33 — daylight-screen ink (undefined in dark/OLED -> raw fallbacks);
+    // re-resolved when the chassis flips mid-mount via strip:mode-changed.
+    const _sv = getComputedStyle(document.documentElement);
+    let INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    let LIGHT = document.documentElement.dataset.mode === "light";
+    const onModeChanged = () => {
+      INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+      LIGHT = document.documentElement.dataset.mode === "light";
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
 
     const hint = document.createElement("div");
     hint.style.cssText = "font-size:11px; color:var(--ink-dim);";
@@ -106,6 +117,12 @@ Strip.register({
       ctx.beginPath();
       ctx.arc(40, dotY, 9, 0, Math.PI*2);
       ctx.fill();
+      // R33 daylight detail: ink ring on the daylight glass; dark untouched.
+      if(LIGHT){
+        ctx.strokeStyle = `rgba(${INK_RGB},.55)`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
 
       rafId = requestAnimationFrame(loop);
     }
@@ -149,6 +166,7 @@ api.gameover("over", score);
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
       clearTimeout(resizeTimer);
     };
   }

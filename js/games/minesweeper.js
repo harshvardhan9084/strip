@@ -144,7 +144,10 @@ Strip.register({
       }
     }
 
-    const NUM_COLORS = ["", "#6FA8FF", "#5AC98A", "#E8637F", "#B58CF2", "#FFB347", "#5FD4D0", "#EDEAE3", "#8B8A94"];
+    // R33 — 7/8 inks ride the daylight-screen ink token: they sat on the
+    // revealed-cell glass, which is now near-white in LIGHT (they were
+    // stranded there before). Dark keeps the raw hexes via the fallback.
+    const NUM_COLORS = ["", "#6FA8FF", "#5AC98A", "#E8637F", "#B58CF2", "#FFB347", "#5FD4D0", "var(--screen-ink, #EDEAE3)", "var(--screen-dim, #8B8A94)"];
 
     function statUpdate(){
       statRow.innerHTML = `<div>MINES <span style="color:var(--danger)">${MINES - flags}</span></div><div>TIME <span style="color:var(--amber)">${elapsed}s</span></div><div>BEST <span style="color:var(--purple)">${bestFor() === Infinity ? "-" : bestFor() + "s"}</span></div><div>WINS <span style="color:var(--ink)">${wins}</span>${streak > 1 ? ` · <span style="color:var(--good, #6FCF97)">×${streak} streak</span>` : ""}</div>`;
@@ -158,7 +161,7 @@ Strip.register({
         const r = Math.floor(i / W) + 1, c = (i % W) + 1;
         if(revealed[i]){
           const n = mines[i];
-          el.style.background = "#101018";
+          el.style.background = "var(--screen, #101018)";
           el.textContent = n > 0 ? String(n) : "";
           el.style.color = NUM_COLORS[n];
           el.setAttribute("aria-label", `row ${r} col ${c}, revealed${n ? `, ${n} neighbor mine${n>1?"s":""}` : ""}`);

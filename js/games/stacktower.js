@@ -20,7 +20,7 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "background:#12121a; border-radius:12px; width:min(70vw,240px); height:min(55vh,340px); touch-action:none;";
+    canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; width:min(70vw,240px); height:min(55vh,340px); touch-action:none;";
     wrap.appendChild(canvas);
 
     const hint = document.createElement("div");

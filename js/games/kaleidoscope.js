@@ -9,7 +9,16 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "background:#0c0c12; border-radius:50%; width:min(78vw,280px); height:min(78vw,280px); touch-action:none;";
+    canvas.style.cssText = "background:var(--screen, #0c0c12); border-radius:50%; width:min(78vw,280px); height:min(78vw,280px); touch-action:none;";
+
+    // R33 daylight screens: on the daylight glass the mandala threads darken
+    // (L 48%) instead of glowing; dark keeps the phosphor L 65%. Re-read on
+    // a mid-mount chassis flip.
+    let HUE_L = document.documentElement.dataset.mode === "light" ? 48 : 65;
+    const onModeChanged = () => {
+      HUE_L = document.documentElement.dataset.mode === "light" ? 48 : 65;
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
     wrap.appendChild(canvas);
 
     const controls = document.createElement("div");
@@ -51,7 +60,7 @@ Strip.register({
     }
 
     function drawSegmentLine(x1,y1,x2,y2){
-      ctx.strokeStyle = `hsl(${hue % 360}, 80%, 65%)`;
+      ctx.strokeStyle = `hsl(${hue % 360}, 80%, ${HUE_L}%)`;
       ctx.lineWidth = 3;
       ctx.lineCap = "round";
       for(let i=0;i<SEGMENTS;i++){
@@ -116,6 +125,7 @@ Strip.register({
     return () => {
       window.removeEventListener("mouseup", end);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
       clearTimeout(resizeTimer);
     };
   }

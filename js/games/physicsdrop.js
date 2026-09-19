@@ -9,7 +9,7 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "background:#12121a; border-radius:12px; width:min(78vw,280px); height:min(50vh,300px);";
+    canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; width:min(78vw,280px); height:min(50vh,300px);";
     wrap.appendChild(canvas);
 
     const controls = document.createElement("div");

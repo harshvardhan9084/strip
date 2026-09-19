@@ -21,7 +21,7 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const field = document.createElement("div");
-    field.style.cssText = "position:relative; width:min(78vw,280px); height:min(50vh,320px); background:#12121a; border-radius:14px; overflow:hidden;";
+    field.style.cssText = "position:relative; width:min(78vw,280px); height:min(50vh,320px); background:var(--screen, #12121a); border-radius:14px; overflow:hidden;";
     wrap.appendChild(field);
 
     const startBtn = document.createElement("button");

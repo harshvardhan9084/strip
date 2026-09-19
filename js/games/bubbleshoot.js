@@ -22,7 +22,21 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "background:#12121a; border-radius:12px; width:min(70vw,230px); height:min(58vh,340px); touch-action:none;";
+    canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; width:min(70vw,230px); height:min(58vh,340px); touch-action:none;";
+
+    // R33 - daylight ink resolved from the light-only tokens (dark falls
+    // back to the raw CRT values); re-resolved on a mid-mount chassis flip.
+    const _sv = getComputedStyle(document.documentElement);
+    let INK = _sv.getPropertyValue("--screen-ink").trim() || "#EDEAE3";
+    let INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    let VEIL = _sv.getPropertyValue("--screen-veil").trim() || "rgba(0,0,0,.6)";
+    const onModeChanged = () => {
+      INK = _sv.getPropertyValue("--screen-ink").trim() || "#EDEAE3";
+      INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+      VEIL = _sv.getPropertyValue("--screen-veil").trim() || "rgba(0,0,0,.6)";
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
+
     wrap.appendChild(canvas);
 
     const newBtn = document.createElement("button");
@@ -84,7 +98,7 @@ Strip.register({
       }
 
       const sx = cw/2, sy = ch - 20;
-      ctx.strokeStyle = "rgba(255,255,255,.25)";
+      ctx.strokeStyle = `rgba(${INK_RGB},.25)`;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(sx, sy);
@@ -100,9 +114,9 @@ Strip.register({
       ctx.globalAlpha = 1;
 
       if(over){
-        ctx.fillStyle = "rgba(0,0,0,.6)";
+        ctx.fillStyle = VEIL;
         ctx.fillRect(0,0,cw,ch);
-        ctx.fillStyle = "#EDEAE3";
+        ctx.fillStyle = INK;
         ctx.font = "14px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(overMessage, cw/2, ch/2);
@@ -360,6 +374,7 @@ Strip.register({
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
       clearTimeout(resizeTimer);
     };
   }

@@ -22,7 +22,7 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const board = document.createElement("div");
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); grid-template-rows:repeat(${SIZE},1fr); width:min(70vw,240px); height:min(70vw,240px); background:#12121a; border-radius:10px; touch-action:none;`;
+    board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); grid-template-rows:repeat(${SIZE},1fr); width:min(70vw,240px); height:min(70vw,240px); background:var(--screen, #12121a); border-radius:10px; touch-action:none;`;
     wrap.appendChild(board);
 
     const startBtn = document.createElement("button");

@@ -52,8 +52,29 @@ Strip.register({
     statRow.style.cssText = "display:flex; gap:12px; font-family:var(--font-display); font-size:8px; color:var(--ink-dim);";
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = `width:min(82vw,${COLS*CELL}px); height:auto; aspect-ratio:${COLS}/${ROWS}; border-radius:8px; background:#0d1420; touch-action:none;`;
+    canvas.style.cssText = `width:min(82vw,${COLS*CELL}px); height:auto; aspect-ratio:${COLS}/${ROWS}; border-radius:8px; background:var(--screen, #0d1420); touch-action:none;`;
     const ctx = canvas.getContext("2d");
+
+    // R33 - daylight screens. The board paints itself from resolved tokens
+    // (canvas can't read var()); in dark/OLED every lookup misses and the
+    // raw CRT values below keep the art pixel-identical. Re-resolved when
+    // the chassis flips mid-mount.
+    const _sv = getComputedStyle(document.documentElement);
+    let TD_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    let TD_INK = _sv.getPropertyValue("--screen-ink").trim() || "#EDEAE3";
+    const onModeChanged = () => {
+      TD_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+      TD_INK = _sv.getPropertyValue("--screen-ink").trim() || "#EDEAE3";
+      _retintChecks();
+    };
+    let TD_CHECK1 = document.documentElement.dataset.mode === "light" ? "#EFEAE0" : "#12182a";
+    let TD_CHECK2 = document.documentElement.dataset.mode === "light" ? "#E6E0D3" : "#0f1424";
+    const _retintChecks = () => {
+      const light = document.documentElement.dataset.mode === "light";
+      TD_CHECK1 = light ? "#EFEAE0" : "#12182a";
+      TD_CHECK2 = light ? "#E6E0D3" : "#0f1424";
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
     // DPR-aware backing store — logical coordinate space (COLS*CELL x ROWS*CELL)
     // is preserved via the transform, so all render/click math stays unchanged
     function fit(){
@@ -357,14 +378,14 @@ Strip.register({
     function render(){
       ctx.clearRect(0,0,canvas.width,canvas.height);
       for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
-        ctx.fillStyle = (r+c)%2===0 ? "#12182a" : "#0f1424";
+        ctx.fillStyle = (r+c)%2===0 ? TD_CHECK1 : TD_CHECK2;
         ctx.fillRect(c*CELL, r*CELL, CELL, CELL);
       }
       if(path){
-        ctx.fillStyle = "rgba(255,255,255,0.055)";
+        ctx.fillStyle = `rgba(${TD_RGB},0.065)`;
         path.forEach(p => ctx.fillRect(p.c*CELL, p.r*CELL, CELL, CELL));
         // dotted centerline: readable at a glance without shouting
-        ctx.fillStyle = "rgba(237,234,227,0.16)";
+        ctx.fillStyle = `rgba(${TD_RGB},0.16)`;
         path.forEach(p => {
           const {x,y} = cellCenter(p.r, p.c);
           ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI*2); ctx.fill();
@@ -388,7 +409,7 @@ Strip.register({
         ctx.fill();
         // upgrade pips: 0–4 dots under the tower show its level at a glance
         if(t.level > 0){
-          ctx.fillStyle = "#EDEAE3";
+          ctx.fillStyle = TD_INK;
           for(let i=0;i<t.level;i++){
             ctx.beginPath();
             ctx.arc(x - 5 + i*3.4, y + CELL*0.42, 1.1, 0, Math.PI*2);
@@ -396,7 +417,7 @@ Strip.register({
           }
         }
         if(t === selectedTower){
-          ctx.strokeStyle = "#EDEAE3";
+          ctx.strokeStyle = TD_INK;
           ctx.lineWidth = 1.5;
           ctx.setLineDash([4,3]);
           ctx.strokeRect(t.c*CELL+1.5, t.r*CELL+1.5, CELL-3, CELL-3);
@@ -427,7 +448,7 @@ Strip.register({
       }
 
       enemies.forEach(e => {
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = TD_INK;
         ctx.beginPath();
         ctx.arc(e.x, e.y, 6, 0, Math.PI*2);
         ctx.fill();
@@ -609,6 +630,7 @@ Strip.register({
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
       clearTimeout(resizeTimer);
     };
   }

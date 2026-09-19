@@ -27,6 +27,11 @@ Strip.register({
   title: "Dice Pig",
   tag: "push your luck",
   hint: "Roll to build the pot — BANK before the 1 wipes it. 50 wins.",
+  // Round 33 — win-depth opt-in: the banked total on a WIN is an honest
+  // performance number (bank 80 vs your best 80 is 100% depth), so wins
+  // feed the depth ring like over-runs do. The shell resolves this flag
+  // into strip:gameover detail; XP + Depth read the same contract.
+  winDepth: true,
   async mount(container, api){
     const q = (sel) => container.querySelector(sel);
     let best = await api.getHighscore();

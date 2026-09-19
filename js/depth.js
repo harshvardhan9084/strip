@@ -13,6 +13,9 @@
  * The contract matches XP.recordDepthSample exactly (one source of truth for
  * what a "depth sample" is):
  *   - only "over" runs sample — a win IS the goal, there's no edge to measure
+ *     (Round 33 win-depth exception: a cartridge that declares winDepth:true
+ *     at register() samples its WIN scores too — dicepig's banked total is a
+ *     real number; the shell resolves the flag into strip:gameover detail)
  *   - the run needs a real best (> 0) and a real score (> 0) to mean anything
  *   - sample = min(100, round(score / best * 100)); ring of the last 40
  *   - inverted-encoding games (codebreaker/lightsout/maze/memorymatch/
@@ -319,7 +322,15 @@ window.Depth = (function(){
 
   function onGameOver(e){
     const d = e.detail;
-    if(!d || !d.id || d.outcome !== "over") return;
+    if(!d || !d.id) return;
+    // Round 33 — win-depth: cartridges that opt in at register() with
+    // winDepth:true (dicepig's banked total is a real performance number)
+    // sample on WINS too — a player who always reaches the goal still has a
+    // depth story, and the ring stays the same ratio math. The generic rule
+    // ("a win IS the goal, there's no edge to measure") stays for everyone
+    // else, inverted-encoding games included: they emit only wins and never
+    // opt in, so the poison-safe design is untouched.
+    if(d.outcome !== "over" && !(d.outcome === "win" && d.winDepth)) return;
     const score = Number(d.score);
     if(!Number.isFinite(score) || score <= 0) return;
     if(window.StripDB && StripDB.getHighscore){

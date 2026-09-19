@@ -38,7 +38,7 @@ Strip.register({
     const cells = [];
     for(let i=0;i<SIZE*SIZE;i++){
       const c = document.createElement("div");
-      c.style.cssText = "background:rgba(255,255,255,.03); border-radius:8px;";
+      c.style.cssText = "background:var(--screen-cell, rgba(255,255,255,.03)); border-radius:8px;";
       boardWrap.appendChild(c);
       cells.push(c);
     }
@@ -57,10 +57,14 @@ Strip.register({
     wrap.appendChild(restartBtn);
     container.appendChild(wrap);
 
+    // R33 — the tile ramp moved into style.css as .s2-t* classes: the old
+    // dark-navy low tiles inline on a daylight board read as a photo
+    // negative. CSS re-grades every tile the moment the chassis flips; dark
+    // values there are EXACTLY these hexes (pixel-identical).
     const COLORS = {
-      2:"#2A2A34", 4:"#3A3A46", 8:"#5A4A2E", 16:"#7A5A22", 32:"#9A6A1E",
-      64:"#C07E1A", 128:"#4A4470", 256:"#5D54A0", 512:"#8B7FE8",
-      1024:"#E8637F", 2048:"#FFB347", 4096:"#6FCF97", 8192:"#5FD4D0"
+      2:"s2-t2", 4:"s2-t4", 8:"s2-t8", 16:"s2-t16", 32:"s2-t32",
+      64:"s2-t64", 128:"s2-t128", 256:"s2-t256", 512:"s2-t512",
+      1024:"s2-t1024", 2048:"s2-t2048", 4096:"s2-t4096", 8192:"s2-t8192"
     };
 
     // Round 19 (AUDIT.md S6): reaching 2048 fired one buzz — no banner, no
@@ -95,12 +99,13 @@ Strip.register({
         if(!v) continue;
         const t = document.createElement("div");
         t.textContent = v;
+        t.className = "s2-t " + (COLORS[v] || "s2-tmax");
         t.style.cssText = `
           position:absolute; width:${cellSize}px; height:${cellSize}px;
           left:${c*(cellSize+gap)}px; top:${r*(cellSize+gap)}px;
-          background:${COLORS[v] || "#FFB347"}; border-radius:8px;
+          border-radius:8px;
           display:flex; align-items:center; justify-content:center;
-          font-weight:700; font-size:${v > 512 ? 16 : 20}px; color:${v>=8?"#fff":"#EDEAE3"};
+          font-weight:700; font-size:${v > 512 ? 16 : 20}px;
           transition:left .1s ease, top .1s ease;
         `;
         tileLayer.appendChild(t);
@@ -119,9 +124,9 @@ Strip.register({
           const o = document.createElement("div");
           o.className = "go-overlay";
           o.style.cssText = `
-            position:absolute; inset:0; background:rgba(0,0,0,.62); border-radius:8px;
+            position:absolute; inset:0; background:var(--screen-veil, rgba(0,0,0,.62)); border-radius:8px;
             display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px;
-            color:#EDEAE3; font-family:var(--font-display); font-size:14px; text-align:center;
+            color:var(--screen-ink, #EDEAE3); font-family:var(--font-display); font-size:14px; text-align:center;
           `;
           o.textContent = "No moves left";
           const sub = document.createElement("div");
@@ -137,9 +142,9 @@ Strip.register({
           const o = document.createElement("div");
           o.className = "go-overlay";
           o.style.cssText = `
-            position:absolute; inset:0; background:rgba(0,0,0,.55); border-radius:8px;
+            position:absolute; inset:0; background:var(--screen-veil, rgba(0,0,0,.55)); border-radius:8px;
             display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px;
-            color:#FFB347; font-family:var(--font-display); font-size:20px; text-align:center;
+            color:var(--warn, #FFB347); font-family:var(--font-display); font-size:20px; text-align:center;
           `;
           o.textContent = "★ 2048 ★";
           const sub = document.createElement("div");

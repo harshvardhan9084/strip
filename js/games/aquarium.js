@@ -82,8 +82,8 @@ Strip.register({
     const tank = document.createElement("div");
     tank.style.cssText = `
       position:relative; width:min(78vw,280px); height:min(45vh,220px);
-      background:linear-gradient(to bottom, #16303a, #0c1a20);
-      border-radius:14px; border:2px solid #234; overflow:hidden; cursor:pointer;
+      background:linear-gradient(to bottom, var(--screen-water-1, #16303a), var(--screen-water-2, #0c1a20));
+      border-radius:14px; border:2px solid var(--screen-water-edge, #234); overflow:hidden; cursor:pointer;
     `;
     wrap.appendChild(tank);
 
@@ -173,7 +173,7 @@ Strip.register({
             state.fish = state.fish.filter(o => o !== f);
             armedFish = null;
             Feedback.tone("thud"); Feedback.haptic("medium");
-            floatText(`released +${worth}c`, "#EDEAE3");
+            floatText(`released +${worth}c`, "var(--screen-ink, #EDEAE3)");
             persist(); renderFish(); renderDecor(); renderStats();
           } else {
             armedFish = f;
@@ -191,7 +191,7 @@ Strip.register({
     function floatText(text, color){
       const out = document.createElement("div");
       out.textContent = text;
-      out.style.cssText = `position:absolute; left:50%; top:12px; transform:translateX(-50%); font-size:11px; color:${color}; pointer-events:none; animation:aq-float .8s ease forwards; z-index:5; text-shadow:0 1px 3px rgba(0,0,0,.5);`;
+      out.style.cssText = `position:absolute; left:50%; top:12px; transform:translateX(-50%); font-size:11px; color:${color}; pointer-events:none; animation:aq-float .8s ease forwards; z-index:5; text-shadow:var(--screen-ft-shadow, 0 1px 3px rgba(0,0,0,.5));`;
       tank.appendChild(out);
       setTimeout(() => out.remove(), 850);
     }
@@ -204,7 +204,7 @@ Strip.register({
           const sp = SP[f.species] || SP.guppy;
           state.coins += sp.value;
           state.album[f.species] = (state.album[f.species] || 0) + 1;
-          floatText(`${sp.name} grown! +${sp.value}c`, "#6FCF97");
+          floatText(`${sp.name} grown! +${sp.value}c`, "var(--good, #6FCF97)");
           Feedback.tone("success");
         }
       });
@@ -261,14 +261,14 @@ Strip.register({
         if(state.fish.length < MAX_FISH){
           state.fish.push(mkFish());
           Feedback.tone("success");
-          floatText("a fry appeared!", "#FFB347");
+          floatText("a fry appeared!", "var(--warn, #FFB347)");
           if(state.fish.length > best){
             best = state.fish.length;
             api.setHighscore(best);
           }
         } else {
           state.coins += 4;
-          floatText("tank full — fry sold +4c", "#FFB347");
+          floatText("tank full — fry sold +4c", "var(--warn, #FFB347)");
         }
       }
       persist();
@@ -289,7 +289,7 @@ Strip.register({
         state.coins -= d.cost;
         state.decor.push(d.key);
         Feedback.buzz("success");
-        floatText(`${d.emoji} ${d.name} installed!`, "#6FCF97");
+        floatText(`${d.emoji} ${d.name} installed!`, "var(--good, #6FCF97)");
         persist(); renderTank();
       });
     });

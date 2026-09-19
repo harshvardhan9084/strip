@@ -19,7 +19,7 @@ Strip.register({
       L: [[0,0,1],[1,1,1]]
     };
     const BAG = Object.keys(SHAPES);
-    const PIECE_COLOR = { I:"#6FA8FF", O:"#EDEAE3", T:"#8B7FE8", S:"#5AC98A", Z:"#E8637F", J:"#FFB347", L:"#F2A65A" };
+    const PIECE_COLOR = { I:"#6FA8FF", O:"var(--screen-ink, #EDEAE3)", T:"#8B7FE8", S:"#5AC98A", Z:"#E8637F", J:"#FFB347", L:"#F2A65A" }; // R33: the O piece was near-white — invisible on a daylight screen, now rides the ink token
     const LINE_SCORE = [0, 100, 300, 500, 800];
 
     let grid, piece, nextPiece, running, over, gravId;
@@ -37,7 +37,7 @@ Strip.register({
     playRow.style.cssText = "display:flex; gap:10px; align-items:flex-start;";
 
     const board = document.createElement("div");
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${COLS},14px); grid-auto-rows:14px; gap:1px; background:#101018; padding:6px; border-radius:10px;`;
+    board.style.cssText = `display:grid; grid-template-columns:repeat(${COLS},14px); grid-auto-rows:14px; gap:1px; background:var(--screen-line, #101018); padding:6px; border-radius:10px;`;
     playRow.appendChild(board);
 
     const sideCol = document.createElement("div");
@@ -199,7 +199,7 @@ Strip.register({
         boardWrap.appendChild(b);
       }
       b.textContent = text;
-      b.style.color = color || "#EDEAE3";
+      b.style.color = color || "var(--screen-ink, #EDEAE3)";
       b.style.opacity = "1";
       clearTimeout(bannerTimer);
       bannerTimer = setTimeout(() => { b.style.opacity = "0"; b.style.transition = "opacity .5s"; }, 900);

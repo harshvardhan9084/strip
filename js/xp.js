@@ -321,6 +321,22 @@ window.XP = (function(){
     if(state.runToday >= RUN_DAILY_CAP) return; // depth is bounded like browsing
     state.runToday++;
     if(outcome === "win"){
+      // Round 33 — win-depth: an opted-in cartridge's win score is an honest
+      // performance number, so the win feeds the profile's depth ring too
+      // (still gated by best > 0 inside recordDepthSample). The XP award is
+      // UNCHANGED — wins paid runWin before and still do; this only closes
+      // the depth story for games the old rule silently ignored.
+      if(detail.winDepth){
+        const sampleWin = (best) => {
+          if(best > 0 && Number.isFinite(score) && score > 0){
+            recordDepthSample(score, best);
+            persist();
+          }
+        };
+        if(window.StripDB && StripDB.getHighscore){
+          StripDB.getHighscore(detail.id).then(sampleWin).catch(() => {});
+        }
+      }
       applyAward("run", AWARD.runWin, { floatText: "+" + AWARD.runWin + " XP · RUN WON", floatClass: "big" });
       return;
     }

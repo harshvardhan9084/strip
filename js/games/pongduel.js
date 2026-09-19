@@ -53,9 +53,19 @@ Strip.register({
     wrap.appendChild(diffRow);
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "width:min(76vw,264px); height:auto; aspect-ratio:240/160; border-radius:10px; background:#101018; touch-action:none; display:block;";
+    // R33 daylight screens: glass follows the chassis via the light-only token.
+    canvas.style.cssText = "width:min(76vw,264px); height:auto; aspect-ratio:240/160; border-radius:10px; background:var(--screen, #101018); touch-action:none; display:block;";
     wrap.appendChild(canvas);
     const ctx = canvas.getContext("2d");
+
+    // R33 — daylight ink (dark falls back to the raw CRT values); re-resolved
+    // on a mid-mount chassis flip.
+    const _sv = getComputedStyle(document.documentElement);
+    let INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    const onModeChanged = () => {
+      INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
 
     // DPR-aware backing store (crispness parity with the other arcade cards)
     function fit(){
@@ -187,7 +197,7 @@ Strip.register({
       ctx.clearRect(0, 0, W, H);
       // center line
       ctx.setLineDash([4, 6]);
-      ctx.strokeStyle = "rgba(237,234,227,.2)";
+      ctx.strokeStyle = `rgba(${INK_RGB},.2)`;
       ctx.beginPath();
       ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
       ctx.stroke();
@@ -199,10 +209,10 @@ Strip.register({
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, 3, 0, Math.PI * 2);
       // match-point tension: the ball runs hot when either side is at 6
-      ctx.fillStyle = (you === WIN - 1 || ai === WIN - 1) ? "#E8637F" : "#EDEAE3";
+      ctx.fillStyle = (you === WIN - 1 || ai === WIN - 1) ? "#E8637F" : `rgba(${INK_RGB},.92)`;
       ctx.fill();
       if(!running){
-        ctx.fillStyle = "rgba(237,234,227,.6)";
+        ctx.fillStyle = `rgba(${INK_RGB},.6)`;
         ctx.font = "9px monospace";
         ctx.textAlign = "center";
         ctx.fillText("PRESS START", W / 2, H / 2 + 4);
@@ -240,6 +250,7 @@ Strip.register({
       running = false;
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
       clearTimeout(resizeTimer);
     };
   }

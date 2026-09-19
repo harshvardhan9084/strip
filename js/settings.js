@@ -131,6 +131,9 @@ window.Settings = (function(){
 
   let current = Object.assign({}, DEFAULTS);
   let listeners = [];
+  // Round 33 — tracks the last applied chassis so the daylight-screen event
+  // below only fires on a REAL mode flip (not on every boot re-apply).
+  let lastAppliedMode = null;
   let ready = false;
   let readyResolve;
   const readyPromise = new Promise(res => { readyResolve = res; });
@@ -147,6 +150,15 @@ window.Settings = (function(){
     // swap re-builds every chassis channel via the CSS mode engine.
     const mode = THEME_MODES.includes(current.colorMode) ? current.colorMode : "dark";
     document.documentElement.dataset.mode = mode;
+    // Round 33 — DAYLIGHT SCREENS handoff: canvas cartridges can't follow a
+    // chassis flip through CSS alone (their fills are resolved strings, not
+    // var()), so they re-resolve --screen* tokens when this fires. DOM
+    // surfaces re-grade themselves through the same tokens; nothing else in
+    // the shell listens, and a boot re-apply of the SAME mode stays silent.
+    if(lastAppliedMode !== null && lastAppliedMode !== mode){
+      try{ window.dispatchEvent(new CustomEvent("strip:mode-changed", { detail: { mode } })); }catch(e){}
+    }
+    lastAppliedMode = mode;
     const meta = document.querySelector('meta[name="theme-color"]');
     const chrome = mode === "dark" ? THEME_META_COLORS[theme] : MODE_META_COLORS[mode];
     if(meta && chrome) meta.setAttribute("content", chrome);

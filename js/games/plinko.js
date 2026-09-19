@@ -23,7 +23,9 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "background:#12121a; border-radius:12px; width:min(78vw,280px); height:min(55vh,340px); touch-action:none;";
+    // R33 daylight screens: the glass follows the chassis via the light-only
+    // --screen token; dark keeps the raw hex through the var() fallback.
+    canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; width:min(78vw,280px); height:min(55vh,340px); touch-action:none;";
     wrap.appendChild(canvas);
 
     const dropBtn = document.createElement("button");
@@ -32,6 +34,21 @@ Strip.register({
     wrap.appendChild(dropBtn);
 
     container.appendChild(wrap);
+
+    // R33 — ink resolved from the daylight-screen tokens (undefined in
+    // dark/OLED -> raw CRT fallbacks, pixel-identical); re-resolved when the
+    // chassis flips mid-mount via strip:mode-changed.
+    const _sv = getComputedStyle(document.documentElement);
+    let INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    let CELL = _sv.getPropertyValue("--screen-cell").trim() || "rgba(255,255,255,.03)";
+    let LIGHT = document.documentElement.dataset.mode === "light";
+    const retint = () => {
+      INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+      CELL = _sv.getPropertyValue("--screen-cell").trim() || "rgba(255,255,255,.03)";
+      LIGHT = document.documentElement.dataset.mode === "light";
+    };
+    const onModeChanged = () => { retint(); draw(); };
+    window.addEventListener("strip:mode-changed", onModeChanged);
 
     const ctx = canvas.getContext("2d");
     let cw, ch;
@@ -86,15 +103,15 @@ Strip.register({
       // slots at bottom
       const slotW = cw / SLOTS;
       for(let i=0;i<SLOTS;i++){
-        ctx.fillStyle = i === Math.floor(SLOTS/2) ? "rgba(255,179,71,.15)" : "rgba(255,255,255,.03)";
+        ctx.fillStyle = i === Math.floor(SLOTS/2) ? "rgba(255,179,71,.15)" : CELL;
         ctx.fillRect(i*slotW, ch-36, slotW-2, 34);
-        ctx.fillStyle = "rgba(237,234,227,0.6)"; // canvas can't resolve CSS vars like "var(--ink-dim)" — the old value made slot labels render in an arbitrary color
+        ctx.fillStyle = `rgba(${INK_RGB},0.6)`; // canvas can't resolve CSS vars like "var(--ink-dim)" — the old value made slot labels render in an arbitrary color
         ctx.font = "9px monospace";
         ctx.textAlign = "center";
         ctx.fillText(SLOT_SCORES[i], i*slotW + slotW/2, ch-16);
       }
 
-      ctx.fillStyle = "rgba(255,255,255,.3)";
+      ctx.fillStyle = `rgba(${INK_RGB},.3)`;
       pegs.forEach(p => {
         ctx.beginPath(); ctx.arc(p.x, p.y, PEG_R, 0, Math.PI*2); ctx.fill();
       });
@@ -102,6 +119,13 @@ Strip.register({
       ctx.fillStyle = "#FFB347";
       balls.forEach(b => {
         ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI*2); ctx.fill();
+        // R33 daylight detail: the raw amber ball is faint on the daylight
+        // glass — a thin ink ring keeps it crisp; dark keeps the pure glow.
+        if(LIGHT){
+          ctx.strokeStyle = `rgba(${INK_RGB},.55)`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
       });
     }
 
@@ -168,6 +192,7 @@ Strip.register({
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
       clearTimeout(resizeTimer);
     };
   }

@@ -63,7 +63,21 @@ Strip.register({
     statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "width:min(80vw,300px); height:min(45vh,220px); border-radius:10px; background:#0d1420;";
+    canvas.style.cssText = "width:min(80vw,300px); height:min(45vh,220px); border-radius:10px; background:var(--screen, #0d1420);";
+
+    // R33 - daylight screens. The duel paints its sky and inks from resolved
+    // tokens (canvas can't read var()); dark/OLED misses every lookup and
+    // keeps the raw CRT night. Re-resolved on a mid-mount chassis flip.
+    const _sv = getComputedStyle(document.documentElement);
+    let SKY_TOP = _sv.getPropertyValue("--screen").trim() || "#0d1420";
+    let SKY_FAR = _sv.getPropertyValue("--screen-2").trim() || "#1a2436";
+    let INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    const onModeChanged = () => {
+      SKY_TOP = _sv.getPropertyValue("--screen").trim() || "#0d1420";
+      SKY_FAR = _sv.getPropertyValue("--screen-2").trim() || "#1a2436";
+      INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
 
     const infoLine = document.createElement("div");
     infoLine.style.cssText = "font-size:11px; color:var(--ink-dim); min-height:16px;";
@@ -168,8 +182,8 @@ Strip.register({
       ctx.clearRect(0,0,W,H);
       // sky
       const grad = ctx.createLinearGradient(0,0,0,H);
-      grad.addColorStop(0, "#0d1420");
-      grad.addColorStop(1, "#1a2436");
+      grad.addColorStop(0, SKY_TOP);
+      grad.addColorStop(1, SKY_FAR);
       ctx.fillStyle = grad;
       ctx.fillRect(0,0,W,H);
 
@@ -183,7 +197,7 @@ Strip.register({
       ctx.fill();
 
       // wind indicator arrow
-      ctx.strokeStyle = "rgba(255,255,255,0.3)";
+      ctx.strokeStyle = `rgba(${INK_RGB},0.45)`;
       ctx.lineWidth = 2;
       ctx.beginPath();
       const wcx = W/2;
@@ -197,12 +211,12 @@ Strip.register({
 
       // projectile
       if(projectile){
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = `rgba(${INK_RGB},.9)`;
         ctx.beginPath();
         ctx.arc(projectile.x, projectile.y, 3, 0, Math.PI*2);
         ctx.fill();
         // trail
-        ctx.strokeStyle = "rgba(255,255,255,0.25)";
+        ctx.strokeStyle = `rgba(${INK_RGB},0.3)`;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         projectile.trail.forEach((p,i) => i===0 ? ctx.moveTo(p.x,p.y) : ctx.lineTo(p.x,p.y));
@@ -218,7 +232,7 @@ Strip.register({
       ctx.fill();
       // hull pips over each tank — the duel's stakes visible on the field
       for(let i=0;i<3;i++){
-        ctx.fillStyle = i < hp ? color : "rgba(255,255,255,0.15)";
+        ctx.fillStyle = i < hp ? color : `rgba(${INK_RGB},0.18)`;
         ctx.fillRect(x - 7 + i*6, groundY - 15, 4, 3);
       }
     }
@@ -400,6 +414,7 @@ Strip.register({
     return () => {
       disposed = true;
       if(aiTimer) clearTimeout(aiTimer);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
     };
   }
 });

@@ -146,6 +146,30 @@ html[data-mode="light"]{
      black text on it fails — white passes on every skin's daylight value */
   --on-accent: #FFFFFF;
   --felt:      rgba(255,255,255,.62);
+  /* ---------- Round 33 — DAYLIGHT SCREENS (the light-chassis CRT fix) ----------
+     The old light chassis kept every in-game screen dark ("pale handheld
+     shell"), which read as a photo negative: dark 2048 tiles on a paper
+     board, near-white ink stranded on white. Now the SCREENS go to daylight
+     too — natural warm-white glass with dark ink — while saturated game
+     pieces (bricks, bubbles, tanks) keep their CRT chroma, like a sunlight
+     Game Boy rather than an inverted photo.
+     These tokens are defined ONLY in the light block on purpose: dark/OLED
+     resolve every var() fallback below to the game's own hardcoded hex, so
+     the dark console stays pixel-identical. Canvas games resolve the same
+     tokens through getComputedStyle at mount (and on strip:mode-changed) —
+     an undefined token reads as "" there, hitting the same raw fallbacks. */
+  --screen:         #FBFAF6;   /* the glass itself */
+  --screen-2:       #EFEBE2;   /* gradient partner (sky far, water deep) */
+  --screen-ink:     #2A2620;   /* primary ink drawn ON the glass */
+  --screen-ink-rgb: 42,38,32;  /* alpha ink on the glass (pegs, guides) */
+  --screen-dim:     #6E6759;   /* secondary ink on the glass */
+  --screen-cell:    rgba(42,38,32,.07);    /* empty cell / faint grid fill */
+  --screen-line:    #D9D2C4;   /* grid gap lines on the glass */
+  --screen-veil:    rgba(251,250,246,.85); /* modal veil ON the glass */
+  --screen-water-1: #D6E9E7;   /* aquarium: sunlit surface water */
+  --screen-water-2: #BCDFE0;   /* aquarium: deeper water */
+  --screen-water-edge: #B8CCC9;/* aquarium: tank trim */
+  --screen-ft-shadow: 0 1px 2px rgba(42,38,32,.18); /* float-text shadow on daylight glass */
 }
 /* daylight phosphors — legible accents on paper, per skin */
 html[data-mode="light"][data-theme="ice"]{
@@ -2172,3 +2196,84 @@ html.reduce-motion #hud-index{ transition:none; }
 }
 .player-league .player-league-note{ text-shadow:none; }
 html[data-mode="light"] .player-league::before{ box-shadow:none; }
+
+/* ---- Round 33 — DAYLIGHT SCREENS: 2048 tile ramp ----
+   The ramp left sandbox2048.js as .s2-t* classes so a chassis flip re-grades
+   every tile instantly (inline hexes used to strand dark-navy low tiles on
+   the daylight board — the "inverted photo" the light chassis was). DARK
+   values here are EXACTLY the hexes the game used to inline (pixel-identical);
+   LIGHT re-derives the same hue families at daylight grade, dark-ink on the
+   pale low tiles and white-ink once the tile goes saturated. */
+.s2-t{
+  background:#FFB347;               /* v > 8192 fallback (was COLORS || #FFB347) */
+  color:#EDEAE3;
+  display:flex; align-items:center; justify-content:center;
+}
+.s2-t2  { background:#2A2A34; }
+.s2-t4  { background:#3A3A46; }
+.s2-t8  { background:#5A4A2E; color:#fff; }
+.s2-t16 { background:#7A5A22; color:#fff; }
+.s2-t32 { background:#9A6A1E; color:#fff; }
+.s2-t64 { background:#C07E1A; color:#fff; }
+.s2-t128{ background:#4A4470; color:#fff; }
+.s2-t256{ background:#5D54A0; color:#fff; }
+.s2-t512{ background:#8B7FE8; color:#fff; }
+.s2-t1024{ background:#E8637F; color:#fff; }
+.s2-t2048{ background:#FFB347; color:#fff; }
+.s2-t4096{ background:#6FCF97; color:#fff; }
+.s2-t8192{ background:#5FD4D0; color:#fff; }
+.s2-tmax { background:#FFB347; color:#fff; }
+html[data-mode="light"] .s2-t   { background:#B45309; color:#fff; }
+html[data-mode="light"] .s2-t2  { background:#EAE5DA; color:#2A2620; }
+html[data-mode="light"] .s2-t4  { background:#DFD7C3; color:#2A2620; }
+html[data-mode="light"] .s2-t8  { background:#E9B45B; color:#2A2620; }
+html[data-mode="light"] .s2-t16 { background:#E09A38; color:#2A2620; }
+html[data-mode="light"] .s2-t32 { background:#D97F2A; color:#2A2620; }
+html[data-mode="light"] .s2-t64 { background:#C05A12; color:#fff; }
+html[data-mode="light"] .s2-t128{ background:#6D5BD0; color:#fff; }
+html[data-mode="light"] .s2-t256{ background:#5D4FB8; color:#fff; }
+html[data-mode="light"] .s2-t512{ background:#4F44A0; color:#fff; }
+html[data-mode="light"] .s2-t1024{ background:#C2314E; color:#fff; }
+html[data-mode="light"] .s2-t2048{ background:#B45309; color:#fff; }
+html[data-mode="light"] .s2-t4096{ background:#15803D; color:#fff; }
+html[data-mode="light"] .s2-t8192{ background:#0E7490; color:#fff; }
+
+/* ---- Round 33 — Player Card THIS WEEK (the 7-day ON DECK recap) ----
+   The 30-day ring already existed; this renders its newest 7 days as seven
+   static bars (no motion → no reduce-motion guard needed). Today is the
+   last bar, so the row and the ON DECK stat can never disagree. */
+.player-week{
+  grid-column:1 / -1;
+  display:flex; align-items:center; gap:10px;
+  margin-top:2px; padding:8px 12px;
+  border:1px solid var(--line); border-radius:12px;
+  background:rgba(0,0,0,.2);
+}
+.player-week-label{
+  font-family:var(--font-display); font-size:7px;
+  letter-spacing:.12em; color:var(--ink-dim); flex:none;
+}
+.player-week-bars{
+  flex:1; display:flex; align-items:flex-end; gap:4px; height:26px;
+}
+.player-week-bar{
+  flex:1; height:100%; border-radius:2px 2px 1px 1px;
+  background:var(--amber);
+  box-shadow:0 0 6px rgba(var(--glow-rgb),calc(.35*var(--glow-mul,1)));
+}
+html[data-mode="light"] .player-week-bar{ box-shadow:none; }
+.player-week-bar.empty{
+  background:var(--line);
+  box-shadow:none; opacity:.6;
+}
+.player-week-total{
+  font-family:var(--font-display); font-size:9px;
+  color:var(--amber); flex:none; min-width:4ch; text-align:right;
+}
+
+/* R33 daylight detail: the re-graded light tiles float on the daylight
+   board — a soft contact shadow keeps them physical; dark keeps the flat
+   phosphor tiles it has always had. */
+html[data-mode="light"] .s2-t{
+  box-shadow:0 1px 3px rgba(42,38,32,.22), 0 0 0 1px rgba(42,38,32,.05);
+}

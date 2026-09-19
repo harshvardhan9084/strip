@@ -2315,3 +2315,138 @@ every change pinned by a new suite and the full regression gauntlet green.
 (cheap, data now exists), (b) Dice Pig watch + possible win-depth contract,
 (c) start the real-device pass checklist as a doc so carry #17 can actually
 close it.
+
+---
+
+# Round 33 — Daylight Screens + Weekly Recap + Win-Depth
+
+## ① Current project status / assessment
+
+- **Baseline at round start**: R32 (c388acb) committed and stable — qa/r32 13/13
+  re-verified on a fresh session, 52/52 cartridges registered, 0 console errors.
+  The uncommitted tree was noise: file-mode drift (100644→100755, normalized with
+  `core.fileMode false`) plus 6 untracked R32 QA screenshots (removed).
+- **The real-device pass (16th carry) reported exactly one defect**, and the user
+  confirmed headless matches the device: in LIGHT mode the in-game CRT screens look
+  "inverted" instead of natural white. Reproduced headless: snake/breakout/plinko/
+  bubbleshoot/etc. kept their near-black playfields (#12121a) on the paper shell,
+  sandbox2048 stranded dark-navy low tiles on a light board, minesweeper's revealed
+  cells went dark, blockfall's grid gap stayed near-black. The shell itself (HUD,
+  drawer, blackjack felt, Dice Pig) was already daylight-graded — the gap was the
+  in-screen surfaces, exactly the "pale handheld shell" concept R24 documented.
+- **Decision (user ask)**: retire the pale-handheld-shell reading — LIGHT takes the
+  screens to daylight too (natural warm-white glass, dark ink, saturated pieces keep
+  their chroma), while DARK stays pixel-identical BY CONSTRUCTION.
+- Round scope shipped: the Daylight Screens engine across 17 cartridges + the live
+  retint handoff, the weekly ON DECK recap on the Player Card, and the win-depth
+  contract for Dice Pig. All green: qa/r33 11/11 NEW + the full gauntlet r23–r32
+  on fresh sessions (152 assertions).
+
+## ② Goals / completed modifications / verification results
+
+1. **Daylight Screens engine (the fix the user reported)**
+   - `css/style.css` — a LIGHT-ONLY token set, defined solely inside
+     `html[data-mode="light"]`: `--screen` #FBFAF6, `--screen-2` #EFEBE2 (gradient
+     partner), `--screen-ink` #2A2620, `--screen-ink-rgb` 42,38,32, `--screen-dim`,
+     `--screen-cell`, `--screen-line`, `--screen-veil`, the aquarium trio
+     (`--screen-water-1/2`, `-edge`) and `--screen-ft-shadow`. Because the tokens
+     are undefined in dark/OLED, every converted game value reads
+     `var(--token, <exact old hex>)` and dark resolves the raw CRT value —
+     pixel-identity is structural, not asserted (pinned anyway: qa A1/A2).
+   - `js/settings.js` — `strip:mode-changed` (window CustomEvent, `detail.mode`)
+     fires only on a REAL chassis flip (`lastAppliedMode` guard; boot re-apply of
+     the same mode stays silent). Canvas fills are resolved strings, not var(), so
+     canvas cartridges resolve `--screen*` at mount via getComputedStyle and
+     re-resolve on the event; every listener is removed in the game's cleanup.
+   - **16 cartridges converted**: snake, sokoban, balloonpop, plinko, breakout,
+     blockfall (grid gap → `--screen-line`; the white O piece → ink token),
+     pongduel, flapdot, physicsdrop, stacktower (glass), bubbleshoot (veil + ink +
+     aim guide), minesweeper (revealed cells + the stranded 7/8 number inks),
+     towerdefense (day checker tints + path/pip/enemy inks), artillery (daylight
+     sky gradient + shell/trail/wind inks), aquarium (sunlit water gradient +
+     float inks via semantic vars), kaleidoscope (thread lightness L65 → L48 on
+     light). Saturated game pieces keep their CRT chroma on purpose — a sunlight
+     Game Boy, not a photo negative.
+   - **sandbox2048**: the tile ramp LEFT the JS — `.s2-t`/`.s2-t{v}` classes in
+     style.css with dark values EXACTLY the old inline hexes and a daylight ramp
+     (dark ink on pale low tiles, white once saturated, light-mode semantic hues
+     for 128+); veils → `--screen-veil`, empty cells → `--screen-cell`. CSS
+     re-grades every tile the instant the chassis flips — zero JS.
+   - **Styling detail pass (light-only)**: a thin ink ring keeps the raw-amber
+     hero pieces crisp on the daylight glass (plinko ball, breakout ball, flapdot
+     dot — guarded by a mode-aware LIGHT flag, re-derived on the event), and 2048's
+     light tiles wear a soft contact shadow; dark keeps the flat phosphor tiles.
+2. **Weekly ON DECK recap (feature — the R32 carry)**
+   - `js/ontime.js`: public `last7()` (the last 7 LOCAL days oldest→today,
+     zero-filled — a missing bucket is a day played 0 minutes, not a hole),
+     `weekMs()`/`weekMinutes()`/`weekLabel()` with the same floor honesty as
+     todayLabel ("<1m", "—" pre-hydration).
+   - `js/trophies.js` renderPlayerCard: the **THIS WEEK** row between the stats
+     grid and the league row — seven static bars (max-scaled, zero days as short
+     stubs, today last so the row and the ON DECK stat can never disagree),
+     per-bar title ("M · 42m"), role=img + aria-label, the week total beside the
+     label. Static bars = no motion = no reduce-motion guard needed.
+3. **Win-depth contract (feature — Dice Pig's depth story)**
+   - `js/games/dicepig.js` declares `winDepth: true` at register (the banked
+     total on a WIN is an honest performance number); `js/app.js` gameover()
+     resolves the flag from the live registry ONCE into `strip:gameover` detail;
+     `js/xp.js` awardRun feeds the profile's depth ring on opted-in WINS (the XP
+     award itself is UNCHANGED — wins still pay runWin); `js/depth.js`
+     onGameOver accepts `win && winDepth`. Inverted-encoding games emit only
+     wins and never opt in, so the poison-safe design is untouched. A player who
+     always banks 50+ finally feeds the ring (bank 80 of a best 80 = 100% depth).
+4. Infra: `sw.js` v31 → v32 (both cache strings; no precache list changes — no
+   new runtime files); README: the Daylight Screens paragraph, the win-depth
+   contract on the Dice Pig entry, the THIS WEEK row on the ON DECK entry.
+
+**Verification (all live via agent-browser on a served build):**
+
+- **qa/r33 NEW 11/11**: A1 token scoping (dark resolves "" → raw fallbacks;
+  light #FBFAF6 / ink-rgb 42,38,32 / veil set); A2a snake board
+  rgb(18,18,26) dark → rgb(251,250,246) light; A2b s2-t2 rgb(42,42,52) →
+  rgb(234,229,218); A3 live retint through a REAL Settings flip with a
+  one-shot strip:mode-changed capture (no remount, 0 errors); A4a dicepig
+  winDepth=true / lightsout untouched; A4b a REAL scripted Dice Pig run
+  (buttons only) carries winDepth through the detail (outcome=over score=19
+  winDepth=true — the flag rides every outcome of an opted-in game);
+  A4c the run lands in the Depth ring (count=1, avg=24, best seeded 80);
+  A5 last7 = 7 zero-filled days (keys 2026-09-13→2026-09-19), weekMs === sum,
+  label floors to '1m', the card renders 7 bars + matching total;
+  B1 52/52 mount sweep; B2 zero console errors.
+- **Full regression gauntlet on FRESH SESSIONS**: r32 13/13, r31 12/12,
+  r30 12/12, r29 11/11, r28 9/9, r27 10/10, r26 15/15, r25 18/18, r24 23/23,
+  r23 18/18. **Protocol lesson (cost one re-run)**: run each suite on its own
+  wipe+reload — sequential runs cross-contaminate (XP's rolling depth ring
+  diluted r32 A2's seeded 63% → NEON fail; the TAP·TIERS session cap consumed
+  by earlier suites → r30 A5/r31 hint-anatomy fails). All pass fresh.
+- **Screenshots**: light-mode snake / Mini 2048 (daylight ramp) / blockfall
+  (beige frame, light grid) / bubbleshoot / artillery (daylight sky, dark
+  ground, tanks) / aquarium (sunlit water) / minesweeper / pong / kaleidoscope;
+  dark 2048 pixel-identity (rgb(42,42,52) exact); the Player Card THIS WEEK row
+  (6 stubs + today's bar + 49m total); live-retint computed checks.
+- `node --check` clean on all 24 touched files; fresh boot 0 errors, 52/52.
+
+## ③ Unresolved issues / risks + priority recommendations for the next phase
+
+1. **Real-device pass (17th carry)**: the light-mode defect CAME from a device —
+   re-verify the daylight screens on that same device first, then the standing
+   checklist (haptics curves, wake lock, badge fade, iOS install flow).
+2. **Mode-flip redraw edge**: canvas games re-resolve ink on strip:mode-changed;
+   rAF games redraw immediately, but any future game that draws only on
+   interaction should also call its draw() from the listener (plinko/breakout/
+   bubbleshoot/blockfall do; the pattern is 3 lines).
+3. **Day tints are JS ternaries in two games** (towerdefense checker, kaleido-
+   scope thread lightness) rather than tokens — promote to tokens if a third
+   chassis (e-ink? high-contrast?) ever ships; two constants each today.
+4. **Suite hygiene**: r33 A4 seeds a real dicepig best (80) through the shell
+   api factory — a future suite pinning dicepig's best should wipe first or use
+   a distinct id.
+5. **A0 literals in older suites** still pin exact deck counts (r31 → 52); the
+   next cartridge should amend them registry-agnostically the documented way or
+   convert to `>= N` (R32 recommendation, still open).
+6. **Next-phase candidates**: (a) Dice Pig AI-opponent mode (carry from R32),
+   (b) weekly missions hook riding the THIS WEEK data (the 7-day buckets now
+   have a render consumer; a mission metric would be the second), (c) an OLED
+   daylight audit — OLED deliberately keeps the dark screens (only --bg/--panel
+   change), confirm that's still the wanted reading now that LIGHT went daylight,
+   (d) the standing mission-pool tuning once real profiles accumulate data.

@@ -121,6 +121,34 @@ window.Ontime = (function(){
   function todayMinutes(){
     return Math.floor(todayMs() / 60000);
   }
+  // Round 33 — WEEKLY RECAP read-side (render-only; no new plumbing): the
+  // Player Card's THIS WEEK row. last7() returns the last 7 LOCAL days
+  // oldest-first, zero-filling days the engine has no bucket for — a missing
+  // bucket is a day played zero minutes, not a hole. Hydration-honest:
+  // before the boot read resolves the recap reads zeros with hydrated=false,
+  // and the label says "—" (same rule as todayLabel).
+  function last7(now){
+    const out = [];
+    const base = now instanceof Date ? now : new Date();
+    for(let i = 6; i >= 0; i--){
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - i);
+      const k = dayKey(d);
+      out.push({ key: k, ms: state.days[k] || 0 });
+    }
+    return out;
+  }
+  function weekMs(){
+    return last7().reduce((s, d) => s + d.ms, 0);
+  }
+  function weekMinutes(){
+    return Math.floor(weekMs() / 60000);
+  }
+  function weekLabel(){
+    const m = weekMinutes();
+    if(m < 1) return (weekMs() > 0 || hydrated) ? "<1m" : "—";
+    if(m < 60) return m + "m";
+    return Math.floor(m / 60) + "h " + String(m % 60).padStart(2, "0") + "m";
+  }
   // Humanized for the Player Card stat: 0 → "—", sub-minute → "<1m",
   // under an hour → "42m", an hour+ → "1h 05m". Honest rounding: the floor
   // means the stat never claims a minute that wasn't played.
@@ -170,6 +198,10 @@ window.Ontime = (function(){
     todayMs,
     todayMinutes,
     todayLabel,
+    last7,
+    weekMs,
+    weekMinutes,
+    weekLabel,
     _internals: { accrue, tick, sanitize, HEARTBEAT_MS, MAX_GAP_MS, KEEP_DAYS },
   };
 })();

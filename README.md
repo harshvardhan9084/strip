@@ -35,7 +35,7 @@ Your saves and high scores live on your device. I can't see them. Nobody can.
 - **Slow burns:** Tower Defense, Kingdom, Trading Post, Ant Colony, Garden, Tiny Aquarium, Artillery Duel
 - **Puzzles & strategy:** Unscramble, Quick Trivia, Code Breaker, Crate Push, Drop Four
 - **Words & cards:** Lexicle, Blackjack 21 (virtual chips only — no real money, ever)
-- **Dice & nerve:** Dice Pig — five turns, roll to build the pot, bank before the 1 burns it. Bank 50 and the run is yours. The deck's first push-your-luck dice game, and the purest depth sport on the strip: your over-runs land exactly where your nerve does.
+- **Dice & nerve:** Dice Pig — five turns, roll to build the pot, bank before the 1 burns it. Bank 50 and the run is yours. The deck's first push-your-luck dice game, and the purest depth sport on the strip: your over-runs land exactly where your nerve does — and since Round 33, your WINS feed the depth ring too (bank 80 of a best 80 is 100% depth; the cartridge opts in with winDepth at register, the shell resolves it once, XP and Depth read the same contract).
 - **Toys & fidgets (all with something real to do):** Sand Drag, Kaleidoscope, Etch Pad, Tone Pad, Color Lab, Spinner, Breathe, Would You Rather, This or That, Random Fact
 
 Every cartridge on the strip gives you something real back — a score, a save, a skill,
@@ -124,7 +124,18 @@ only the shell changes.
   color layer (--good/--info/--warn/--danger/--on-accent) re-grades every
   game-side status color at daylight values, so scores, deltas, costs, hearts and
   active tabs stay legible on the paper shell — the same audit that verified the
-  shell in Round 24 now covers all 51 cartridges' DOM text.
+  shell in Round 24 now covers all 51 cartridges' DOM text. **Round 33 — Daylight
+  Screens**: the in-game screens go daylight too. The old light chassis kept every
+  playfield dark (the "pale handheld shell"), which read as a photo negative — dark
+  2048 tiles on a paper board, near-white ink stranded on white. A light-only token
+  set (--screen/--screen-ink/--screen-cell/--screen-veil/…) now re-grades 17
+  cartridges' playfields (snake, breakout, blockfall, 2048's whole tile ramp,
+  bubbleshoot, minesweeper, towerdefense, artillery, aquarium, pongduel, plinko,
+  and more) to natural warm-white glass with dark ink, while saturated game pieces
+  keep their chroma and DARK stays pixel-identical BY CONSTRUCTION (every converted
+  value is var(--token, <the exact old hex>)). Canvas cartridges re-resolve the
+  tokens on a real chassis flip (strip:mode-changed) — flip LIGHT/DARK mid-run and
+  the glass follows without a remount.
 - **Run XP — depth, not browsing** (Round 23): finishing a run now pays on its own
   ladder — **+8 for a win** (board cleared, AI beaten, code cracked), **+5 for a DEEP
   RUN** (a loss that still reached 60% of your own best), **+2 for any finished run**,
@@ -204,7 +215,9 @@ only the shell changes.
   is no longer a one-way door), and **ON DECK** joined the Player Card:
   the deck counts the time you actually give it — visibly open, never
   background tabs — one honest bucket per day, and 30 minutes in a day
-  earns the LONG HAUL trophy.
+  earns the LONG HAUL trophy. Round 33 added the **THIS WEEK** recap row:
+  the newest seven day-buckets render as seven static bars (oldest →
+  today, zero days as honest stubs) with the week's total beside them.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

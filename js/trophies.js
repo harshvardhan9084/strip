@@ -647,6 +647,44 @@ window.Trophies = (function(){
     stats.appendChild(stat(ondeck, "ON DECK"));
     wrap.appendChild(stats);
 
+    // Round 33 — THIS WEEK: the 7-day ON DECK recap (js/ontime.js last7(),
+    // render-only — the engine already keeps 30 day-buckets, this just reads
+    // the newest 7). Seven bars, oldest → today, zero days drawn honest (a
+    // short stub, not a hole); today is TODAY's bucket, so the row and the
+    // ON DECK stat above can never disagree. Static bars — no motion, so
+    // reduce-motion needs no guard here.
+    try{
+      if(window.Ontime && Ontime.last7 && Ontime.weekLabel){
+        const WD = ["S","M","T","W","T","F","S"];
+        const week = Ontime.last7();
+        const maxMs = Math.max.apply(null, week.map(d => d.ms).concat([1]));
+        const weekRow = document.createElement("div");
+        weekRow.className = "player-week";
+        const wl = document.createElement("div");
+        wl.className = "player-week-label";
+        wl.textContent = "THIS WEEK";
+        const bars = document.createElement("div");
+        bars.className = "player-week-bars";
+        bars.setAttribute("role", "img");
+        bars.setAttribute("aria-label", "time on deck, last 7 days, total " + Ontime.weekLabel());
+        week.forEach(d => {
+          const b = document.createElement("div");
+          const pct = d.ms > 0 ? Math.max(15, Math.round((d.ms / maxMs) * 100)) : 0;
+          b.className = "player-week-bar" + (d.ms > 0 ? "" : " empty");
+          b.style.height = (d.ms > 0 ? pct : 12) + "%";
+          const wd = new Date(d.key + "T12:00:00");
+          const mins = Math.floor(d.ms / 60000);
+          b.title = WD[wd.getDay()] + " · " + (mins < 1 ? "<1m" : mins < 60 ? mins + "m" : Math.floor(mins/60) + "h " + String(mins%60).padStart(2,"0") + "m");
+          bars.appendChild(b);
+        });
+        const wt = document.createElement("div");
+        wt.className = "player-week-total";
+        wt.textContent = Ontime.weekLabel();
+        weekRow.appendChild(wl); weekRow.appendChild(bars); weekRow.appendChild(wt);
+        wrap.appendChild(weekRow);
+      }
+    }catch(e){}
+
     // Round 25 — DEPTH LEAGUE: one honest ladder riding the rolling depth%.
     // No opponents, no seasons, no fake scarcity — the only ceiling is your
     // own bests, which is exactly the number depth% already measures. No

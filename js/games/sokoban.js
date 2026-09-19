@@ -389,11 +389,11 @@ Strip.register({
             d.style.background = goals.has(k) ? "var(--purple)" : "#C08A3E";
             d.style.borderRadius = "3px";
           } else if(goals.has(k)){
-            d.style.background = "#101018";
+            d.style.background = "var(--screen, #101018)";
             d.style.boxShadow = "inset 0 0 0 2px var(--purple-dim)";
             d.style.borderRadius = "50%";
           } else {
-            d.style.background = "#12121a";
+            d.style.background = "var(--screen, #12121a)";
           }
           board.appendChild(d);
         }

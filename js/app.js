@@ -48,11 +48,21 @@
       // from a broken game can never poison the depth math.
       gameover(outcome, score){
         const s = Number(score);
+        // Round 33 — win-depth opt-in: a cartridge whose WIN score is an
+        // honest performance number (dicepig's banked total) declares
+        // winDepth:true at register(); the shell resolves it ONCE here so
+        // every strip:gameover consumer (XP ring, Depth ring) reads the same
+        // contract instead of each re-deriving it from the registry.
+        let winDepth = false;
+        try{
+          for(const m of allModules){ if(m.id === id){ winDepth = !!m.winDepth; break; } }
+        }catch(e){}
         window.dispatchEvent(new CustomEvent("strip:gameover", {
           detail: {
             id,
             outcome: outcome === "win" ? "win" : "over",
             score: Number.isFinite(s) ? s : 0,
+            winDepth,
             ts: Date.now()
           }
         }));

@@ -22,9 +22,24 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "width:min(70vw,240px); height:auto; aspect-ratio:240/320; border-radius:10px; background:#101018; touch-action:none; display:block;";
+    // R33 daylight screens: glass follows the chassis (light-only token);
+    // dark keeps the raw hex via the var() fallback.
+    canvas.style.cssText = "width:min(70vw,240px); height:auto; aspect-ratio:240/320; border-radius:10px; background:var(--screen, #101018); touch-action:none; display:block;";
     wrap.appendChild(canvas);
     const ctx = canvas.getContext("2d");
+
+    // R33 — daylight ink resolved from the light-only tokens (dark falls
+    // back to the raw CRT values); re-resolved on a mid-mount chassis flip.
+    const _sv = getComputedStyle(document.documentElement);
+    let INK = _sv.getPropertyValue("--screen-ink").trim() || "#EDEAE3";
+    let INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+    let LIGHT = document.documentElement.dataset.mode === "light";
+    const onModeChanged = () => {
+      INK = _sv.getPropertyValue("--screen-ink").trim() || "#EDEAE3";
+      INK_RGB = _sv.getPropertyValue("--screen-ink-rgb").trim() || "237,234,227";
+      LIGHT = document.documentElement.dataset.mode === "light";
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
 
     // DPR-aware backing store — without this the canvas renders at 240x320
     // physical pixels and looks visibly blurrier than its DPR-aware neighbors
@@ -191,14 +206,21 @@ api.gameover("over", score);
         }
         ctx.globalAlpha = 1;
       }
-      ctx.fillStyle = "#EDEAE3";
+      ctx.fillStyle = INK;
       ctx.fillRect(paddle.x, paddle.y, paddle.w, paddle.h);
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
       ctx.fillStyle = "#FFB347";
       ctx.fill();
+      // R33 daylight detail: thin ink ring around the raw amber ball on the
+      // daylight glass; dark keeps the pure phosphor look.
+      if(LIGHT){
+        ctx.strokeStyle = `rgba(${INK_RGB},.55)`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
       if(!running){
-        ctx.fillStyle = "rgba(237,234,227,.6)";
+        ctx.fillStyle = `rgba(${INK_RGB},.6)`;
         ctx.font = "10px monospace";
         ctx.textAlign = "center";
         ctx.fillText(lives > 0 ? "PRESS START" : "GAME OVER", W / 2, H / 2 - 20);
@@ -229,6 +251,7 @@ api.gameover("over", score);
       running = false;
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
       clearTimeout(resizeTimer);
     };
   }
