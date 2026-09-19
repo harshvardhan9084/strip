@@ -2046,3 +2046,97 @@ still clears); (3) recency-weighted trend once rings accumulate (still
 data-gated); (4) real-device pass (14th carry — haptics, wake lock, badge
 fade, iOS PWA install); (5) mission pool tuning once tend + depth data
 accumulates.
+
+## Round 31 — "The Choice" (hint dismiss × + depth-tier trophies + LIGHT chip/hint readability fix)
+
+(QA baseline on the untouched R30 deck: qa/r30 12/12 + qa/r29 11/11 on fresh
+sessions — stable, so the round went at the R30 judge's next moves #1 (the
+hint had no dismiss-without-opening affordance) and #2 (the hint bubble
+itself unverified at 320px; the reduce-motion exit path unpinned), plus one
+substantive feature: the depth league's tiers become trophies.)
+
+### What the round did
+
+(1) HINT DISMISS × (judge gap #1): the TAP·TIERS bubble split into TWO real
+buttons — the invitation label (role=button, opens the ladder via the same
+route as the readout) and a dismiss × (role=button, aria-label "Dismiss —
+don't show the tiers hint again"). The container dropped its own role
+entirely: nesting interactive elements inside a role=button container hides
+the inner one from AT. Declining kills the bubble AND persists through the
+same single-writer ladderHintDone flag as opening — a choice is a choice —
+while the readout's chevron stays as the passive affordance either way.
+Style: the × sits behind a hairline separator, dimmed, brightening on
+hover; both children carry focus-visible outlines.
+
+(2) DEPTH-TIER TROPHIES (the round's feature): IN THE GROOVE (✧, hold
+Phosphor — two runs averaging 60%+ of your best), PLASMA FRONT (✵, 80%+),
+SUPERNOVA TOUCH (✸, 90%+). The gate is deliberately HOLDING: the ring needs
+>= 2 over-run samples at that average — a single lucky run is not a habit
+(pinned by A1: one 100% sample unlocks nothing). Thresholds are boundary-
+inclusive (exactly 60/80/90 count — A2 pins all three). Driven by a shared
+peakDepthAvg() helper used by BOTH evaluate() and lockedProgress(), so the
+unlock rule and the progress bar can never disagree; recomputed on every
+strip:depth-updated, on rollover (ghost pruning can retire the peak
+holder), and retroactively at boot via Depth.whenReady (a profile that
+already holds deep rings unlocks without waiting for the next run).
+Unlocks observed through the public strip:trophy-unlocked contract; the
+Closest-to-Unlock bars read PERCENT units for depth rows ("80% / 90%"),
+not counts (aria-label says "80 percent of 90 percent").
+
+(3) LIGHT-MODE READABILITY FIX (screenshot-caught pre-push): the sparkline
+chip AND the hint pill kept hardcoded dark backgrounds (rgba(0,0,0,.34/.58))
+while every token on them — BEST note, readout ink, tier hues, hint amber —
+re-grades to DARK daylight values in LIGHT mode. The before screenshot is
+unusable: near-black text on dark pills. The fix is one rule per surface:
+--chip-bg (rgba(255,255,255,.66)) already existed for exactly this surface;
+the hint's ::after tail re-grades to match. Dark chassis untouched.
+
+(4) VERIFICATION ITEMS (judge gap #2): the hint at 320×568 — 146px wide,
+fully inside the viewport, × visible (screenshot); reduce-motion — entrance
+animation computes to 'none' and the bye class collapses the bubble to
+display:none (the exit still clears), both pinned in-suite (A6/A7).
+
+### Verification
+
+qa/r31 NEW 12/12 on a fully clean run (determinism preamble wipes
+__trophies__/__depth__/ladderHintDone then reloads — the suite documents
+it). One initial FAIL was a suite math bug: A2c's "two more 100s" summed
+520/6 = 87, not 90 — four more reach 720/8 = 90 exactly. Regressions on
+fresh sessions: r30 12/12 (its A4 amended for the new anatomy — documented
+in-suite as the R31 amendment), r29 11/11, r28 9/9, r27 10/10, r26 15/15,
+r25 18/18, r24 23/23, r23 14/17 (the documented run-cap artifact). Flow:
+drawer + DEEP cycle, hint → label → ladder opens → hint dies, ICE/amber
+theme flips clean, zero orphan panels/hints after jumps, 0 console errors.
+node --check clean; sw v30; README R31 paragraph. Screenshots:
+shot-r31-light-before.png (the bug: unreadable dark-on-dark), shot-r31-
+light-after.png (white pills, daylight ink, bonus ▲ PHOSPHOR float),
+shot-r31-hint-dark.png (TAP·TIERS + dimmed × + hairline), shot-r31-hint-
+320.png (narrow viewport), shot-r31-trophies.png (Trophy Case 7/16 with
+all three depth trophies unlocked live).
+
+### Judge verdict (Round 31): 9.5/10 (target ≥9 met)
+
+What earned it: the R30 judge's #1 gap closed as a first-class CHOICE
+rather than a hidden gesture — a real button, real persistence, an a11y-
+clean split of the bubble into two honest controls; both verification
+items (#2) pinned as suite assertions instead of one-off probes; the
+light-mode pill bug is exactly the kind of find the screenshot discipline
+exists for, fixed at the token that was already designed for it; and the
+depth trophies are the Trophy Case's first skill-shaped rewards, gated by
+"holding" rather than a lucky run, boundary-tested, and wired through the
+public unlock contract. Why not higher: declining is irreversible in-UI
+(no settings re-subscribe — the chevron remains, but a curious player who
+mashed × early has no path back); the suite now needs a wipe+reload
+preamble (heavier orchestration, documented); the panel now carries TWO
+tier vocabularies — the R25 XP-side "PLASMA LEAGUE ... 10% to SUPERNOVA"
+(95) beside per-cartridge tiers whose SUPERNOVA starts at 90 — a
+unification or rename candidate; real-device pass carries a 15th time;
+recency trend / weekly league / mission pool remain data-gated.
+
+Next moves suggested for Round 32: (1) reconcile the two tier
+vocabularies (XP-side depth league thresholds 95/80 vs per-cartridge
+90/80 — rename one or unify the numbers); (2) a settings escape hatch for
+a declined hint ("Replay the tiers hint", the R20 welcome-hint precedent);
+(3) recency-weighted trend once rings accumulate (data-gated); (4)
+real-device pass (15th carry — haptics, wake lock, badge fade, iOS PWA
+install); (5) mission pool tuning once tend + depth data accumulates.

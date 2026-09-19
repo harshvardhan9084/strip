@@ -1095,6 +1095,15 @@ button.cart-daily-tag{
   white-space:nowrap; z-index:3;
   animation:spark-in .4s cubic-bezier(.22,1,.36,1) both;
 }
+/* Round 31 — daylight-grade the pill: it kept a hardcoded dark background
+   while every token on it (BEST note, readout ink, tier hues) re-grades to
+   DARK daylight values in LIGHT mode — near-black text on a dark pill
+   (screenshot-caught before the fix). --chip-bg already exists for exactly
+   this surface; the dark chassis is untouched. */
+html[data-mode="light"] .cart-sparkline{
+  background:var(--chip-bg);
+  border-color:var(--line);
+}
 @keyframes spark-in{
   from{ opacity:0; transform:translateX(-50%) translateY(5px); }
   to{ opacity:1; transform:translateX(-50%) translateY(0); }
@@ -1822,31 +1831,56 @@ html.reduce-motion .cart-sparkline-depth.depth-live{ animation:none; }
 }
 .cart-sparkline-depth:hover{ opacity:1; }
 
-/* ---------- Round 30 — the one-time ladder hint ----------
+/* ---------- Round 30/31 — the one-time ladder hint ----------
    A small bubble that appears on the natural teaching moment (a run just
    landed and the card's DEPTH readout changed), points at the readout, and
-   dies on the first ladder open (persisted) or fades itself out. Same dark
-   pill DNA as the sparkline chip it anchors to — deliberately UNthemed in
-   LIGHT (the chip itself keeps its dark pill there). z:4: above the chip,
-   below the tier float (z:5) and the ladder (z:6) — a celebration or an
-   open panel always outranks a nudge. */
+   dies on the first ladder open (persisted) or fades itself out. R31: it
+   now splits into an invitation label + a dismiss ×, and its pill is
+   daylight-graded via --chip-bg in LIGHT (matching the chip it anchors
+   to). z:4: above the chip, below the tier float (z:5) and the ladder
+   (z:6) — a celebration or an open panel always outranks a nudge. */
 .depth-hint{
   position:absolute; bottom:58px; left:50%; transform:translateX(-50%);
-  padding:4px 9px; border-radius:999px;
+  display:flex; align-items:stretch;
+  border-radius:999px;
   background:rgba(0,0,0,.58);
   border:1px solid rgba(var(--glow-rgb),calc(.3*var(--glow-mul,1)));
   color:var(--amber);
   font-family:var(--font-display); font-size:8px; letter-spacing:.16em;
-  white-space:nowrap; z-index:4; cursor:pointer; pointer-events:auto;
+  white-space:nowrap; z-index:4;
   animation:depth-hint-in .3s cubic-bezier(.22,1,.36,1) both;
+}
+/* Round 31 — the bubble split into TWO real buttons: the invitation label
+   (opens the ladder) and a dismiss × (declines it — persisted through the
+   same single-writer flag, so declining is honored permanently; the
+   standing chevron affordance remains either way). Nesting interactive
+   elements inside a role=button container is an a11y lie, so the container
+   is plain and the children carry the roles. */
+.depth-hint-label{
+  display:flex; align-items:center;
+  padding:4px 0 4px 9px;
+  cursor:pointer; pointer-events:auto;
+}
+.depth-hint-label:hover{
+  text-shadow:0 0 6px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1)));
+}
+.depth-hint-x{
+  display:flex; align-items:center;
+  padding:4px 8px 4px 7px; margin-left:6px;
+  border-left:1px solid rgba(var(--glow-rgb),calc(.25*var(--glow-mul,1)));
+  font-size:10px; letter-spacing:0; color:var(--ink-dim);
+  cursor:pointer; pointer-events:auto;
+}
+.depth-hint-x:hover{ color:var(--ink); }
+.depth-hint-label:focus-visible,
+.depth-hint-x:focus-visible{
+  outline:1px solid rgba(var(--glow-rgb),calc(.7*var(--glow-mul,1)));
+  outline-offset:-3px;
+  border-radius:999px;
 }
 .depth-hint::after{
   content:""; position:absolute; top:100%; left:50%; margin-left:-3.5px;
   border:3.5px solid transparent; border-top-color:rgba(0,0,0,.58);
-}
-.depth-hint:focus-visible{
-  outline:1px solid rgba(var(--glow-rgb),calc(.7*var(--glow-mul,1)));
-  outline-offset:2px;
 }
 .depth-hint.depth-hint-bye{ animation:depth-hint-out .3s ease both; }
 @keyframes depth-hint-in{
@@ -1858,6 +1892,15 @@ html.reduce-motion .cart-sparkline-depth.depth-live{ animation:none; }
 }
 html.reduce-motion .depth-hint{ animation:none; }
 html.reduce-motion .depth-hint.depth-hint-bye{ display:none; }
+/* Round 31 — daylight-grade the hint pill (same catch as the chip above).
+   The ::after tail must match the pill it hangs from. */
+html[data-mode="light"] .depth-hint{
+  background:var(--chip-bg);
+  border-color:var(--line);
+}
+html[data-mode="light"] .depth-hint::after{
+  border-top-color:rgba(255,255,255,.92);
+}
 
 /* ---------- Round 29 — ONE tier vocabulary, every surface ----------
    Drawer chips (R26), the card readout and the ladder rows (R29) all wear

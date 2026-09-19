@@ -59,6 +59,21 @@ window.Trophies = (function(){
       desc:"Play the Daily Pick 7 days in a row.", need:7, metric:"dailyStreak" },
     { id:"moon-cycle", medal:"◍", name:"MOON CYCLE",
       desc:"Play the Daily Pick 30 days in a row. That's a habit.", need:30, metric:"dailyStreak" },
+    // Round 31 — the per-cartridge depth league's tiers become trophies.
+    // The gate is deliberately HOLDING: the ring needs >= 2 over-run samples
+    // at that average (one lucky run is not a habit), and the peak is
+    // recomputed from Depth's live data on every strip:depth-updated — the
+    // same honesty rules the drawer chips run on. Progress bars read in %,
+    // not counts (renderClosest special-cases the unit).
+    { id:"in-the-groove", medal:"✧", name:"IN THE GROOVE",
+      desc:"Hold Phosphor on any cartridge — two runs averaging 60%+ of your best.",
+      metric:"depthTier", need:60 },
+    { id:"plasma-front", medal:"✵", name:"PLASMA FRONT",
+      desc:"Hold Plasma on any cartridge — two runs averaging 80%+ of your best.",
+      metric:"depthTier", need:80 },
+    { id:"supernova-touch", medal:"✸", name:"SUPERNOVA TOUCH",
+      desc:"Hold Supernova on any cartridge — two runs averaging 90%+ of your own best.",
+      metric:"depthTier", need:90 },
   ];
 
   // ---------- state ----------
@@ -85,6 +100,25 @@ window.Trophies = (function(){
   function dayKey(d){
     d = d || new Date();
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  // Round 31 — the deepest average any cartridge is HOLDING right now.
+  // Depth owns the data (avgFor/countFor); this is a read-only peak over the
+  // registered set, gated at count >= 2 so a single over-run can never wear
+  // a tier. 0 when Depth is absent or unhydrated — no trophy, no fake
+  // progress. Shared by evaluate() and lockedProgress() so the unlock rule
+  // and the progress bar can never disagree.
+  function peakDepthAvg(){
+    let best = 0;
+    try{
+      if(window.Depth && Depth.avgFor && window.Strip && Strip.all){
+        for(const m of Strip.all()){
+          const a = Depth.avgFor(m.id);
+          if(a != null && (Depth.countFor(m.id) || 0) >= 2 && a > best) best = a;
+        }
+      }
+    }catch(e){}
+    return best;
   }
 
   // ---------- unlock machinery ----------
@@ -159,6 +193,7 @@ window.Trophies = (function(){
       else if(def.metric === "favs") ok = state.favCount >= def.need;
       else if(def.metric === "dayVisits") ok = (state.dayVisits[dayKey()] || 0) >= def.need;
       else if(def.metric === "visited") ok = state.visited.length >= def.need;
+      else if(def.metric === "depthTier") ok = peakDepthAvg() >= def.need;
       if(ok){
         state.unlocked[def.id] = Date.now();
         newlyUnlocked.push(def);
@@ -557,6 +592,7 @@ window.Trophies = (function(){
       totalVisits: state.visitsTotal,
       dailyStreak: state.dailyStreak,
       dayVisits: today,
+      depthTier: Math.round(peakDepthAvg()), // Round 31 — live peak, % units
     };
     const rows = [];
     for(const def of DEFS){
@@ -587,7 +623,11 @@ window.Trophies = (function(){
       name.textContent = def.medal + " " + def.name;
       const num = document.createElement("span");
       num.className = "closest-num";
-      num.textContent = cur + "/" + def.need;
+      // Round 31 — unit honesty: depth progress is a percentage of best, not
+      // a count; "63/80" would read as 63 visits.
+      num.textContent = def.metric === "depthTier"
+        ? cur + "% / " + def.need + "%"
+        : cur + "/" + def.need;
       line.appendChild(name); line.appendChild(num);
       const track = document.createElement("div");
       track.className = "closest-track";
@@ -598,7 +638,11 @@ window.Trophies = (function(){
       item.appendChild(line); item.appendChild(track);
       item.title = def.desc;
       item.setAttribute("role", "img");
-      item.setAttribute("aria-label", def.name + ": " + cur + " of " + def.need + " — " + Math.round(ratio * 100) + "% there");
+      item.setAttribute("aria-label", def.name + ": " +
+        (def.metric === "depthTier"
+          ? cur + " percent of " + def.need + " percent"
+          : cur + " of " + def.need) +
+        " — " + Math.round(ratio * 100) + "% there");
       wrap.appendChild(item);
     });
     gridEl.appendChild(wrap);
@@ -802,8 +846,16 @@ window.Trophies = (function(){
     // Round 14 fix: an open panel must not go stale across midnight — same
     // live-refresh contract the drawer holds (streak/playedToday/LED grid)
     window.addEventListener("strip:daily-rollover", () => {
+      // Round 31 — rollover's ghost pruning can retire the cartridge that
+      // held the depth peak; re-evaluate so a retired peak can't keep a
+      // trophy-looking lock open (and an honest unlock still fires).
+      evaluate();
       if(overlay && overlay.classList.contains("open")) renderGrid();
     }, { passive:true });
+    // Round 31 — the depth trophies ride the deck bus: every over-run that
+    // lands re-computes the peak. The evaluate gate keeps mid-hydrate calls
+    // safe (deferred like every other event).
+    window.addEventListener("strip:depth-updated", () => { evaluate(); }, { passive:true });
 
     const saved = await load();
     if(saved && typeof saved === "object"){
@@ -840,6 +892,12 @@ window.Trophies = (function(){
       const ctx = pendingCtx || {};
       pendingCtx = null;
       evaluate(ctx);
+    }
+    // Round 31 — retroactive depth unlocks: Depth hydrates its own store,
+    // which can resolve after the trophy merge; a profile that already HOLDS
+    // deep rings must unlock at boot, not wait for the next over-run.
+    if(window.Depth && Depth.whenReady){
+      Depth.whenReady().then(() => evaluate()).catch(() => {});
     }
     readyResolve();
   }

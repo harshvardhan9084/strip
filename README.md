@@ -184,7 +184,14 @@ only the shell changes.
   the card a run just landed on, the celebration **hands the stage to the
   ladder**: no float hiding behind the panel, the YOU marker and the
   next-step line move instead — and a chip rebuilt under an open ladder
-  keeps its "open" state honest.
+  keeps its "open" state honest. Round 31 finishes the invitation: the
+  bubble now carries a small **×** so you can decline it without opening
+  the ladder (declining is persisted — a choice is a choice — and the
+  chevron stays either way), the chip and bubble are properly **daylight-
+  graded** in light mode, and the depth tiers joined the **Trophy Case**:
+  hold Phosphor, Plasma or Supernova on any cartridge — two runs averaging
+  60 / 80 / 90 percent of your best — and they're yours, with honest
+  percent-unit progress bars on the ones you're closest to.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

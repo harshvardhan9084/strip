@@ -166,9 +166,14 @@ window.__qa30 = (async () => {
     }));
     await wait(120);
     const hint = cart.querySelector('.depth-hint');
-    const anatomyOk = hint && hint.getAttribute('role') === 'button' &&
-      hint.tabIndex >= 0 && /TAP/.test(hint.textContent || '');
-    if(hint) hint.click();
+    // R31 amendment: the bubble split into TWO real buttons — the invitation
+    // label (role=button) and a dismiss × — because nesting interactive
+    // elements inside a role=button container hides the inner one from AT.
+    const label = hint && hint.querySelector('.depth-hint-label');
+    const anatomyOk = label && label.getAttribute('role') === 'button' &&
+      label.tabIndex >= 0 && /TAP/.test(label.textContent || '') &&
+      !!hint.querySelector('.depth-hint-x');
+    if(label) label.click();
     await wait(350);
     const ladder = cart.querySelector('.depth-ladder');
     const hintGone = !cart.querySelector('.depth-hint');

@@ -498,17 +498,45 @@
       killLadderHint();                                      // one bubble at a time
       const inner = entry.el.querySelector(".cart-inner");
       if(!inner) return;
+      // Round 31 — the bubble is TWO real buttons now: the invitation label
+      // (opens the ladder, same route as the readout) and a dismiss × for
+      // players who want it gone WITHOUT opening. Nesting interactive
+      // elements in a role=button container would hide the inner one from
+      // AT, so the container is plain and each child carries its own role.
+      // Declining persists through the same single-writer flag as opening —
+      // a choice is a choice — while the readout's chevron stays as the
+      // passive affordance either way.
       const hint = document.createElement("span");
       hint.className = "depth-hint";
-      hint.setAttribute("role", "button");
-      hint.setAttribute("tabindex", "0");
-      hint.setAttribute("aria-label", "Open the depth ladder");
-      hint.textContent = "TAP · TIERS";
+      const label = document.createElement("span");
+      label.className = "depth-hint-label";
+      label.setAttribute("role", "button");
+      label.setAttribute("tabindex", "0");
+      label.setAttribute("aria-label", "Open the depth ladder");
+      label.textContent = "TAP · TIERS";
+      const x = document.createElement("span");
+      x.className = "depth-hint-x";
+      x.setAttribute("role", "button");
+      x.setAttribute("tabindex", "0");
+      x.setAttribute("aria-label", "Dismiss — don't show the tiers hint again");
+      x.textContent = "\u00d7";
       const open = () => { try{ Depth.toggleLadder(entry.el, entry.mod); }catch(e){} };
-      hint.addEventListener("click", open);
-      hint.addEventListener("keydown", (ev) => {
+      const decline = () => {
+        killLadderHint();
+        try{
+          if(window.StripDrawer && StripDrawer.dismissLadderHint) StripDrawer.dismissLadderHint();
+        }catch(e){}
+      };
+      label.addEventListener("click", open);
+      label.addEventListener("keydown", (ev) => {
         if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); open(); }
       });
+      x.addEventListener("click", decline);
+      x.addEventListener("keydown", (ev) => {
+        if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); decline(); }
+      });
+      hint.appendChild(label);
+      hint.appendChild(x);
       inner.appendChild(hint);
       ladderHintShows++;
       const timers = [];
