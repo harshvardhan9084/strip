@@ -164,7 +164,17 @@ only the shell changes.
   are landing deeper than the earlier half, ↓ red when shallower, bare when
   flat — no arrow without at least four runs to split), the DEEP sort is
   **remembered** across visits, and a tier boundary crossing floats the
-  reached tier's name right off the row.
+  reached tier's name right off the row. Round 29 gives the depth story a
+  place to be READ: tap the centered card's **DEPTH readout** and the
+  **depth ladder** opens right there — all five tiers with their thresholds,
+  your position marked, and the honest distance ("11 points to PLASMA") to
+  the next one; it re-grades live if a run lands while it's open, and closes
+  on Esc, an outside tap, or a scroll. The tier hues are now **one vocabulary
+  on every surface** (drawer chips, card readout, ladder rows), and the
+  card the run just ended on celebrates a boundary crossing at card scale —
+  the tier name rises off the readout while a ring of the same hue blooms
+  around the card. A persisted DEEP sort now explains itself in the drawer
+  header ("▼ DEEPEST FIRST · saved — ALL restores the shelves").
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

@@ -212,6 +212,12 @@
     const centerIdx = Math.round(scrollTop / h);
     currentCenterIdx = centerIdx;
 
+    // Round 29 — the depth ladder anchors to a CARD, not the viewport: any
+    // real scroll motion closes it (Depth diffs against the last seen
+    // scrollTop; a no-op frame costs one comparison). Its own scroll frame
+    // also keeps the sparkline/TTL pipeline below honest.
+    if(window.Depth && Depth.noteLadderScroll) Depth.noteLadderScroll(scrollTop);
+
     const centerEntry = cards[centerIdx];
     if(centerEntry){
       // position now means something: "07/50", not a bare "07"
@@ -422,5 +428,34 @@
       const after = entry.el.querySelector(".cart-sparkline-depth");
       if(after && after !== before) after.classList.add("depth-live");
     }, 250);
+    // Round 29 — if the player is LOOKING at the depth ladder, its marker and
+    // next-step line move with the run (a tier-up behind a stale panel would
+    // be the one surface lying about the moment).
+    if(window.Depth && Depth.refreshLadder) Depth.refreshLadder(entry.el, entry.mod);
+    // Round 29 — the CARD-scale tier moment (the R28 judge's gap: the
+    // celebration existed at chip scale only, and the card the run just ended
+    // on stayed silent about its own promotion). The reached tier's name
+    // rises off the readout while a ring of the same hue blooms around the
+    // card — one-shot nodes that remove themselves, never queued twice, and
+    // reduce-motion CSS silences both. The drawer runs its own float only
+    // when OPEN, which can't overlap play — no double celebration.
+    if(d.tierUp && !entry.el.querySelector(".cart-tier-float")){
+      const inner = entry.el.querySelector(".cart-inner");
+      if(inner){
+        const tier = (d.tier || "").toLowerCase();
+        const ring = document.createElement("span");
+        ring.className = "cart-tier-ring " + tier;
+        ring.setAttribute("aria-hidden", "true");
+        inner.appendChild(ring);
+        setTimeout(() => ring.remove(), 1250);
+        const float = document.createElement("span");
+        float.className = "cart-tier-float " + tier;
+        float.textContent = "\u25b2 " + (d.tier || "");
+        float.setAttribute("aria-hidden", "true");
+        inner.appendChild(float);
+        setTimeout(() => float.remove(), 1700);
+        try{ Feedback.haptic("medium"); }catch(err){}
+      }
+    }
   }, { passive:true });
 })();

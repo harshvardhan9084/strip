@@ -152,6 +152,126 @@ window.Depth = (function(){
     return TIERS.find(t => avg >= t.min) || TIERS[TIERS.length - 1];
   }
 
+  // ---------- Round 29 — the depth ladder popover ----------
+  // The centered card's DEPTH readout answers "how deep, usually"; the drawer
+  // chips grade it in the league's vocabulary. But NEITHER surface explains
+  // the vocabulary itself — what PLASMA means, how far the next tier sits.
+  // The readout becomes a real affordance: tap it and the ladder opens right
+  // where the number lives, your position marked. Built FRESH on every
+  // open/refresh from live Depth data (never a snapshot — a run that lands
+  // while the ladder is open must move the marker), closed by Esc, an outside
+  // tap, or scrolling the deck. No data → the readout doesn't exist → the
+  // ladder can't either (absent = honest, everywhere).
+  function ladderPanel(mod){
+    const avg = avgFor(mod.id);
+    if(avg == null) return null;
+    const n = countFor(mod.id);
+    const cur = tierFor(avg);
+    const panel = document.createElement("div");
+    panel.className = "depth-ladder";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Depth ladder — " + (mod.title || mod.id));
+    // tabindex=0 (not the popover-typical -1): programmatic focus must work
+    // everywhere — focus parity is pinned by the QA suite, and a dialog that
+    // can't receive focus strands keyboard users behind their own tap.
+    panel.tabIndex = 0;
+    // ascending = the climb the player actually experiences
+    const rows = [...TIERS].reverse();
+    let html = '<div class="ladder-head">DEPTH LADDER</div>' +
+      '<div class="ladder-sub">avg of your last ' + n + ' finished run' + (n === 1 ? '' : 's') +
+      ' vs your own best</div>';
+    for(const t of rows){
+      const on = t.name === cur.name;
+      html += '<div class="ladder-row ' + t.cls + (on ? ' on' : '') + '">' +
+        '<i></i><span class="ladder-name">' + t.name + '</span>' +
+        '<span class="ladder-min">' + (t.min > 0 ? '\u2265' + t.min + '%' : 'any run') + '</span>' +
+        (on ? '<b class="ladder-you">YOU ' + avg + '%</b>' : '') +
+        '</div>';
+    }
+    // the honest next step: distance in real points, or the top-tier nod
+    const next = [...TIERS].reverse().find(t => avg < t.min);
+    const gap = next ? next.min - avg : 0;
+    html += '<div class="ladder-next">' + (next
+      ? gap + ' point' + (gap === 1 ? '' : 's') + ' to ' + next.name
+      : 'top tier — hold it') + '</div>';
+    panel.innerHTML = html;
+    return panel;
+  }
+
+  // One ladder open at a time, module-tracked so app.js's scroll frames and
+  // sparkline rebuilds can talk to it without owning DOM state.
+  let ladderState = null; // { cart, panel, mod, onDocDown, onKey }
+  let lastScrollSeen = null;
+
+  function closeLadders(opts){
+    if(!ladderState) return;
+    const st = ladderState;
+    ladderState = null;
+    try{ st.panel.remove(); }catch(e){}
+    try{
+      const btn = st.cart && st.cart.querySelector(".cart-sparkline-depth");
+      if(btn) btn.setAttribute("aria-expanded", "false");
+    }catch(e){}
+    document.removeEventListener("pointerdown", st.onDocDown, true);
+    window.removeEventListener("keydown", st.onKey, true);
+    // focus returns to the handle for keyboard parity — but never yank it
+    // when the close was caused by motion (scroll) or a wiped record
+    if(opts && opts.restoreFocus === false) return;
+    try{
+      const btn = st.cart && st.cart.querySelector(".cart-sparkline-depth");
+      if(btn && btn.focus) btn.focus({ preventScroll: true });
+    }catch(e){}
+  }
+
+  function toggleLadder(cartEl, mod){
+    if(!cartEl || !mod) return;
+    if(ladderState && ladderState.cart === cartEl){ closeLadders(); return; }
+    closeLadders({ restoreFocus: false });
+    const panel = ladderPanel(mod);
+    if(!panel) return;
+    const inner = cartEl.querySelector(".cart-inner") || cartEl;
+    inner.appendChild(panel);
+    const btn = cartEl.querySelector(".cart-sparkline-depth");
+    if(btn) btn.setAttribute("aria-expanded", "true");
+    const onDocDown = (e) => {
+      if(!ladderState) return;
+      if(!panel.contains(e.target) && e.target !== btn) closeLadders({ restoreFocus: false });
+    };
+    const onKey = (e) => { if(e.key === "Escape") closeLadders(); };
+    document.addEventListener("pointerdown", onDocDown, true);
+    window.addEventListener("keydown", onKey, true);
+    ladderState = { cart: cartEl, panel, mod, onDocDown, onKey };
+    // focus moves in for keyboard parity — immediately (headless pages
+    // throttle rAF, and a focus that only fires on a rendered frame is a
+    // focus that sometimes never happens), then again post-layout as a
+    // belt-and-braces for the same-frame layout race.
+    try{ panel.focus({ preventScroll: true }); }catch(e){}
+    requestAnimationFrame(() => { try{ panel.focus({ preventScroll: true }); }catch(e){} });
+  }
+
+  // A run landed while the player is LOOKING at the ladder — the marker and
+  // the next-step line must move with it (the exact moment this panel exists
+  // for). Rebuilds from live data; a vanished record closes it instead.
+  function refreshLadder(cartEl, mod){
+    if(!ladderState || !cartEl || ladderState.cart !== cartEl) return;
+    const fresh = ladderPanel(mod);
+    if(!fresh){ closeLadders({ restoreFocus: false }); return; }
+    try{ ladderState.panel.replaceWith(fresh); }catch(e){ return; }
+    ladderState.panel = fresh;
+    const btn = cartEl.querySelector(".cart-sparkline-depth");
+    if(btn){ btn.setAttribute("aria-expanded", "true"); }
+  }
+
+  // Called by app.js on every scroll frame with the strip's scrollTop: ANY
+  // real movement closes the ladder — a popover that drifts off its anchor
+  // is noise, and its anchor is a card, not the viewport.
+  function noteLadderScroll(scrollTop){
+    if(ladderState && lastScrollSeen != null && Math.abs(scrollTop - lastScrollSeen) > 1){
+      closeLadders({ restoreFocus: false });
+    }
+    lastScrollSeen = scrollTop;
+  }
+
   function onGameOver(e){
     const d = e.detail;
     if(!d || !d.id || d.outcome !== "over") return;
@@ -221,6 +341,15 @@ window.Depth = (function(){
     countFor,
     trendFor,
     decorateDrawerItem,
+    // Round 29 — one tier vocabulary, public: the sparkline readout wears the
+    // tier hue, and the ladder popover reads the thresholds straight from
+    // TIERS instead of copying numbers.
+    tierFor,
+    tiers: TIERS,
+    toggleLadder,
+    refreshLadder,
+    closeLadders,
+    noteLadderScroll,
     _internals: { record, sanitize, SAMPLES, TIERS, tierFor, pruneGhosts,
                   TREND_MIN_SAMPLES, TREND_THRESHOLD },
   };

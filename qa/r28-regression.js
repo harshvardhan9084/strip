@@ -109,6 +109,18 @@ window.__qa28 = (async () => {
   {
     document.getElementById('drawer-close').click();
     await wait(250);
+    // R29 amendment (profile-aging fix): suites dispatch synthetic gameovers
+    // but score HISTORY only grows through setHighscore — on an aged/fresh QA
+    // profile snake can sit under the sparkline's history>=2 floor, so the
+    // pre-event chip legitimately never renders and A3's precondition was a
+    // mirage. Seed 3 real history points through the PUBLIC api (best is
+    // max-protected, depth rings untouched — record() only listens to
+    // strip:gameover), then drop every card's spark cache so the next
+    // badge() refetches instead of applying a stale TTL record.
+    await StripDB.setHighscore(idSnake, 40);
+    await StripDB.setHighscore(idSnake, 44);
+    await StripDB.setHighscore(idSnake, 48);
+    document.querySelectorAll('#strip .cart').forEach(c => { c._sparkRec = null; c._sparkFailAt = 0; });
     // land on the snake card — POLL until the jump actually lands (smooth
     // scroll over many viewport-heights does not finish in a fixed sleep)
     window.StripShell.jumpToModule(Strip.all().find(m => m.id === idSnake));
@@ -153,15 +165,21 @@ window.__qa28 = (async () => {
 
   // ---------- A4: live sparkline is game-scoped ----------
   {
-    const centered = document.querySelector('#strip .cart[data-centered]');
-    const nodeBefore = centered.querySelector('.cart-sparkline-depth');
+    // R29 hardening: poll briefly for the chip instead of assuming A3's DOM
+    // is still warm (an async rebuild can land a frame late).
+    let centered = null, nodeBefore = null;
+    for(let i = 0; i < 8 && !nodeBefore; i++){
+      await wait(150);
+      centered = document.querySelector('#strip .cart[data-centered]');
+      nodeBefore = centered && centered.querySelector('.cart-sparkline-depth');
+    }
     nodeBefore.classList.remove('depth-live'); // A3's flash must not mask this pin
     // a depth update for a DIFFERENT game must not touch this card
     rec(idBreak, 90, 100);
     await wait(500);
     const nodeAfter = centered.querySelector('.cart-sparkline-depth');
     ok('A4 other-game updates leave the centered card alone',
-       nodeAfter === nodeBefore && !nodeAfter.classList.contains('depth-live'),
+       !!nodeAfter && nodeAfter === nodeBefore && !nodeAfter.classList.contains('depth-live'),
        'sameNode=' + (nodeAfter === nodeBefore));
   }
 

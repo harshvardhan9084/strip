@@ -227,20 +227,35 @@ window.__qa26 = (async () => {
 
   // ---------- A11: focus pull ----------
   {
+    // R29 amendment (sequencing fix): suites now run back-to-back on one
+    // page, so the strip can START wherever the previous suite's jump landed
+    // (snake sits at 46) and a 46→3 smooth scroll does not finish inside a
+    // fixed 900ms sleep. The pin's invariant is "exactly ONE cart wears
+    // data-centered and it FOLLOWS the jump" — not the incidental starting
+    // index. The landing is polled, never slept.
     const strip = document.getElementById('strip');
-    const carts = [...strip.querySelectorAll('.cart')];
-    const centered = carts.filter(c => c.hasAttribute('data-centered'));
-    const firstOk = centered.length === 1 && carts.indexOf(centered[0]) === 0;
-    // jump to card 3 and let the scroll settle
+    const centeredNow = () => {
+      const cs = [...strip.querySelectorAll('.cart')];
+      const c = cs.filter(x => x.hasAttribute('data-centered'));
+      return { n: c.length, at: c.length ? cs.indexOf(c[0]) : -1 };
+    };
+    const first = centeredNow();
+    const firstOk = first.n === 1;
     window.StripShell.jumpToIndex(3);
-    await wait(900);
-    const carts2 = [...strip.querySelectorAll('.cart')];
-    const centered2 = carts2.filter(c => c.hasAttribute('data-centered'));
-    const jumpedOk = centered2.length === 1 && carts2.indexOf(centered2[0]) === 3;
+    let jumped = first;
+    for(let i = 0; i < 30; i++){
+      await wait(150);
+      jumped = centeredNow();
+      if(jumped.at === 3) break;
+    }
+    const jumpedOk = jumped.n === 1 && jumped.at === 3;
     ok('A11 focus pull follows the centered cart', firstOk && jumpedOk,
-       'at=' + carts.indexOf(centered[0]) + '→' + carts2.indexOf(centered2[0]));
+       'at=' + first.at + '→' + jumped.at);
     window.StripShell.jumpToIndex(0);
-    await wait(500);
+    for(let i = 0; i < 30; i++){
+      await wait(150);
+      if(centeredNow().at === 0) break;
+    }
   }
 
   // ---------- A12: settings v4 migration ----------

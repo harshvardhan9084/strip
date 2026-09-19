@@ -1712,18 +1712,17 @@ html.reduce-motion #trophy-missions{ transition:none; }
   width:5px; height:5px; border-radius:50%;
   background:currentColor; flex:none;
 }
-.drawer-item-depth.t-neon{      color:var(--info); }
-.drawer-item-depth.t-phosphor{  color:var(--amber); }
-.drawer-item-depth.t-plasma{    color:var(--purple); }
-.drawer-item-depth.t-supernova{ color:var(--good); text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1))); }
-html[data-mode="light"] .drawer-item-depth.t-supernova{ text-shadow:none; }
+/* Round 29 — the per-tier hue rules moved to one GLOBAL block (near the end
+   of this file, after the card readout's base rule) so the drawer chips, the
+   centered card's DEPTH readout, and the ladder popover all speak the same
+   colors from a single definition. The old scoped duplicates were removed. */
 /* Round 27 — tier hue separation (R26 handoff #4): on the ICE skin --amber
    is frost-cyan #54D9EC and NEON is --info blue #56B4E9 — two blues a few
    degrees apart, reading as one tier. PHOSPHOR wears --warn there instead
    (warm gold, untouched by the ice remap): adjacent tiers now sit on opposite
    sides of the palette. Every other skin keeps var(--amber) — on amber/green/
-   violet the two hues were already clearly distinct, so no visual change. */
-html[data-theme="ice"] .drawer-item-depth.t-phosphor{ color:var(--warn); }
+   violet the two hues were already clearly distinct, so no visual change.
+   (Rule itself moved into the global tier block, R29.) */
 
 /* ---------- Round 27 — the live chip ----------
    chip-pop: any live re-grade (a run finished while the drawer is open) —
@@ -1790,11 +1789,135 @@ html.reduce-motion .drawer-item .depth-float{ animation:none; opacity:0; }
 .cart-sparkline-depth.depth-live{ animation:depth-live-flash 1.1s ease-out both; }
 html.reduce-motion .cart-sparkline-depth.depth-live{ animation:none; }
 
-/* ---------- DEPTH readout on the centered card's sparkline chip ---------- */
+/* ---------- DEPTH readout on the centered card's sparkline chip ----------
+   Round 29: it is now the ladder's HANDLE — pointer-events back on (the
+   chip parent stays click-through), keyboard-operable, and it wears the
+   league's tier hue (global .t-* block below overrides the base color). */
 .cart-sparkline-depth{
   font-family:var(--font-display); font-size:9px; letter-spacing:.08em;
   color:var(--ink); opacity:.85;
+  pointer-events:auto; cursor:pointer;
 }
+.cart-sparkline-depth:focus-visible{
+  outline:1px solid rgba(var(--glow-rgb),calc(.7*var(--glow-mul,1)));
+  outline-offset:2px; opacity:1;
+}
+
+/* ---------- Round 29 — ONE tier vocabulary, every surface ----------
+   Drawer chips (R26), the card readout and the ladder rows (R29) all wear
+   these. LIGHT auto-grades via the semantic layer; ICE phosphor wears warm
+   gold (R27); SUPERNOVA's glow dies on the light chassis (R26 rule). */
+.t-neon{      color:var(--info); }
+.t-phosphor{  color:var(--amber); }
+.t-plasma{    color:var(--purple); }
+.t-supernova{ color:var(--good); text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1))); }
+.t-paper{     color:var(--ink-dim); }
+html[data-mode="light"] .t-supernova{ text-shadow:none; }
+html[data-theme="ice"] .t-phosphor{ color:var(--warn); }
+
+/* ---------- Round 29 — the depth ladder popover ----------
+   Opened from the centered card's DEPTH readout. Anchored to the card,
+   closed by Esc / outside tap / scrolling. Solid --panel surface per skin
+   (LIGHT auto-graded), tier rows in the same hues as the drawer chips. */
+.depth-ladder{
+  position:absolute; bottom:62px; left:50%; transform:translateX(-50%);
+  width:max-content; max-width:min(250px, 80%);
+  padding:10px 13px 9px;
+  background:var(--panel);
+  border:1px solid rgba(var(--glow-rgb),calc(.28*var(--glow-mul,1)));
+  border-radius:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,.45), 0 0 16px rgba(var(--glow-rgb),calc(.12*var(--glow-mul,1)));
+  font-family:var(--font-display);
+  z-index:6; outline:none;
+  animation:ladder-in .22s cubic-bezier(.22,1,.36,1) both;
+}
+html[data-mode="light"] .depth-ladder{ box-shadow:0 8px 22px rgba(0,0,0,.16); }
+@keyframes ladder-in{
+  from{ opacity:0; transform:translateX(-50%) translateY(7px); }
+  to{   opacity:1; transform:translateX(-50%) translateY(0); }
+}
+.ladder-head{ font-size:9px; letter-spacing:.2em; color:var(--amber); margin-bottom:2px; }
+.ladder-sub{ font-size:8px; letter-spacing:.05em; color:var(--ink-dim); margin-bottom:7px; }
+.ladder-row{
+  display:flex; align-items:center; gap:6px;
+  font-size:9px; letter-spacing:.08em;
+  padding:2.5px 0; opacity:.55;
+}
+.ladder-row i{ width:5px; height:5px; border-radius:50%; background:currentColor; flex:none; }
+.ladder-row .ladder-min{ margin-left:auto; font-size:8px; opacity:.6; }
+.ladder-row.on{ opacity:1; }
+.ladder-row.on .ladder-name{ font-weight:700; }
+.ladder-you{
+  margin-left:7px; font-size:8px; letter-spacing:.1em;
+  padding:1px 6px; border:1px solid currentColor; border-radius:999px;
+}
+.ladder-next{
+  margin-top:7px; padding-top:6px;
+  border-top:1px dashed rgba(var(--glow-rgb),calc(.2*var(--glow-mul,1)));
+  font-size:8px; letter-spacing:.12em; color:var(--ink-dim);
+}
+html.reduce-motion .depth-ladder{ animation:none; }
+
+/* ---------- Round 29 — the card-scale tier moment ----------
+   The reached tier's name rises off the depth readout while a ring of the
+   same hue blooms around the card — the deck-level celebration, card-sized.
+   One-shot nodes, self-removing; reduce-motion players never see either move
+   (the re-graded readout itself carries the information). */
+.cart-tier-float{
+  position:absolute; bottom:64px; left:50%;
+  font-family:var(--font-display); font-size:13px; letter-spacing:.2em;
+  white-space:nowrap; pointer-events:none; z-index:5;
+  animation:cart-tier-rise 1.6s cubic-bezier(.22,.9,.36,1) both;
+}
+.cart-tier-float.neon{      color:var(--info); }
+.cart-tier-float.phosphor{  color:var(--amber); }
+html[data-theme="ice"] .cart-tier-float.phosphor{ color:var(--warn); }
+.cart-tier-float.plasma{    color:var(--purple); }
+.cart-tier-float.supernova{ color:var(--good); }
+@keyframes cart-tier-rise{
+  0%{  opacity:0; transform:translateX(-50%) translateY(7px) scale(.9); }
+  16%{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+  72%{ opacity:1; }
+  100%{ opacity:0; transform:translateX(-50%) translateY(-26px) scale(1); }
+}
+.cart-tier-ring{
+  position:absolute; inset:4px; border-radius:inherit;
+  border:1px solid currentColor; box-shadow:0 0 16px -3px currentColor;
+  opacity:0; pointer-events:none; z-index:4;
+  animation:cart-tier-ring 1.2s ease-out both;
+}
+.cart-tier-ring.neon{      color:var(--info); }
+.cart-tier-ring.phosphor{  color:var(--amber); }
+html[data-theme="ice"] .cart-tier-ring.phosphor{ color:var(--warn); }
+.cart-tier-ring.plasma{    color:var(--purple); }
+.cart-tier-ring.supernova{ color:var(--good); }
+@keyframes cart-tier-ring{
+  0%{  opacity:0; transform:scale(.992); }
+  25%{ opacity:.9; }
+  100%{ opacity:0; transform:scale(1); }
+}
+html.reduce-motion .cart-tier-float,
+html.reduce-motion .cart-tier-ring{ animation:none; opacity:0; }
+
+/* ---------- Round 29 — DEEP sort explanation (drawer) ----------
+   Visible only while the persisted sort is live; the hidden attribute must
+   WIN over the display rule (explicit [hidden] — the R24 corrupted-rule
+   lesson). */
+#drawer-deep-note{
+  display:flex; align-items:center; gap:6px;
+  margin:8px 2px 2px;
+  font-family:var(--font-display); font-size:8px; letter-spacing:.12em;
+  color:var(--ink-dim);
+  white-space:nowrap; overflow:hidden;
+  /* flex:none — the panel is a flex COLUMN and #drawer-grid flex-grows;
+     overflow:hidden zeroes the automatic minimum size, so without this the
+     grid squeezes the note to a 2px sliver (live-caught, would have shipped
+     looking like a rendering glitch). */
+  flex:none;
+}
+#drawer-deep-note b{ color:var(--purple); font-weight:700; letter-spacing:.14em; }
+#drawer-deep-note::before{ content:""; width:5px; height:5px; border-radius:50%; background:var(--purple); flex:none; }
+#drawer-deep-note[hidden]{ display:none; }
 
 /* ---------- Drawer open cascade ----------
    Rows ripple in when the drawer OPENS (renderGrid(true)); filter typing

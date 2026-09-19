@@ -1848,3 +1848,96 @@ Next moves suggested by the judge: (1) recency-weighted trend once rings
 fill; (2) a centered-card tier-up moment (the card the run just ended on);
 (3) weekly league expansion, still parked pending a retention argument; (4)
 real-device pass (12th carry); (5) mission pool tuning once data accumulates.
+
+## Round 29 — "The Ladder Opens" (depth ladder popover + card-scale tier-up + one tier vocabulary + DEEP note)
+
+(QA baseline on the untouched R28 deck surfaced three SUITE-aging failures,
+all fixed and documented in-suite before any feature work: qa/r28 A3/A4
+needed history seeding — synthetic gameovers never grow score history, and
+an aged/fresh profile can sit under the sparkline's history>=2 floor, making
+the "pre-chip exists" precondition a mirage (now seeded via public
+setHighscore + spark-cache bust); qa/r26 A11 assumed the strip STARTS at cart
+0 — back-to-back suites leave it wherever the last jump landed, and a 46→3
+smooth scroll outlives a 900ms sleep (now polls the landing, pins the FOLLOW
+not the start); qa/r25 A11's raw xp delta carried a +30 mission payout that
+legitimately fired in the same window on a day-fresh board (now sums
+strip:xp-awarded by reason and pins the "run" slice). After the fixes:
+r28 9/9, r27 10/10, r26 15/15, r25 18/18, r24 23/23, r23 14/17 (the
+documented run-cap artifact), 51/51 mount — deck stable, so focus came from
+the R28 handoff: the judge's #2 named gap (card-scale tier-up) + handoff #5
+(DEEP explanation) + one new surface.)
+
+### What the round did
+
+(1) DEPTH LADDER POPOVER: the centered card's DEPTH readout becomes a real
+affordance — tap (or Enter/Space) and the league's ladder opens right where
+the number lives: all five tiers ascending with honest thresholds, your tier
+highlighted with "YOU n%", and the real point distance to the next tier
+("11 points to PLASMA") or the top-tier nod. Built FRESH from live Depth
+data on every open and REFRESHED IN PLACE when a run lands while open (the
+marker can never lie); closes on Esc (focus returns to the handle), an
+outside tap, or ANY scroll motion (a popover that drifts off its card anchor
+is noise; app.js feeds Depth.noteLadderScroll each frame — one comparison
+when closed). role=dialog, aria-expanded on the handle, tabindex=0 panel
+(programmatic focus must work everywhere — pinned). (2) CARD-SCALE TIER-UP
+(the R27/R28 judges' gap): a boundary crossing on the CENTERED game floats
+"▲ TIER" off the readout while a ring of the same hue blooms around the
+card — one-shot self-removing nodes, never queued twice, reduce-motion
+silent, medium haptic (the drawer's own float can't overlap play). (3) ONE
+TIER VOCABULARY: the per-tier hue rules moved out of the drawer scope into
+one global .t-* block — the card readout (previously plain ink) now wears
+the league's color like the chips do; LIGHT auto-grades, ICE phosphor keeps
+its warm gold, SUPERNOVA's glow still dies on daylight. (4) DEEP NOTE
+(R28 handoff #5): the persisted sort explains itself — "▼ DEEPEST FIRST ·
+saved — ALL restores the shelves" under the chips, synced on every render,
+title tells the full story. sw v28; README R29 paragraph.
+
+### Verification
+
+qa/r29-regression.js NEW 11 asserts: readout anatomy (role=button, tabindex,
+aria-haspopup/expanded, tier class, computed color) at a seeded avg 63
+PHOSPHOR; ladder open contract (5 ascending rows, threshold labels, YOU row,
+next-step math, focus parity, role=dialog); Esc close + aria reset; Enter
+opens + outside pointerdown closes; LIVE refresh while open (YOU 72% after a
+real gameover, panel rebuilt not closed); scroll closes and stays closed;
+card-scale tier-up (float text + tier hue + ring + self-removal, driven by
+real gameover dispatches to a PHOSPHOR→PLASMA crossing); DEEP note on/off
+(persistence-aware — normalizes to ALL first because the preference
+LEGITIMATELY boots restored); 51/51 mount; zero console errors. Three
+initial FAILs were suite/test bugs, fixed and documented: (1) avg 58 is NEON
+not PHOSPHOR — the suite's own math; (2) A8's blind DEEP tap toggled a boot-
+restored preference OFF; (3) the DEEP note was ALSO caught live via
+screenshot: overflow:hidden zeroed its flex min-height and #drawer-grid
+squeezed it to a 2px sliver — flex:none (the R24 corrupted-rule family of
+traps). Also caught pre-push: the ladder panel had NO tabindex (focus parity
+impossible) and an rAF-only focus that never fires on throttled headless
+pages (now immediate + rAF belt-and-braces). Regressions on the new code:
+r28 9/9, r27 10/10, r26 15/15, r25 18/18, r24 23/23, r23 14/17 (all 3 the
+documented run-cap artifact), 51/51 mount everywhere, flow test (mode+theme
+flips, jumps, ladder-scroll interplay, drawer+settings) 0 errors. Live
+visual: ladder dark (PHOSPHOR YOU 69% + "11 points to PLASMA", readout in
+amber), live-refresh capture (ladder open across two real runs → PLASMA
+YOU 81% + "14 points to SUPERNOVA" in place), SUPERNOVA moment (green float
+"▲ SUPERNOVA" rising, readout green 95%), LIGHT ladder (daylight-graded rows
+on the paper panel), DEEP note single-line under the chips.
+
+### Judge verdict (Round 29): 9.5/10 (target ≥9 met)
+
+What earned it: the ladder is the first surface that TEACHES the tier
+vocabulary instead of just wearing it, and it lives exactly where the
+question forms; its live-refresh and scroll-close disciplines extend the
+honesty rules the deck already runs on; the card-scale tier moment closes
+the two-round-old judge gap with the same one-shot/no-queue/reduce-motion
+contract as the drawer; three aging suites were hardened with their
+assumptions documented; and the round's own QA + screenshots caught three
+real implementation bugs (flex min-height squeeze, missing tabindex,
+rAF-only focus) before push. Why not higher: the float hides behind an open
+ladder (z-order) at the exact moment both fire; the readout's affordance is
+cursor/title-only — touch users get no visible hint the readout is tappable;
+the ladder overlaps the game view without dimming it (transient, but a
+first-run hint could introduce both); real-device pass carries a 13th time.
+Next moves suggested by the judge: (1) a subtle ▾ chevron on the readout (or
+a one-time hint) so touch users discover the ladder; (2) recency-weighted
+trend once rings fill (still needs data); (3) weekly league expansion,
+still parked pending a retention argument; (4) real-device pass (13th
+carry); (5) mission pool tuning once tend + depth data accumulates.

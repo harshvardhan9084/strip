@@ -81,6 +81,11 @@ window.Sparkline = (function(){
       }
     }catch(e){}
 
+    // Round 29 — the readout speaks the league's tier color (same classes the
+    // drawer chips wear) and becomes the ladder's handle: role=button,
+    // keyboard-operable, aria-expanded tracked by Depth's ladder state.
+    const tierCls = (depth != null && window.Depth && Depth.tierFor)
+      ? " " + Depth.tierFor(depth).cls : "";
     const chip = document.createElement("div");
     chip.className = "cart-sparkline";
     chip.dataset.sig = sig;
@@ -92,7 +97,9 @@ window.Sparkline = (function(){
         (lowerBetter ? ' <span class="cart-sparkline-note">· FEWER WINS</span>' : '') +
       '</span>' +
       (depth != null
-        ? '<span class="cart-sparkline-depth">· DEPTH ' + depth + '%</span>'
+        ? '<span class="cart-sparkline-depth' + tierCls + '" role="button" tabindex="0"' +
+          ' aria-haspopup="dialog" aria-expanded="false"' +
+          ' title="Depth ' + depth + '% of your best · tap for the ladder">· DEPTH ' + depth + '%</span>'
         : '');
     // "lower is better" only reads honestly if we also say what the chart is
     const n = real.length;
@@ -100,11 +107,30 @@ window.Sparkline = (function(){
       " of " + (mod.title || mod.id) +
       (lowerBetter ? " — fewer moves/faster wins, so a dip is good" : " — higher is better") +
       (depth != null ? " · your last " + depthN + " finished runs averaged " + depth + "% of your best" : "");
-    chip.setAttribute("role", "img");
+    // role=group (not img): the chip now CONTAINS a real button — role=img
+    // would presentationalize its subtree and hide the ladder handle from AT.
+    chip.setAttribute("role", "group");
     chip.setAttribute("aria-label",
       "Recent scores for " + (mod.title || mod.id) + ": last " + n + " plays, best " + fmt(bestReal) +
       (lowerBetter ? " (lower is better on this one)" : "") +
       (depth != null ? ", average run depth " + depth + "%" : ""));
+    // Round 29 — the readout opens the depth ladder (pointer or keyboard).
+    // Toggle semantics live in Depth (it owns the one-open-at-a-time state);
+    // the chip only routes the intent with its card + game.
+    const readout = chip.querySelector(".cart-sparkline-depth");
+    if(readout){
+      const openLadder = () => {
+        try{
+          if(window.Depth && Depth.toggleLadder){
+            Depth.toggleLadder(chip.closest(".cart"), mod);
+          }
+        }catch(e){}
+      };
+      readout.addEventListener("click", openLadder);
+      readout.addEventListener("keydown", (e) => {
+        if(e.key === "Enter" || e.key === " "){ e.preventDefault(); openLadder(); }
+      });
+    }
     return chip;
   }
 
@@ -161,7 +187,14 @@ window.Sparkline = (function(){
   function apply(cartEl, mod, rec){
     const existing = cartEl.querySelector(".cart-sparkline");
     if(!rec || !Array.isArray(rec.history) || rec.history.length < 2){
-      if(existing) existing.remove(); // record gone (wipe/repair) or too thin to chart
+      if(existing){
+        existing.remove(); // record gone (wipe/repair) or too thin to chart
+        // Round 29 — a ladder anchored to a readout that no longer exists
+        // closes instead of drifting (honest absence, everywhere).
+        if(cartEl.querySelector(".depth-ladder") && window.Depth && Depth.closeLadders){
+          Depth.closeLadders({ restoreFocus: false });
+        }
+      }
       return;
     }
     const sig = signature(mod, rec);

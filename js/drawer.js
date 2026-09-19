@@ -48,7 +48,7 @@
   }, { passive:true });
 
   // ---------- overlay ----------
-  let overlay, panel, filterInput, grid;
+  let overlay, panel, filterInput, grid, deepNote;
   function ensureDom(){
     if(overlay) return;
     overlay = document.createElement("div");
@@ -69,6 +69,13 @@
              alone makes players type to navigate, and nobody "browses" by
              typing. Chips make the shelf scannable in one glance. -->
         <div id="drawer-chips" role="group" aria-label="Filter by category"></div>
+        <!-- Round 29 (R28 handoff #5): the persisted DEEP sort had no
+             explanation — a drawer that reopens reordered looks like a glitch
+             unless something says WHY. The note appears only when the
+             preference is live, and says how to leave. -->
+        <div id="drawer-deep-note" hidden>
+          <b>▼ DEEPEST FIRST</b><span>· saved — ALL restores the shelves</span>
+        </div>
         <div id="drawer-grid" role="list"></div>
       </div>
     `;
@@ -77,6 +84,8 @@
     filterInput = overlay.querySelector("#drawer-filter");
     grid = overlay.querySelector("#drawer-grid");
     chipsEl = overlay.querySelector("#drawer-chips");
+    deepNote = overlay.querySelector("#drawer-deep-note");
+    deepNote.title = "You chose ▼ DEEP — the drawer reopens sorted by depth until you tap another chip. ALL restores the category shelves.";
 
     overlay.querySelector("#drawer-close").addEventListener("click", close);
     overlay.addEventListener("click", (e) => { if(e.target === overlay) close(); });
@@ -135,6 +144,9 @@
   let chipsEl = null;
   function renderChips(){
     if(!chipsEl) return;
+    // Round 29 — the explanation rides every render (open + chip taps), so it
+    // can never disagree with the actual ordering on screen.
+    if(deepNote) deepNote.hidden = !deepSortPref;
     const cats = [...new Set(Strip.all().map(m => m.label || "STRIP"))].sort();
     chipsEl.innerHTML = "";
     const chip = (value, label) => {

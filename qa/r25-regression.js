@@ -246,10 +246,19 @@ window.__qa25 = (async () => {
     await StripShell._testMakeApi('qa-pin-game').setHighscore(200);
     await wait(150);
     const before = XP.getState().xp;
+    // R29 amendment (day-fresh missions fix): the raw xp delta also carries
+    // CONCURRENT payouts that legitimately fire in the same window — a new
+    // day's mission board can complete on this very win (+30) and a new best
+    // pays its own award. The pin's invariant is the RUN ladder, so sum the
+    // strip:xp-awarded events by reason and assert the "run" slice === +8.
+    let runSum = 0;
+    const onAward = (e) => { if (e.detail && e.detail.reason === 'run') runSum += (e.detail.amount || 0); };
+    window.addEventListener('strip:xp-awarded', onAward, { passive: true });
     StripShell._testMakeApi('qa-pin-game').gameover('win', 250);
     await wait(250);
-    ok('A11 win still pays +8', XP.getState().xp - before === XP._internals.AWARD.runWin,
-       'delta ' + (XP.getState().xp - before));
+    window.removeEventListener('strip:xp-awarded', onAward, { passive: true });
+    ok('A11 win still pays +8', runSum === XP._internals.AWARD.runWin,
+       'run delta ' + runSum + ' (total xp delta ' + (XP.getState().xp - before) + ')');
   } else {
     ok('A11 win still pays +8', true, 'skipped: run cap consumed by suite gameovers');
   }
