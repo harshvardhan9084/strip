@@ -21,6 +21,56 @@ window.Trophies = (function(){
   const TROPHY_ID = "__trophies__";
   const VISITED_MAX = 200;
 
+  // ---------- Round 32 — the deck's own size, read live ----------
+  // The deck has outgrown its own trophies twice (47 → 41 → 50 → 51): a
+  // hardcoded need:50 unlocks "explore them all" while cartridges are still
+  // on the shelf. The registry is the truth; the trophy reads it at evaluate
+  // time. (trophies.js loads BEFORE the game scripts register, so the count
+  // can never be snapshotted at module init — it must be resolved lazily.)
+  function deckSize(){
+    try{
+      if(window.Strip && typeof Strip.all === "function" && Strip.all().length){
+        return Strip.all().length;
+      }
+    }catch(e){}
+    return 0; // registry not loaded — resolveNeed falls back to visited length
+  }
+  // def.need === "ALL" means "every cartridge on the deck right now"; the
+  // fallback when the registry is empty keeps a wiped/unbooted session from
+  // dividing by zero in the progress bars (visited count stands in).
+  function resolveNeed(def){
+    if(def.need !== "ALL") return def.need;
+    const n = deckSize();
+    return n || Math.max(state.visited.length, 1);
+  }
+
+  // Round 32 — depth-tier trophies DERIVED from the canonical tier table.
+  // Fallback numbers mirror Depth.tiers verbatim for the impossible case of
+  // this module loading without Depth (script order makes it impossible;
+  // defense stays cheap and identical).
+  function depthTierDefs(){
+    let tiers = null;
+    try{ if(window.Depth && Depth.tiers) tiers = Depth.tiers; }catch(e){}
+    const minOf = (name, fallback) => {
+      if(tiers){ const t = tiers.find(t => t.name === name); if(t) return t.min; }
+      return fallback;
+    };
+    const phosphor = minOf("PHOSPHOR", 60);
+    const plasma   = minOf("PLASMA", 80);
+    const nova     = minOf("SUPERNOVA", 95);
+    return [
+      { id:"in-the-groove", medal:"✧", name:"IN THE GROOVE",
+        desc:"Hold Phosphor on any cartridge — two runs averaging " + phosphor + "%+ of your best.",
+        metric:"depthTier", need:phosphor },
+      { id:"plasma-front", medal:"✵", name:"PLASMA FRONT",
+        desc:"Hold Plasma on any cartridge — two runs averaging " + plasma + "%+ of your best.",
+        metric:"depthTier", need:plasma },
+      { id:"supernova-touch", medal:"✸", name:"SUPERNOVA TOUCH",
+        desc:"Hold Supernova on any cartridge — two runs averaging " + nova + "%+ of your own best.",
+        metric:"depthTier", need:nova },
+    ];
+  }
+
   // ---------- trophy definitions ----------
   // check(state, ctx) is re-evaluated after every relevant event; ctx carries
   // live lookups (favorites count, highscore check) that aren't persisted here.
@@ -31,8 +81,13 @@ window.Trophies = (function(){
       desc:"Explore 10 different cartridges.", need:10, metric:"visited" },
     { id:"quarter-deck", medal:"▧", name:"QUARTER DECK",
       desc:"Explore 25 different cartridges.", need:25, metric:"visited" },
-    { id:"half-century", medal:"◈", name:"HALF CENTURY",
-      desc:"Explore all 50 cartridges. The full shelf.", need:50, metric:"visited" },
+    // Round 32 — the deck outgrew the number in this name twice; the trophy
+    // now reads the LIVE registry (resolveNeed, "ALL") instead of a hardcoded
+    // 50, and the desc stopped quoting a count that would rot. The id stays
+    // "half-century" — persisted unlocks key on ids, and a rename would
+    // double-award everyone who honestly earned the old one.
+    { id:"half-century", medal:"◈", name:"FULL SHELF",
+      desc:"Explore every cartridge on the deck. The full shelf.", need:"ALL", metric:"visited" },
     { id:"curator", medal:"★", name:"CURATOR",
       desc:"Pin 5 cartridges as favorites.", need:5, metric:"favs" },
     { id:"marathon", medal:"⚡", name:"MARATHON",
@@ -65,15 +120,22 @@ window.Trophies = (function(){
     // recomputed from Depth's live data on every strip:depth-updated — the
     // same honesty rules the drawer chips run on. Progress bars read in %,
     // not counts (renderClosest special-cases the unit).
-    { id:"in-the-groove", medal:"✧", name:"IN THE GROOVE",
-      desc:"Hold Phosphor on any cartridge — two runs averaging 60%+ of your best.",
-      metric:"depthTier", need:60 },
-    { id:"plasma-front", medal:"✵", name:"PLASMA FRONT",
-      desc:"Hold Plasma on any cartridge — two runs averaging 80%+ of your best.",
-      metric:"depthTier", need:80 },
-    { id:"supernova-touch", medal:"✸", name:"SUPERNOVA TOUCH",
-      desc:"Hold Supernova on any cartridge — two runs averaging 90%+ of your own best.",
-      metric:"depthTier", need:90 },
+    //
+    // Round 32 — ONE vocabulary, enforced in code: the thresholds come
+    // straight from Depth.tiers (script order guarantees Depth is loaded
+    // before this module), so the trophies can never drift from the ladder
+    // and the drawer chips again — the exact drift the R31 judge caught
+    // (SUPERNOVA TOUCH said 90 while every tier surface said 95). IN THE
+    // GROOVE rides PHOSPHOR (60), PLASMA FRONT rides PLASMA (80), SUPERNOVA
+    // TOUCH rides SUPERNOVA (95) — all boundary-inclusive, all "holding".
+    ...depthTierDefs(),
+    // Round 32 — LONG HAUL: the first trophy that rewards TIME, not taps.
+    // ON DECK accrues only while the page is visibly open (js/ontime.js),
+    // one honest bucket per day; 30 minutes in a day means the deck was
+    // actually your afternoon, not a tab you forgot. Retroactive at boot
+    // like every metric trophy — the bucket already knows.
+    { id:"long-haul", medal:"◷", name:"LONG HAUL",
+      desc:"Spend 30 minutes on the deck in a single day.", need:30, metric:"ontime" },
   ];
 
   // ---------- state ----------
@@ -100,6 +162,16 @@ window.Trophies = (function(){
   function dayKey(d){
     d = d || new Date();
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  // Round 32 — ON DECK read-side (same defensive shape as peakDepthAvg):
+  // the engine lives in js/ontime.js; if it's missing this trophy simply
+  // never evaluates true (an absent engine can't fake time).
+  function ontimeTodayMinutes(){
+    try{
+      if(window.Ontime && Ontime.todayMinutes) return Ontime.todayMinutes() || 0;
+    }catch(e){}
+    return 0;
   }
 
   // Round 31 — the deepest average any cartridge is HOLDING right now.
@@ -165,6 +237,17 @@ window.Trophies = (function(){
   }
 
   function evaluate(ctx){
+    // Round 32 (live-caught by the ON DECK contract): event-driven evaluates
+    // (rollover, depth-updated, ontime-updated, boot-retroactive) pass NO
+    // context — and when RECORD BREAKER was still locked, `ctx.holdsRecord`
+    // threw, aborting the WHOLE loop mid-scan. Every trophy below it (the
+    // depth tiers, LONG HAUL) silently stopped unlocking on exactly the
+    // fresh profiles that hadn't earned record-breaker yet. The documented
+    // contract (see the deferred branch below) is that a context-free
+    // evaluate has no proof to offer — an empty context is the honest
+    // default, and RECORD BREAKER keeps unlocking only through
+    // onCardCentered, which always carries the real holdsRecord lookup.
+    ctx = ctx || {};
     if(!hydrateDone){
       // keep the caller's context (e.g. holdsRecord from the boot settle's
       // onCardCentered — that event won't re-fire for the same card, so a
@@ -192,8 +275,16 @@ window.Trophies = (function(){
       else if(def.metric === "totalVisits") ok = state.visitsTotal >= def.need;
       else if(def.metric === "favs") ok = state.favCount >= def.need;
       else if(def.metric === "dayVisits") ok = (state.dayVisits[dayKey()] || 0) >= def.need;
-      else if(def.metric === "visited") ok = state.visited.length >= def.need;
+      // Round 32 — resolveNeed: "ALL" reads the LIVE registry, so the full-
+      // shelf trophy can never unlock with cartridges still on the shelf
+      // (the deck outgrew its hardcoded 50 twice).
+      else if(def.metric === "visited") ok = state.visited.length >= resolveNeed(def);
       else if(def.metric === "depthTier") ok = peakDepthAvg() >= def.need;
+      // Round 32 — ON DECK minutes today (js/ontime.js). Read live at
+      // evaluate time, exactly like peakDepthAvg — the heartbeat's event
+      // (strip:ontime-updated) just triggers evaluate; the number is always
+      // read fresh from the engine, never mirrored.
+      else if(def.metric === "ontime") ok = ontimeTodayMinutes() >= def.need;
       if(ok){
         state.unlocked[def.id] = Date.now();
         newlyUnlocked.push(def);
@@ -534,7 +625,9 @@ window.Trophies = (function(){
       s.appendChild(n); s.appendChild(t);
       return s;
     };
-    stats.appendChild(stat(state.visited.length + "/50", "EXPLORED"));
+    // Round 32 — identity counters read the LIVE deck: the registry is the
+    // source of truth, not a hardcoded 50 that the deck has already outgrown.
+    stats.appendChild(stat(state.visited.length + "/" + (deckSize() || state.visited.length), "EXPLORED"));
     stats.appendChild(stat(state.visitsTotal, "VISITS"));
     stats.appendChild(stat(unlocked + "/" + DEFS.length, "TROPHIES"));
     stats.appendChild(stat(dailyBest, "STREAK BEST"));
@@ -544,25 +637,43 @@ window.Trophies = (function(){
     let depth = null;
     try{ if(window.XP && XP.getState) depth = XP.getState().depthAvg; }catch(e){}
     stats.appendChild(stat(depth != null ? depth + "%" : "—", "RUN DEPTH"));
+    // Round 32 — ON DECK TODAY (js/ontime.js): the one counter every other
+    // stat rides on. Time accrues only while the page is visibly open, so
+    // the number is "how long the deck was actually your tab today". The
+    // engine's own humanizer floors sub-minute time to "<1m" and reads "—"
+    // before hydration — same honesty rule as RUN DEPTH's dash.
+    let ondeck = "—";
+    try{ if(window.Ontime && Ontime.todayLabel) ondeck = Ontime.todayLabel(); }catch(e){}
+    stats.appendChild(stat(ondeck, "ON DECK"));
     wrap.appendChild(stats);
 
     // Round 25 — DEPTH LEAGUE: one honest ladder riding the rolling depth%.
     // No opponents, no seasons, no fake scarcity — the only ceiling is your
     // own bests, which is exactly the number depth% already measures. No
     // samples → no row at all (an absent row can't lie).
+    // Round 32 — ONE VOCABULARY, structurally: this block carried its own
+    // copy of the tier table, which is exactly how the R31 drift happened
+    // (the trophy said 90, this said 95). The table now comes from
+    // Depth.tiers — the same array the ladder and the drawer chips read —
+    // and the row wears the tier's class so its dot grades in the league
+    // hue like every other surface.
     try{
       if(depth != null){
-        const TIERS = [
-          { min: 95, name: "SUPERNOVA" },
-          { min: 80, name: "PLASMA" },
-          { min: 60, name: "PHOSPHOR" },
-          { min: 40, name: "NEON" },
-          { min: 0,  name: "PAPER" },
-        ];
+        let TIERS = null;
+        try{ if(window.Depth && Depth.tiers) TIERS = Depth.tiers; }catch(e){}
+        if(!TIERS){
+          TIERS = [ // fallback mirrors Depth.tiers verbatim (Depth absent = never in prod)
+            { min: 95, name: "SUPERNOVA", cls: "t-supernova" },
+            { min: 80, name: "PLASMA",    cls: "t-plasma" },
+            { min: 60, name: "PHOSPHOR",  cls: "t-phosphor" },
+            { min: 40, name: "NEON",      cls: "t-neon" },
+            { min: 0,  name: "PAPER",     cls: "t-paper" },
+          ];
+        }
         const tier = TIERS.find(t => depth >= t.min);
         const next = TIERS[TIERS.indexOf(tier) - 1] || null;
         const league = document.createElement("div");
-        league.className = "player-league";
+        league.className = "player-league " + (tier.cls || "");
         const lname = document.createElement("span");
         lname.className = "player-league-name";
         lname.textContent = tier.name + " LEAGUE";
@@ -593,13 +704,15 @@ window.Trophies = (function(){
       dailyStreak: state.dailyStreak,
       dayVisits: today,
       depthTier: Math.round(peakDepthAvg()), // Round 31 — live peak, % units
+      ontime: ontimeTodayMinutes(),          // Round 32 — ON DECK minutes today
     };
     const rows = [];
     for(const def of DEFS){
       if(state.unlocked[def.id]) continue;
       if(!def.metric || !(def.metric in map) || !def.need) continue;
-      const cur = Math.min(def.need, map[def.metric]);
-      rows.push({ def, cur, ratio: cur / def.need });
+      const need = resolveNeed(def); // Round 32 — "ALL" resolves to the live registry
+      const cur = Math.min(need, map[def.metric]);
+      rows.push({ def, cur, need, ratio: cur / need });
     }
     rows.sort((a, b) => b.ratio - a.ratio);
     return rows.slice(0, 3);
@@ -613,7 +726,7 @@ window.Trophies = (function(){
     head.className = "closest-head";
     head.textContent = "CLOSEST TO UNLOCK";
     wrap.appendChild(head);
-    rows.forEach(({ def, cur, ratio }) => {
+    rows.forEach(({ def, cur, need, ratio }) => {
       const item = document.createElement("div");
       item.className = "closest-item";
       const line = document.createElement("div");
@@ -625,9 +738,12 @@ window.Trophies = (function(){
       num.className = "closest-num";
       // Round 31 — unit honesty: depth progress is a percentage of best, not
       // a count; "63/80" would read as 63 visits.
+      // Round 32 — `need` is the RESOLVED need (lockedProgress resolves
+      // "ALL" to the live registry length) — the row would otherwise read
+      // "12/ALL" for the full-shelf trophy.
       num.textContent = def.metric === "depthTier"
-        ? cur + "% / " + def.need + "%"
-        : cur + "/" + def.need;
+        ? cur + "% / " + need + "%"
+        : cur + "/" + need;
       line.appendChild(name); line.appendChild(num);
       const track = document.createElement("div");
       track.className = "closest-track";
@@ -640,8 +756,8 @@ window.Trophies = (function(){
       item.setAttribute("role", "img");
       item.setAttribute("aria-label", def.name + ": " +
         (def.metric === "depthTier"
-          ? cur + " percent of " + def.need + " percent"
-          : cur + " of " + def.need) +
+          ? cur + " percent of " + need + " percent"
+          : cur + " of " + need) +
         " — " + Math.round(ratio * 100) + "% there");
       wrap.appendChild(item);
     });
@@ -652,7 +768,7 @@ window.Trophies = (function(){
     gridEl.innerHTML = "";
     const unlockedCount = Object.keys(state.unlocked).length;
     subEl.textContent = unlockedCount + " / " + DEFS.length + " unlocked · " +
-      state.visited.length + "/50 cartridges explored · " + state.visitsTotal + " visits" +
+      state.visited.length + "/" + (deckSize() || state.visited.length) + " cartridges explored · " + state.visitsTotal + " visits" +
       (state.dailyStreak > 0 ? " · daily streak " + state.dailyStreak : "");
     // Round 20: identity first (who you are), then the ritual (what you do
     // daily), then the near-misses (what you're about to earn), then the list.
@@ -856,6 +972,11 @@ window.Trophies = (function(){
     // lands re-computes the peak. The evaluate gate keeps mid-hydrate calls
     // safe (deferred like every other event).
     window.addEventListener("strip:depth-updated", () => { evaluate(); }, { passive:true });
+    // Round 32 — ON DECK heartbeat (js/ontime.js): every accrual event may
+    // cross the LONG HAUL line, so it drives evaluate like the depth engine
+    // does. The number itself is read fresh inside evaluate() — the event is
+    // a trigger, never a mirror.
+    window.addEventListener("strip:ontime-updated", () => { evaluate(); }, { passive:true });
 
     const saved = await load();
     if(saved && typeof saved === "object"){
@@ -918,7 +1039,9 @@ window.Trophies = (function(){
     markSeen,
     // documented test surface (same pattern as Daily._internals): the PURE
     // calendar cell-state rule itself, so headless assertions exercise the
-    // exact shipped logic — not a copy of it
-    _internals: { monthCellState }
+    // exact shipped logic — not a copy of it.
+    // Round 32: DEFS joins the seam — the suite pins the DERIVED thresholds
+    // (Depth.tiers → trophies) on the real definitions, not the rendered DOM.
+    _internals: { monthCellState, DEFS, resolveNeed, deckSize }
   };
 })();

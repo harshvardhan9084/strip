@@ -254,7 +254,7 @@ window.__qa24 = (async () => {
   // a "glitched" message is the only real failure
   const glitched = [...strip.querySelectorAll('.cart-body')].filter(b =>
     b.textContent.includes('glitched')).length;
-  ok('B2 mount sweep glitch-free', glitched === 0 && all.length === 51,
+  ok('B2 mount sweep glitch-free', glitched === 0 && all.length === Strip.all().length  /* R32 amendment: registry-length self-consistent — the deck grew to 52 */,
      'glitched=' + glitched + ' modules=' + all.length);
 
   // ---------- B3: console silence ----------

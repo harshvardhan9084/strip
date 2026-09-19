@@ -2140,3 +2140,178 @@ a declined hint ("Replay the tiers hint", the R20 welcome-hint precedent);
 (3) recency-weighted trend once rings accumulate (data-gated); (4)
 real-device pass (15th carry — haptics, wake lock, badge fade, iOS PWA
 install); (5) mission pool tuning once tend + depth data accumulates.
+
+---
+
+# ROUND 32 HANDOVER — "One Voice" (2026-09-19)
+
+> NOTE: this section follows the NEW handover format (three mandated sections).
+> Everything above this line is the historical round-by-round record — preserved
+> verbatim, not rewritten.
+
+## ① Current project status description / assessment
+
+**State at round start (post-R31, verified live before any change):** the deck
+was stable and green. Boot on a fresh session: 51/51 cartridges registered, 0
+console errors. QA gauntlet on the untouched R31 build: r31 12/12, r30 12/12,
+r29 11/11, r28 9/9, r27 10/10, r26 15/15, r25 18/18, r24 25/25, r23 15/17 (the
+run-cap artifact documented since R27).
+
+**Two real defect classes found during the audit (both fixed this round):**
+
+1. **Two tier vocabularies** (the R31 judge's carry): the SUPERNOVA tier
+   started at 95 in both tier tables (depth.js ladder + Player Card league),
+   while the SUPERNOVA TOUCH trophy unlocked at 90 — "Hold Supernova" that
+   wasn't holding Supernova. trophies.js carried its own COPY of the tier
+   table, which is how the drift happened.
+2. **Deck-count drift**: "HALF CENTURY" hardcoded need:50 ("explore all 50")
+   while the deck was 51; the Player Card read "x/50 EXPLORED"; eight QA
+   suites pinned `total === 51`. The deck had already outgrown its own trophy
+   twice (47→41→50→51) and would have gone stale again at 52.
+
+**Also surfaced by the round's verification (both fixed):**
+
+3. **Trophies.evaluate(ctx) had no ctx default**: every event-driven evaluate
+   (rollover, strip:depth-updated, boot-retroactive) passed NO context, and
+   with RECORD BREAKER still locked, `ctx.holdsRecord` THREW — aborting the
+   whole trophy scan mid-loop. Every trophy below RECORD BREAKER (the depth
+   tiers, LONG HAUL) silently stopped unlocking on exactly the fresh profiles
+   that hadn't earned RECORD BREAKER yet. This was ALSO the root cause of the
+   "run-cap artifact" the r23 suite carried since R27 — after the fix, r23
+   passes 18/18 with no suite changes.
+4. **The LEVEL UP ceremony swallowed keys**: a document-capture keydown with
+   stopPropagation ate Escape/Enter/Space for the ceremony's full 3-second
+   life — a LEVEL UP mid-run literally ate the player's next Space/Enter in
+   whatever game they were playing. The overlay is role=status (a passive
+   announcement, not a dialog), so keys now pass through; it still dismisses
+   on tap and self-dismisses at 3s.
+
+## ② Current goals / completed modifications / verification results
+
+**Goal:** pay down the R31 judge's next-moves (#1 vocabulary, #2 hint escape
+hatch, #3 recency trend) at the ROOT, kill the deck-count drift class, grow
+the deck to 52, add the ON DECK time axis, and a styling detail pass — with
+every change pinned by a new suite and the full regression gauntlet green.
+
+**Shipped:**
+
+- **ONE VOCABULARY, structurally** (judge #1): trophies.js now DERIVES the
+  depth-tier trophies from `Depth.tiers` (script order guarantees Depth is
+  loaded first) via `depthTierDefs()` — IN THE GROOVE rides PHOSPHOR (60),
+  PLASMA FRONT rides PLASMA (80), SUPERNOVA TOUCH rides SUPERNOVA (95, was
+  90). The Player Card league dropped its local TIERS copy for `Depth.tiers`
+  too, and the league row wears the tier's `.t-*` class (name + dot grade in
+  the league hue via currentColor). qa/r31 amended in-suite (A2c/A3 → 95,
+  documented) — SUPERNOVA TOUCH at 95 is now genuinely "Hold Supernova".
+- **Deck-count drift killed**: "HALF CENTURY" → "FULL SHELF" (id kept —
+  persisted unlocks key on ids; desc stopped quoting a count), `need:"ALL"`
+  resolved at evaluate/progress time through `resolveNeed()` reading the LIVE
+  registry (`deckSize()`); Player Card EXPLORED + Trophy sub line read
+  `/52` live. All eight older suites' mount-sweep pins amended to
+  `=== Strip.all().length` (registry-length self-consistent, documented
+  in-suite as R32 amendments).
+- **Settings escape hatch** (judge #2): "Replay the tiers hint" button in
+  Settings → Your Data. `StripDrawer.replayLadderHint()` flips the persisted
+  single-writer flag back to pending, dispatches `strip:ladder-hint-replay`,
+  and the shell resets its session cap + re-arms the bubble on the centered
+  card through the REAL show path. dispatchEvent is synchronous, so the
+  event's detail is the return channel: when the bubble can't render (the
+  centered game has no DEPTH readout to point at), Settings says so honestly
+  via toast ("Hint armed — it points at DEPTH after your next run here").
+- **Recency-weighted trend** (judge #3): depth.js `trendFor` gains a weighted
+  regime at n ≥ 12 (`TREND_WEIGHTED_MIN=12`, `TREND_DECAY=0.85`, exponential
+  by sample age; delta = round(weightedMean − plainMean), same ±3 threshold
+  and flat-honesty). Below 12 the split-half math is UNCHANGED — the r28
+  pins (n=3/4/8) still mean what they meant. Constants public via
+  `_internals`; both regimes pinned in qa/r32 A5.
+- **ON DECK time engine** (`js/ontime.js`, NEW): visibility-honest heartbeat
+  (15s tick, only while `!document.hidden`; gaps > 60s are "away, not
+  play"; per-day buckets under reserved `__ontime__`, 30-day ring, ≤20h/day
+  hostile-save cap; persists ~1/min + on hidden + rollover; failed boot read
+  keeps the session in-memory — the XP/Daily/Depth gate). Fires
+  `strip:ontime-updated` from inside the accrual funnel (live-caught in QA:
+  the event used to live in tick(), so a hidden-flush or QA-seam accrual
+  updated the bucket silently). Consumers: Player Card **ON DECK** stat
+  (humanized, floors to "<1m", honest dash pre-hydration) + **LONG HAUL**
+  trophy (30 minutes in a day, metric `ontime`, retroactive at boot).
+- **Dice Pig** (`js/games/dicepig.js`, NEW — cartridge #52): the deck's
+  first dice game and first push-your-luck run. 5 turns, roll to build the
+  pot, BANK anytime; a 1 burns the pot and ends the turn; bank 50+ and the
+  run WINS on the spot; five turns gone → run ends with what you banked.
+  Real pip-grid die (no emoji), roll-shuffle animation, turn dots, honest
+  log lines, keyboard (Space/Enter roll, B bank — gated on
+  `StripShell.isActive`), audio via Feedback, ONE `api.gameover()` at the
+  natural end (win ≥ 50 with `outcome:"win"`, else `"over"`), cleanup
+  returns the key listener. Slots into missions/depth/XP automatically.
+- **Styling detail pass** (all LIGHT-graded via semantic tokens, all
+  reduce-motion guarded): depth ladder wears the held tier's hue (header +
+  top hairline + YOU pulse via currentColor from the new panel tier class),
+  6px backdrop blur, row hover states; drawer depth chips brighten on row
+  hover; TAP·TIERS label/× press states; settings rows gained a focus-within
+  accent bar + checked-toggle glow + segmented-control press glow (light
+  mode: glows off, honest flat); phosphor-tinted thin scrollbars on both
+  sheets; XP pill hover/active + HUD index press; Player Card league dot in
+  the tier hue with the supernova glow neutralized on the quiet note; the
+  centered card's hint line reads louder than dimmed neighbors; Player Card
+  stats grid → 6 columns (3+3 narrow) for ON DECK.
+- **sw.js v30 → v31** (both cache strings) + `./js/ontime.js` added to the
+  shell precache. README updated (52 cartridges, Dice Pig section, FULL
+  SHELF honesty, 60/80/95, ON DECK, replay-hint, R32 paragraph).
+
+**Verification (all live via agent-browser on a served build):**
+
+- **qa/r32 NEW 13/13** (determinism wipe preamble documented in-suite):
+  A1/A1b vocabulary derived + ladder panel wears the tier class;
+  A2/A2b league row class + canonical next-threshold + EXPLORED x/52;
+  A3 FULL SHELF resolves "ALL" → 52 through the exported `resolveNeed` seam;
+  A4 the escape hatch (dismiss → pending:false → replay → pending:true +
+  bubble re-armed through the REAL API); A5a/A5b trend regimes (n=11
+  split-half unflagged, n=12 weighted with hand-computed delta); A6 ON DECK
+  accrual → LONG HAUL through the real event contract + Player Card stat;
+  A7 Dice Pig registered/mounts/a real-button scripted run fires exactly one
+  honest gameover; B1 52/52 mount sweep; B2 zero console errors.
+- **Full regression gauntlet on the R32 build**: r31 12/12, r30 12/12,
+  r29 11/11, r28 9/9, r27 10/10, r26 15/15, r25 18/18, r24 25/25,
+  **r23 18/18** — the run-cap artifact is GONE (the ctx fix cured it; no
+  r23 changes were needed).
+- **Flow probes (screenshots)**: ladder open on Snake with tier-hued panel +
+  YOU 73% + next-step math (shot-r32-ladder.png); drawer with live depth
+  chip (shot-r32-drawer.png); Dice Pig played via real clicks — roll → bank
+  → honest 1-bust log (shot-r32-dicepig.png); LIGHT chassis re-grades the
+  whole game through the semantic layer (shot-r32-light.png); settings glow
+  states (shot-r32-settings.png); dark deck (shot-r32-dark-snake.png).
+  Replay-hatch end-to-end: dismiss → pending:false → replay → pending:true;
+  the bubble honestly declines on a card with no DEPTH readout (dicepig had
+  1 history point) — the suite pins the positive path on a seeded card.
+- `node --check` clean on every touched file. Fresh-boot session: 0 console
+  errors, 0 page errors, 52/52 registered.
+
+## ③ Unresolved issues / risks + priority recommendations for the next phase (Round 33)
+
+1. **Real-device pass (16th carry)**: haptics strength curves, wake lock,
+   badge fade, iOS PWA install flow — still unverified outside headless.
+2. **Mission pool tuning** (data-gated, unchanged): once tend + depth data
+   accumulates from real profiles, revisit `TEND 3` / run-goal needs and the
+   level ramp (×1.5 @ LV5, ×2 @ LV10).
+3. **Dice Pig depth story**: over-runs only sample on losses (`outcome:"over"`),
+   so a player who ALWAYS reaches 50 never feeds the ring — watch real data;
+   if depth chips never appear for it, consider sampling banked totals under
+   a "win-depth" contract for win-type games (design first, then pin).
+4. **Weekly league / weekly recap** (data-gated carry from R30): the 30-day
+   ON DECK ring now makes a weekly "time on deck" recap trivially derivable
+   on the Player Card — a natural Round 33 feature (render-only, no new
+   plumbing).
+5. **Ceremony residual**: the LEVEL UP overlay is pointer-dismiss only now
+   (by design — role=status). If a keyboard-only dismiss is ever wanted, use
+   a dismissible `role=dialog` variant instead of re-adding key swallowing.
+6. **Suite corpus hygiene**: the B1 amendments made sweeps
+   registry-length-agnostic, but A0-style literals (r31 now pins 52) will
+   drift again on deck growth — next cartridge should amend them the same
+   documented way, or convert A0 to `>= 52`.
+7. **Two-player dice**: Dice Pig's AI-opponent mode (real Pig vs the house)
+   is a natural extension if the solo loop proves fun — keep it one file.
+
+**Suggested next round focus:** (a) weekly ON DECK recap on the Player Card
+(cheap, data now exists), (b) Dice Pig watch + possible win-depth contract,
+(c) start the real-device pass checklist as a doc so carry #17 can actually
+close it.

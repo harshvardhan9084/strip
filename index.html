@@ -293,6 +293,12 @@ try{
       <div class="setting-desc" style="text-align:center; margin-top:6px;">Replaces current progress with an exported save. Device settings stay.</div>
 
       <button id="replay-hint-btn" class="btn" type="button" style="width:100%; margin-top:10px;">Show welcome hint again</button>
+      <!-- Round 32 — the tiers hint's escape hatch: dismissing the one-time
+           TAP·TIERS bubble used to be a silent, permanent exit. This re-arms
+           it through the same single-writer flag; the chevron stays either
+           way, so nothing here hides the ladder itself. -->
+      <button id="replay-ladder-btn" class="btn" type="button" style="width:100%; margin-top:10px;">Replay the tiers hint</button>
+      <div class="setting-desc" style="text-align:center; margin-top:6px;">Brings back the one-time "TAP · TIERS" bubble that points at the depth ladder.</div>
 
       <div class="settings-divider"></div>
 
@@ -313,6 +319,7 @@ try{
 <script src="js/settings.js"></script>
 <script src="js/feedback.js"></script>
 <script src="js/focustrap.js"></script>
+<script src="js/ontime.js"></script>
 <script src="js/xp.js"></script>
 <script src="js/depth.js"></script>
 <script src="js/missions.js"></script>
@@ -333,6 +340,7 @@ try{
   <script src="js/games/codebreaker.js"></script>
   <script src="js/games/colormix.js"></script>
   <script src="js/games/colorsnap.js"></script>
+  <script src="js/games/dicepig.js"></script>
   <script src="js/games/dropfour.js"></script>
   <script src="js/games/etch.js"></script>
   <script src="js/games/flapdot.js"></script>

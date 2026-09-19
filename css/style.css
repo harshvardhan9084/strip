@@ -1446,8 +1446,9 @@ button:disabled{ opacity:.45; cursor:not-allowed; }
 .player-stats{
   grid-column:1 / -1;
   /* Round 24: five identity counters (run depth joined) — 5 columns on
-     wide panels, a clean 3+2 on narrow ones instead of an orphan cell */
-  display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;
+     wide panels, a clean 3+2 on narrow ones instead of an orphan cell.
+     Round 32: ON DECK joins — six counters, a clean 3+3 on narrow. */
+  display:grid; grid-template-columns:repeat(6, 1fr); gap:6px;
   margin-top:6px;
 }
 @media (max-width:420px){
@@ -1481,9 +1482,15 @@ button:disabled{ opacity:.45; cursor:not-allowed; }
 }
 .player-league-name{
   font-family:var(--font-display); font-size:8px;
-  color:var(--amber); letter-spacing:.12em;
+  /* Round 32: currentColor — the league node now wears the tier's .t-*
+     class, so the name grades in the SAME hue as the ladder rows, the
+     drawer chips and the card readout (one vocabulary to the last pixel).
+     The amber below only covers a tier-less fallback that never renders. */
+  color:currentColor;
+  letter-spacing:.12em;
   text-shadow:0 0 10px rgba(var(--glow-rgb),calc(.45*var(--glow-mul,1)));
 }
+.player-league .player-league-note{ color:var(--ink-dim); } /* the note stays quiet under any tier hue */
 .player-league-note{
   font-size:10px; color:var(--ink-dim); letter-spacing:.02em;
   text-align:right;
@@ -2040,3 +2047,128 @@ html.reduce-motion #drawer-grid.stagger .drawer-item{ animation:none !important;
    normal cascade rule; the parent has no animation, so the dim applies. */
 #strip .cart{ transition:opacity .4s ease; }
 #strip .cart:not([data-centered]){ opacity:.64; }
+
+/* =============================================================
+   ROUND 32 — "One Voice" — detail pass
+   ============================================================= */
+
+/* ---- Depth ladder: the panel speaks the held tier's hue ----
+   The panel now carries the current tier's .t-* class (depth.js), so the
+   header, the top hairline and the YOU marker all grade in the hue the
+   player is actually holding — same ink the readout wears. The dot next to
+   each row gets a soft pulse on the ACTIVE tier only (reduce-motion silent:
+   the marker's bold border carries the same information, static). */
+.depth-ladder{
+  /* glass over the cartridge: the panel floats over the game it describes,
+     a 6px backdrop blur separates it without a heavier shadow */
+  -webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(6px);
+}
+.depth-ladder::before{
+  content:""; position:absolute; top:0; left:12px; right:12px; height:1px;
+  background:currentColor; opacity:.5;
+  border-radius:1px;
+}
+.depth-ladder .ladder-head{ color:currentColor; }
+.depth-ladder .ladder-row{ border-radius:6px; padding-inline:4px; margin-inline:-4px; transition:background .15s ease, opacity .15s ease; }
+.depth-ladder .ladder-row:hover{ background:rgba(var(--glow-rgb),calc(.07*var(--glow-mul,1))); opacity:1; }
+.ladder-row.on .ladder-you{ animation:ladder-you-pulse 2.2s ease-in-out infinite; }
+@keyframes ladder-you-pulse{
+  0%, 100%{ box-shadow:0 0 0 0 rgba(var(--glow-rgb),calc(.0*var(--glow-mul,1))); }
+  50%{     box-shadow:0 0 9px 0 rgba(var(--glow-rgb),calc(.4*var(--glow-mul,1))); }
+}
+html.reduce-motion .ladder-row.on .ladder-you{ animation:none; }
+html[data-mode="light"] .depth-ladder::before{ opacity:.65; }
+
+/* ---- Drawer depth chips: touchable, honest about being one ----
+   The chip is already role=img + title'd; these states only ADVERTISE the
+   information (brighten on row hover), they don't add affordance it
+   doesn't have. Pop/tier-up animations keep their R27/R28 shapes. */
+.drawer-item .drawer-item-depth{ transition:filter .18s ease, transform .18s ease; }
+.drawer-item:hover .drawer-item-depth{ filter:brightness(1.25); }
+.drawer-item-depth:active{ transform:scale(.94); }
+
+/* ---- TAP·TIERS bubble: press states for its two real buttons ----
+   Both children are real role=button controls (R31); a press that doesn't
+   respond visually reads as a dead tap. Scale-only, ~90ms, with the
+   focus-visible outlines already shipped in R31 untouched. */
+.depth-hint-label:active,
+.depth-hint-x:active{ transform:scale(.93); }
+.depth-hint-label,
+.depth-hint-x{ transition:transform .09s ease; }
+
+/* ---- Centered card's hint line: the live card whispers louder ----
+   The focus pull dims neighbors to .64; their hint lines dim twice (the
+   ink re-grades via opacity), so the centered cartridge's instruction is
+   THE readable one. Color-only — no layout, no new paint cost. */
+#strip .cart:not([data-centered]) .cart-hint{ opacity:.55; }
+#strip .cart .cart-hint{ transition:opacity .4s ease; }
+
+/* ---- Settings: rows answer the pointer and the keyboard ----
+   The hover tint existed (R25); what was missing: a left accent bar that
+   tracks keyboard focus (focus-within), so Tab through the sheet shows
+   WHERE you are at panel width, not just a faint background. Segmented
+   buttons get a press-in glow matching the .btn family. */
+.setting-row{ position:relative; transition:background .18s ease; }
+.setting-row::before{
+  content:""; position:absolute; left:0; top:8px; bottom:8px; width:2px;
+  border-radius:2px; background:var(--amber);
+  opacity:0; transform:scaleY(.4); transition:opacity .18s ease, transform .18s ease;
+}
+.setting-row:focus-within::before{ opacity:.85; transform:scaleY(1); }
+.setting-toggle{ transition:background .18s ease; }
+.setting-toggle:checked{ box-shadow:0 0 10px rgba(var(--glow-rgb),calc(.35*var(--glow-mul,1))); }
+.seg-btn, .mode-seg-btn, .theme-seg-btn, .glow-seg-btn{ transition:transform .12s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease; }
+.seg-btn[aria-pressed="true"], .mode-seg-btn[aria-pressed="true"],
+.theme-seg-btn[aria-pressed="true"], .glow-seg-btn[aria-pressed="true"]{
+  box-shadow:0 0 12px rgba(var(--glow-rgb),calc(.3*var(--glow-mul,1)));
+}
+html[data-mode="light"] .seg-btn[aria-pressed="true"],
+html[data-mode="light"] .mode-seg-btn[aria-pressed="true"],
+html[data-mode="light"] .theme-seg-btn[aria-pressed="true"],
+html[data-mode="light"] .glow-seg-btn[aria-pressed="true"]{ box-shadow:none; }
+.volume-slider{ transition:filter .2s ease; }
+.volume-slider:hover{ filter:brightness(1.15); }
+
+/* ---- Sheets scroll like the console they are ----
+   Thin, phosphor-tinted scrollbars on the two long sheets (settings body,
+   drawer panel) — the stock 14px grey thumb is the loudest default on the
+   console. Firefox gets scrollbar-width/color; the rest get webkit. */
+.settings-body, #drawer-panel{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(var(--glow-rgb),calc(.4*var(--glow-mul,1))) transparent;
+}
+.settings-body::-webkit-scrollbar, #drawer-panel::-webkit-scrollbar{ width:6px; }
+.settings-body::-webkit-scrollbar-track, #drawer-panel::-webkit-scrollbar-track{ background:transparent; }
+.settings-body::-webkit-scrollbar-thumb, #drawer-panel::-webkit-scrollbar-thumb{
+  background:rgba(var(--glow-rgb),calc(.4*var(--glow-mul,1)));
+  border-radius:3px;
+}
+.settings-body::-webkit-scrollbar-thumb:hover, #drawer-panel::-webkit-scrollbar-thumb:hover{
+  background:rgba(var(--glow-rgb),calc(.6*var(--glow-mul,1)));
+}
+
+/* ---- HUD: the pill and the index breathe with the chassis ----
+   The LV pill gained a hover sheen (it opens the Trophy Case — it should
+   invite); the cartridge index gets a key-cap press when you hop. Both are
+   transforms/filters only, both die under reduce-motion. */
+#xp-pill{ transition:filter .2s ease, transform .12s ease; }
+#xp-pill:hover{ filter:brightness(1.2); }
+#xp-pill:active{ transform:scale(.96); }
+#hud-index{ transition:transform .12s ease; }
+#hud-index:active{ transform:translateY(1px); }
+html.reduce-motion #xp-pill,
+html.reduce-motion #hud-index{ transition:none; }
+
+/* ---- Player Card league row: the tier dot joins the vocabulary ----
+   The league node carries the tier class; its dot uses currentColor, and
+   the note's inherited supernova glow is neutralized (quiet ink stays
+   quiet). LIGHT grades through the same semantic vars as every .t-*. */
+.player-league{ color:var(--amber); } /* fallback hue when tier-less (never in prod) */
+.player-league::before{
+  content:""; width:5px; height:5px; border-radius:50%;
+  background:currentColor; flex:none; align-self:center;
+  box-shadow:0 0 7px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1)));
+}
+.player-league .player-league-note{ text-shadow:none; }
+html[data-mode="light"] .player-league::before{ box-shadow:none; }

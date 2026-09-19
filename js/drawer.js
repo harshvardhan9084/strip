@@ -55,6 +55,26 @@
   }
   function ladderHintPending(){ return !ladderHintDone; }
 
+  // Round 32 — the escape hatch (the R31 judge's gap: declining was
+  // irreversible in-UI). Settings calls this; the flag flips back to
+  // "pending" through the SAME single-writer meta record, and the shell
+  // hears the replay synchronously (dispatchEvent is sync) so it can reset
+  // its session cap and re-arm the bubble on the centered card right now.
+  // The event's detail is the return channel: app.js sets shown=true when
+  // the bubble actually rendered, and Settings says honestly when it
+  // couldn't (no depth data on the centered cartridge → nothing to point
+  // at → the toast explains when it WILL point).
+  function replayLadderHint(){
+    if(ladderHintDone){
+      ladderHintDone = false;
+      saveMeta();
+    }
+    const detail = { shown: false };
+    try{ window.dispatchEvent(new CustomEvent("strip:ladder-hint-replay", { detail })); }
+    catch(e){}
+    return detail.shown;
+  }
+
   // ---------- recents tracking ----------
   window.addEventListener("strip:card-centered", (e) => {
     const id = e.detail && e.detail.id;
@@ -453,7 +473,10 @@
   else init();
 
   // Round 20: settings' "Show welcome hint again" replays the first-run
-  // overlay without clearing anything else.
+  // overlay without clearing anything else. Round 32: replayLadderHint()
+  // re-arms the one-time TIERS hint the same way (the R31 judge's escape
+  // hatch) — the flag flips back, the shell re-arms the bubble, and the
+  // return value says whether it could render right now.
   window.StripDrawer = { showHint: () => { activeCat = null; maybeShowHint(); },
-                          dismissLadderHint, ladderHintPending };
+                          dismissLadderHint, ladderHintPending, replayLadderHint };
 })();

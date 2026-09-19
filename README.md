@@ -28,13 +28,14 @@ Your saves and high scores live on your device. I can't see them. Nobody can.
 
 ## What's on the strip right now
 
-51 cartridges at the moment — the half-century deck, plus one. A rough mix:
+52 cartridges at the moment — the deck outgrew its own trophy again. A rough mix:
 
 - **The classics:** Snake, Mini 2048, Mini Sudoku, Maze, Slide Puzzle, Lights Out, Memory Match, Sequence (Simon Says), Bubble Shooter, Whack-a-Mole, XOX, Minesweeper, Blockfall, Breakout, Pong Duel
 - **Quick hits:** Reaction Time, Type Speed, Color Snap, Balloon Pop, Flap Dot, Stack Tower, Plinko, Rhythm Tap, Gravity Drop, Blob Merge, Chain Link, Perfect Ring
 - **Slow burns:** Tower Defense, Kingdom, Trading Post, Ant Colony, Garden, Tiny Aquarium, Artillery Duel
 - **Puzzles & strategy:** Unscramble, Quick Trivia, Code Breaker, Crate Push, Drop Four
 - **Words & cards:** Lexicle, Blackjack 21 (virtual chips only — no real money, ever)
+- **Dice & nerve:** Dice Pig — five turns, roll to build the pot, bank before the 1 burns it. Bank 50 and the run is yours. The deck's first push-your-luck dice game, and the purest depth sport on the strip: your over-runs land exactly where your nerve does.
 - **Toys & fidgets (all with something real to do):** Sand Drag, Kaleidoscope, Etch Pad, Tone Pad, Color Lab, Spinner, Breathe, Would You Rather, This or That, Random Fact
 
 Every cartridge on the strip gives you something real back — a score, a save, a skill,
@@ -92,7 +93,9 @@ cartridge cull of 2026. Weird ideas are still welcome — as long as they *do* s
   back to. Favorites and recents are remembered on your device. Today's pick carries a
   little ◆ in the list.
 - **Trophy Case** (cup icon): achievements for exploring — your first cartridge, 10,
-  25, all 50; a day with 30 visits; 100 total visits (REGULAR); browsing in the small
+  25, and the FULL SHELF (every cartridge the deck holds — the trophy reads the
+  live registry, so the goal grew when the deck grew instead of going stale at 50);
+  a day with 30 visits; 100 total visits (REGULAR); browsing in the small
   hours (NIGHT SHIFT and its morning mirror EARLY BIRD); pinning 5 favorites; holding
   a highscore you went back to; playing the Daily Pick; 7- and 30-day pick streaks
   (WEEK RIPPLE and MOON CYCLE — earned retroactively if your streak already counts;
@@ -190,8 +193,18 @@ only the shell changes.
   chevron stays either way), the chip and bubble are properly **daylight-
   graded** in light mode, and the depth tiers joined the **Trophy Case**:
   hold Phosphor, Plasma or Supernova on any cartridge — two runs averaging
-  60 / 80 / 90 percent of your best — and they're yours, with honest
-  percent-unit progress bars on the ones you're closest to.
+  60 / 80 / 95 percent of your best — and they're yours, with honest
+  percent-unit progress bars on the ones you're closest to. Round 32 makes
+  the vocabulary structural: the trophies read their thresholds from the
+  tier table itself, so no surface can drift again — and the trend arrows
+  on drawer chips got smarter once your ring runs deep (the last twelve
+  runs are recency-weighted, so eight stale games can't outvote this
+  week). The ladder panel now wears the tier it describes, the TAP·TIERS
+  bubble has a settings escape hatch ("Replay the tiers hint" — declining
+  is no longer a one-way door), and **ON DECK** joined the Player Card:
+  the deck counts the time you actually give it — visibly open, never
+  background tabs — one honest bucket per day, and 30 minutes in a day
+  earns the LONG HAUL trophy.
 - **Keyboard-friendly dialogs**: every sheet (drawer, settings, trophies) traps Tab
   inside while open, so keyboard and screen-reader users never fall behind the overlay.
   The cartridge drawer opens focus-quiet (Round 22): no virtual keyboard popping over

@@ -267,7 +267,7 @@ window.__qa28 = (async () => {
       try{ div.innerHTML = ''; }catch(e){}
     }
     div.remove();
-    ok('B1 all cartridges mount clean with R28 live', fails === 0 && total === 51,
+    ok('B1 all cartridges mount clean with R28 live', fails === 0 && total === Strip.all().length  /* R32 amendment: registry-length self-consistent — the deck grew to 52 */,
        fails + '/' + total + ' failed');
   }
 

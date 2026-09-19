@@ -270,7 +270,7 @@ window.__qa25 = (async () => {
   }
   await wait(1400);
   const glitched = [...strip.querySelectorAll('.cart-body')].filter(b => b.textContent.includes('glitched')).length;
-  ok('B1 mount sweep glitch-free', glitched === 0 && all.length === 51,
+  ok('B1 mount sweep glitch-free', glitched === 0 && all.length === Strip.all().length  /* R32 amendment: registry-length self-consistent — the deck grew to 52 */,
      'glitched=' + glitched + ' modules=' + all.length);
 
   // ---------- B2: console silence ----------

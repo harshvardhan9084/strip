@@ -129,6 +129,28 @@ window.Depth = (function(){
     const arr = state.games[id];
     if(!Array.isArray(arr) || arr.length < TREND_MIN_SAMPLES) return null;
     const n = arr.length;
+    // Round 32 — RECENCY WEIGHT once the ring is deep enough. The split-half
+    // delta treats a run from eight games ago exactly like yesterday's; at
+    // n >= TREND_WEIGHTED_MIN the ring carries enough history for the honest
+    // question to change from "did the second half land deeper" to "does the
+    // weighted-recent picture sit above the ring's own baseline". Weights
+    // decay by TREND_DECAY per sample of age (newest weight 1, each older
+    // sample × .85) — a smooth exponential, not a second hard split. Below
+    // the weighted floor the split-half math is UNCHANGED, so the R28 pins
+    // (n = 3/4/8) keep meaning exactly what they meant.
+    if(n >= TREND_WEIGHTED_MIN){
+      let wSum = 0, wVal = 0, pSum = 0;
+      for(let i = 0; i < n; i++){
+        const age = n - 1 - i;              // 0 = newest
+        const w = Math.pow(TREND_DECAY, age);
+        wSum += w; wVal += w * arr[i];
+        pSum += arr[i];
+      }
+      const delta = Math.round((wVal / wSum) - (pSum / n));
+      if(delta >= TREND_THRESHOLD) return { dir: "up", delta, weighted: true };
+      if(delta <= -TREND_THRESHOLD) return { dir: "down", delta, weighted: true };
+      return { dir: "flat", delta, weighted: true };
+    }
     const half = Math.ceil(n / 2);
     const older = arr.slice(0, n - half);
     const recent = arr.slice(n - half);
@@ -138,6 +160,10 @@ window.Depth = (function(){
     if(delta <= -TREND_THRESHOLD) return { dir: "down", delta };
     return { dir: "flat", delta };
   }
+  // Round 32 — the weighted regime's own constants (public via _internals so
+  // the suite pins the EXACT production math instead of a copy).
+  const TREND_WEIGHTED_MIN = 12; // ring depth where recency weighting kicks in
+  const TREND_DECAY = 0.85;      // weight multiplier per sample of age
 
   // The Player Card league's own thresholds (trophies.js) drive the chip's
   // tier — one vocabulary everywhere, never two names for the same number.
@@ -168,7 +194,10 @@ window.Depth = (function(){
     const n = countFor(mod.id);
     const cur = tierFor(avg);
     const panel = document.createElement("div");
-    panel.className = "depth-ladder";
+    // Round 32 — the panel wears the CURRENT tier's class, so its header and
+    // top hairline re-grade in the league hue the player is actually holding
+    // (one more surface speaking the one vocabulary; CSS keys off .t-*).
+    panel.className = "depth-ladder " + cur.cls;
     panel.setAttribute("role", "dialog");
     panel.setAttribute("aria-label", "Depth ladder — " + (mod.title || mod.id));
     // tabindex=0 (not the popover-typical -1): programmatic focus must work
@@ -368,6 +397,7 @@ window.Depth = (function(){
     ladderOn,
     noteLadderScroll,
     _internals: { record, sanitize, SAMPLES, TIERS, tierFor, pruneGhosts,
-                  TREND_MIN_SAMPLES, TREND_THRESHOLD },
+                  TREND_MIN_SAMPLES, TREND_THRESHOLD,
+                  TREND_WEIGHTED_MIN, TREND_DECAY },
   };
 })();

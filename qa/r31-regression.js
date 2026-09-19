@@ -18,10 +18,11 @@
  *      nothing — one lucky run is not a habit.
  *  A2. Two samples at exactly 60 unlock IN THE GROOVE only (boundary-
  *      inclusive, PLASMA not yet); two more at 100 (avg 80) unlock PLASMA
- *      FRONT; two more (avg 90) unlock SUPERNOVA TOUCH — all observed via
+ *      FRONT; more 100s to avg 95 unlock SUPERNOVA TOUCH (R32: canonical
+ *      Depth.tiers threshold) — all observed via
  *      the public strip:trophy-unlocked contract.
  *  A3. Closest-to-Unlock reads in PERCENT units for depth rows
- *      ("80% / 90%"), not counts.
+ *      ("80% / 95%" — R32), not counts.
  *  A4. Hint anatomy (R31): container is PLAIN (no role — it now contains
  *      two buttons), label role=button opens the ladder, × role=button
  *      with a Dismiss aria-label.
@@ -53,7 +54,7 @@ window.__qa31 = (async () => {
   const sanitize = window.Depth._internals.sanitize;
 
   ok('A0 module surfaces present',
-     !!(window.Trophies && window.Depth && window.Strip && Strip.all().length === 51),
+     !!(window.Trophies && window.Depth && window.Strip && Strip.all().length === 52  /* R32 amendment: the deck grew — Dice Pig joined (52 cartridges) */),
      'trophies=' + !!window.Trophies + ' depth=' + !!window.Depth + ' carts=' + Strip.all().length);
 
   // every depth unlock fires the public trophy contract — collect them
@@ -96,7 +97,11 @@ window.__qa31 = (async () => {
        !got, 'unlockedAfter1=' + JSON.stringify(unlockedIds));
   }
 
-  // ---------- A2: the holding ladder (60 → 80 → 90, all boundary-inclusive) ----------
+  // ---------- A2: the holding ladder (60 → 80 → 95, all boundary-inclusive) ----------
+  // R32 amendment: SUPERNOVA TOUCH now rides the CANONICAL tier table
+  // (Depth.tiers, see trophies.js depthTierDefs) — "Hold Supernova" means
+  // avg >= 95, the number every tier surface already used. The old pin at
+  // 90 was the drift the R31 judge caught (two vocabularies).
   {
     // deterministic restart: wipe in-memory depth so [60,60] are the ONLY
     // samples — avg exactly 60, the PHOSPHOR boundary, inclusive.
@@ -119,25 +124,26 @@ window.__qa31 = (async () => {
 
   // ---------- A3: closest-to-unlock reads percent units ----------
   {
-    // supernova still locked, peak 80 → 80/90 = 89% there, near top
+    // supernova still locked, peak 80 → 80/95 = 84% there, near top (R32: need is 95)
     document.getElementById('trophy-btn').click();
     await wait(700);
     const nums = [...document.querySelectorAll('.closest-num')].map(n => n.textContent.trim());
     const pctRow = nums.find(t => /^\d+% \/ \d+%$/.test(t));
     document.getElementById('trophy-close').click();
     await wait(300);
-    ok('A3 closest-to-unlock depth row reads percent units',
-       !!pctRow && pctRow.indexOf('80% / 90%') >= 0,
+    ok('A3 closest-to-unlock depth row reads percent units (R32: 80/95)',
+       !!pctRow && pctRow.indexOf('80% / 95%') >= 0,
        'rows=' + JSON.stringify(nums.slice(0, 4)));
   }
 
-  // finish the ladder: [60,60,100,100] + four more 100s = 720/8 = 90 exactly
+  // finish the ladder: [60,60,100,100] + twelve more 100s = 1520/16 = 95
+  // exactly (R32 amendment: 95 is the tier's own threshold; 8 samples avg
+  // 90 no longer touches it)
   {
-    rec('snake', 100, 100); rec('snake', 100, 100);
-    rec('snake', 100, 100); rec('snake', 100, 100);
+    for(let i = 0; i < 12; i++) rec('snake', 100, 100);
     await wait(650);
     const supernova = unlockedIds.includes('supernova-touch');
-    ok('A2c avg 90 unlocks SUPERNOVA TOUCH',
+    ok('A2c avg 95 unlocks SUPERNOVA TOUCH (R32: canonical tier threshold)',
        supernova, 'unlocked=' + JSON.stringify(unlockedIds.filter(i => i.indexOf('groove') >= 0 || i.indexOf('plasma') >= 0 || i.indexOf('supernova') >= 0)));
   }
 
@@ -237,7 +243,7 @@ window.__qa31 = (async () => {
       try{ div.innerHTML = ''; }catch(e){}
     }
     div.remove();
-    ok('B1 all cartridges mount clean with R31 live', fails === 0 && total === 51,
+    ok('B1 all cartridges mount clean with R31 live', fails === 0 && total === Strip.all().length  /* R32 amendment: registry-length self-consistent — the deck grew to 52 */,
        fails + '/' + total + ' failed');
   }
 

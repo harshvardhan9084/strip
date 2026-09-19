@@ -235,7 +235,6 @@ window.XP = (function(){
         '</div>';
       document.body.appendChild(ceremonyEl);
       ceremonyEl.addEventListener("pointerdown", dismissCeremony);
-      document.addEventListener("keydown", onCeremonyKey, true);
     }
     ceremonyEl.querySelector(".levelup-num").textContent = "LV " + level;
     ceremonyEl.querySelector(".levelup-title").textContent = titleFor(level);
@@ -253,14 +252,15 @@ window.XP = (function(){
     ceremonyEl.classList.remove("show");
     setTimeout(nextCeremony, 320);
   }
-  function onCeremonyKey(e){
-    if(ceremonyEl && ceremonyEl.classList.contains("show") &&
-       (e.key === "Escape" || e.key === "Enter" || e.key === " ")){
-      e.preventDefault();
-      e.stopPropagation();
-      dismissCeremony();
-    }
-  }
+  // Round 32 (live-caught by the r29 keyboard-parity pin): the ceremony used
+  // to swallow Escape/Enter/Space through a document-capture keydown with
+  // stopPropagation — for its whole 3-second life. The overlay is
+  // role=status (a passive announcement, not a dialog), so swallowing keys
+  // was wrong twice over: a LEVEL UP mid-run ate the player's next Space or
+  // Enter in whatever game they were IN, and a key a ladder/sheet was
+  // waiting on vanished with it. Keys now pass through untouched — the
+  // announcement dismisses itself (3s) or on a tap, exactly like it says
+  // ("keep playing"), and never lays hands on the keyboard.
 
   // ---------- award core ----------
   // Awards are idempotent per event; reason-specific caps live in the

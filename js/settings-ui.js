@@ -340,6 +340,27 @@
     if(window.StripDrawer && StripDrawer.showHint) StripDrawer.showHint();
   });
 
+  // ---------- Round 32 — replay the tiers hint (the escape hatch) ----------
+  // The R31 judge's gap: the hint's dismiss × was a permanent, silent exit —
+  // a curious player who mashed × early had no path back. This is the path.
+  // StripDrawer.replayLadderHint() re-arms the bubble on the centered card
+  // through the shell's real show path and returns whether it rendered —
+  // when it didn't (that cartridge has no DEPTH readout to point at), the
+  // toast says honestly when it will instead of pretending it worked.
+  const replayLadderBtn = document.getElementById("replay-ladder-btn");
+  if(replayLadderBtn){
+    replayLadderBtn.addEventListener("click", () => {
+      let shown = false;
+      try{ shown = StripDrawer.replayLadderHint(); }catch(e){}
+      closePanel();
+      if(!shown){
+        showToast("Hint armed — it points at DEPTH after your next run here");
+        Feedback.uiTone("select");
+      }
+      Feedback.haptic("light");
+    });
+  }
+
   let toastTimer = null;
   // One owner, one timer (Round 14 critic): the HUD toast lives in app.js —
   // delegate so lock/nudge/share messages can't cut each other off.

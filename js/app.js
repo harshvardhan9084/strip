@@ -489,15 +489,15 @@
 
   function maybeShowLadderHint(entry, d){
     try{
-      if(!entry || !entry.el || !entry.mod) return;
-      if(d.tierUp) return;                                   // a celebration owns the moment
-      if(ladderHintShows >= 3) return;                       // session cap — nudge, not nag
-      if(window.Depth && Depth.ladderOn && Depth.ladderOn(entry.el)) return;
-      if(window.StripDrawer && StripDrawer.ladderHintPending && !StripDrawer.ladderHintPending()) return;
-      if(!entry.el.querySelector(".cart-sparkline-depth")) return; // point at something real
+      if(!entry || !entry.el || !entry.mod) return false;
+      if(d.tierUp) return false;                             // a celebration owns the moment
+      if(ladderHintShows >= 3) return false;                 // session cap — nudge, not nag
+      if(window.Depth && Depth.ladderOn && Depth.ladderOn(entry.el)) return false;
+      if(window.StripDrawer && StripDrawer.ladderHintPending && !StripDrawer.ladderHintPending()) return false;
+      if(!entry.el.querySelector(".cart-sparkline-depth")) return false; // point at something real
       killLadderHint();                                      // one bubble at a time
       const inner = entry.el.querySelector(".cart-inner");
-      if(!inner) return;
+      if(!inner) return false;
       // Round 31 — the bubble is TWO real buttons now: the invitation label
       // (opens the ladder, same route as the readout) and a dismiss × for
       // players who want it gone WITHOUT opening. Nesting interactive
@@ -544,7 +544,9 @@
       timers.push(setTimeout(() => hint.classList.add("depth-hint-bye"), 8000));
       timers.push(setTimeout(killLadderHint, 11000));
       liveLadderHint = { el: hint, timers };
+      return true; // Round 32 — the replay path reports whether it rendered
     }catch(e){}
+    return false;
   }
 
   // Any fresh ladder open dismisses the hint — pointer, Enter, or the hint's
@@ -557,4 +559,23 @@
       if(window.StripDrawer && StripDrawer.dismissLadderHint) StripDrawer.dismissLadderHint();
     }catch(e){}
   }, { passive:true });
+
+  // ---------- Round 32 — the hint's escape hatch ----------
+  // Settings' "Replay the tiers hint" (the R31 judge's gap: declining was
+  // irreversible). StripDrawer.replayLadderHint() flips the persisted flag
+  // back to pending and dispatches this — the shell resets its session cap
+  // and re-arms the bubble on the CENTERED card immediately, exactly the
+  // anatomy a natural show uses (same guards: needs a DEPTH readout to
+  // point at, never while a ladder is open on the card). dispatchEvent is
+  // SYNCHRONOUS, so mutating the detail object here IS the return channel
+  // back to Settings' toast.
+  window.addEventListener("strip:ladder-hint-replay", (e) => {
+    ladderHintShows = 0;
+    const entry = cards[currentCenterIdx];
+    if(!entry || !entry.mod) return;
+    killLadderHint();
+    if(maybeShowLadderHint(entry, { tierUp: false })){
+      if(e && e.detail) e.detail.shown = true;
+    }
+  });
 })();
