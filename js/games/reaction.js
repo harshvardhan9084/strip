@@ -1,5 +1,14 @@
 Strip.register({
   id: "reaction",
+  // GAMES.md audit (R34 pre-task): reaction stores 100000 - ms (inverted
+  // encoding) but never DECLARED it — the R14 tripwire regex only matches
+  // setHighscore(CEILING - x) inline, and this game computes scoreValue
+  // first, so it slipped through. Undeclared meant: if reaction ever became
+  // the Daily Pick, twistScore would double the encoded best (200000 - 2ms
+  // decodes to a negative ms) and repairTwistDamage couldn't catch it (no
+  // declared ceiling). This declaration closes that path — zero behavior
+  // change on any normal run.
+  scoreEncoding: "inverted", scoreCeiling: 100000,
   label: "REFLEX",
   title: "Reaction Time",
   tag: "ms",

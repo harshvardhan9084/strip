@@ -1,5 +1,13 @@
 Strip.register({
   id: "colormix",
+  // GAMES.md audit (R34 pre-task): BEST here is stored inverted (9999 -
+  // tweaks, fewest-tweaks-per-match, the R19 S7 fix) but was never DECLARED
+  // — the R14 tripwire regex only matches setHighscore(CEILING - x) inline,
+  // and the Math.max(1, ...) wrapper hid the arithmetic. Undeclared meant
+  // the Daily ×2 twist would double the encoded record if colormix ever
+  // became the pick (decodes to negative tweaks). Zero behavior change on
+  // any normal run; closes the corruption path like reaction.js's fix.
+  scoreEncoding: "inverted", scoreCeiling: 9999,
   label: "TOY",
   title: "Color Lab",
   tag: "🎨",
