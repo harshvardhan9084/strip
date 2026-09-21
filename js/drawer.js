@@ -477,6 +477,15 @@
   // re-arms the one-time TIERS hint the same way (the R31 judge's escape
   // hatch) — the flag flips back, the shell re-arms the bubble, and the
   // return value says whether it could render right now.
+  // Round 37 — MY SHELF (auuudit.md §2 personalization #1): the favorites
+  // set is no longer drawer-private. app.js reads it (read-only!) to (a)
+  // lead every fresh deck pass with the pinned cartridges and (b) stamp a
+  // ★ chip on their cards. drawer.js stays the SINGLE WRITER of
+  // __deck_meta__ — this is a getter, not a second writer.
+  // No "load broadcast" event on purpose: xp.js pays +5 on count GROWTH
+  // through this same event, and a boot-time replay could fake or swallow
+  // that payment. Live chip refresh rides the real toggle event instead.
   window.StripDrawer = { showHint: () => { activeCat = null; maybeShowHint(); },
-                          dismissLadderHint, ladderHintPending, replayLadderHint };
+                          dismissLadderHint, ladderHintPending, replayLadderHint,
+                          getFavorites: () => [...favorites] };
 })();

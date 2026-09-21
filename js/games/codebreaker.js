@@ -149,11 +149,18 @@ Strip.register({
       for(let r = 0; r < S.rows; r++){
         const { slotEls, pegs } = rowEls[r];
         const active = r === row && !solved && !failed;
+        // R37 (auuudit.md §12: "pulse the active row") — the NEXT EMPTY slot
+        // carries the invitation: dashed amber border + the cbInvite pulse.
+        // One slot invites, not a whole row shouting (the row already reads
+        // amber-rimmed via borderColor below).
+        const nextSlot = active ? cur.findIndex(v => !v) : -1;
         for(let s = 0; s < S.slots; s++){
           const el = slotEls[s];
           const v = (r === row) ? cur[s] : (r < row ? history[r][s] : null);
           el.style.background = v || "transparent";
           el.style.borderColor = active ? "var(--amber)" : "var(--line)";
+          el.style.borderStyle = (active && s === nextSlot) ? "dashed" : "solid";
+          el.classList.toggle("cb-next", active && s === nextSlot);
         }
         pegs.textContent = r < row ? pegText(history[r]) : "";
       }

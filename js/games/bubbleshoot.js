@@ -114,6 +114,38 @@ Strip.register({
       ctx.textBaseline = "alphabetic"; // leave the ctx as we found it
     }
 
+    // R37 (auuudit.md §10) — the aim guide is the whole game: simulate the
+    // shot from the muzzle with the SAME rules the flying bubble obeys
+    // (side-wall bounce, ceiling y<=R, bubble hit < R*1.8) and return the
+    // path so draw() can lay dotted preview dots + an impact ring. Step
+    // size only affects dot SPACING, never the path shape (velocity is
+    // constant-direction; reflection is position-based, mirroring loop()).
+    function trajectoryPoints(){
+      const pts = [];
+      let x = cw/2, y = ch - 20;
+      const step = 5;
+      let vx = Math.cos(shooter.angle) * step, vy = Math.sin(shooter.angle) * step;
+      const HIT2 = (R * 1.8) ** 2;
+      for(let i = 0; i < 600; i++){
+        x += vx; y += vy;
+        if(x < R){ x = 2*R - x; vx = -vx; }
+        else if(x > cw - R){ x = 2*(cw - R) - x; vx = -vx; }
+        if(y <= R){ pts.push([x, Math.max(y, R)]); break; }
+        let hit = false;
+        outer:
+        for(let r = 0; r < grid.length; r++){
+          for(let c = 0; c < grid[r].length; c++){
+            if(grid[r][c] === null || grid[r][c] === undefined) continue;
+            const p = cellPos(r, c);
+            if((p.x-x)**2 + (p.y-y)**2 < HIT2){ hit = true; break outer; }
+          }
+        }
+        pts.push([x, y]);
+        if(hit) break;
+      }
+      return pts;
+    }
+
     function draw(){
       ctx.clearRect(0,0,cw,ch);
       grid.forEach((row, r) => row.forEach((colorIdx, c) => {
@@ -137,6 +169,22 @@ Strip.register({
       ctx.moveTo(sx, sy);
       ctx.lineTo(sx + Math.cos(shooter.angle)*40, sy + Math.sin(shooter.angle)*40);
       ctx.stroke();
+      // R37 — dotted trajectory + impact ring (only while aiming: a flying
+      // bubble would promise a path that's already spent, and the veil of a
+      // finished board shouldn't advertise the next shot).
+      if(!flying && !over){
+        const pts = trajectoryPoints();
+        ctx.fillStyle = `rgba(${INK_RGB},.38)`;
+        for(let i = 6; i < pts.length - 1; i += 5){
+          ctx.beginPath(); ctx.arc(pts[i][0], pts[i][1], 1.7, 0, Math.PI*2); ctx.fill();
+        }
+        const last = pts[pts.length - 1];
+        if(last){
+          ctx.strokeStyle = `rgba(${INK_RGB},.5)`;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.arc(last[0], last[1], R * 0.9, 0, Math.PI*2); ctx.stroke();
+        }
+      }
       ctx.fillStyle = COLORS[shooter.colorIdx];
       ctx.beginPath(); ctx.arc(sx, sy, R-1.5, 0, Math.PI*2); ctx.fill();
       cbGlyph(shooter.colorIdx, sx, sy, R-1.5);

@@ -45,6 +45,15 @@ Strip.register({
     grid.style.cssText = "display:grid; grid-template-columns:1fr 1fr; gap:8px; width:min(60vw,200px); height:min(60vw,200px);";
     wrap.appendChild(grid);
 
+    // R37 (auuudit.md §37 CHANGE "no WATCH / YOUR TURN state indicator") —
+    // one anchored status line that morphs: TAP START → WATCH… → REPEAT n.
+    // The player finally knows whose beat it is (the flash timing alone
+    // never said — 10 audit shots couldn't tell either).
+    const turnChip = document.createElement("div");
+    turnChip.className = "status-chip";
+    turnChip.textContent = "TAP START";
+    wrap.appendChild(turnChip);
+
     const startBtn = document.createElement("button");
     startBtn.className = "btn accent";
     startBtn.textContent = "Start";
@@ -82,12 +91,16 @@ Strip.register({
 
     async function playSequence(){
       accepting = false;
+      turnChip.textContent = "WATCH\u2026";
       await new Promise(r => setTimeout(r, 500));
       for(const i of sequence){
         await flash(i, Math.max(220, 400 - round*10));
       }
       accepting = true;
       playerPos = 0;
+      // the banner is the turn handoff: the number is the sequence LENGTH
+      // (what you must reproduce), not the round number
+      turnChip.textContent = "REPEAT " + sequence.length;
     }
 
     function nextRound(){
@@ -109,6 +122,7 @@ Strip.register({
       playerPos++;
       if(playerPos === sequence.length){
         accepting = false;
+        turnChip.textContent = "WATCH\u2026";
         Feedback.tone("success");
         setTimeout(nextRound, 500);
       }
@@ -116,6 +130,7 @@ Strip.register({
 
     function endGame(){
       accepting = false;
+      turnChip.textContent = "TAP START";
       const finalRound = round - 1;
       startBtn.textContent = "Try again";
       startBtn.disabled = false;

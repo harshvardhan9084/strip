@@ -52,7 +52,12 @@ Strip.register({
     // BEST in the slot between title and playfield.
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = `width:min(82vw,${COLS*CELL}px); height:auto; aspect-ratio:${COLS}/${ROWS}; border-radius:8px; background:var(--screen, #0d1420); touch-action:none;`;
+    // R37 (auuudit.md P1 density carry) — the court owns the playfield now:
+    // it was min(82vw,260px) floating in a 700px card (the audit's "most
+    // ambitious systems card" hiding in a matchbox). All render/click math
+    // is transform-based (fit() + setTransform), so scaling the CSS box is
+    // safe — the logical 260×260 coordinate space is untouched.
+    canvas.style.cssText = `width:min(94vw,420px); height:auto; aspect-ratio:${COLS}/${ROWS}; border-radius:8px; background:var(--screen, #0d1420); touch-action:none;`;
     const ctx = canvas.getContext("2d");
 
     // R33 - daylight screens. The board paints itself from resolved tokens
@@ -104,7 +109,7 @@ Strip.register({
     // Selecting one of YOUR towers swaps the build row's role: the panel shows
     // the tower's live stats, its next-upgrade price, and a 70%-refund sell.
     const panel = document.createElement("div");
-    panel.style.cssText = "display:none; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:6px 10px; font-size:10px; width:min(82vw,"+(COLS*CELL)+"px); box-sizing:border-box;";
+    panel.style.cssText = "display:none; align-items:center; gap:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; padding:6px 10px; font-size:10px; width:min(94vw,420px); box-sizing:border-box;";
     const panelInfo = document.createElement("div");
     panelInfo.style.cssText = "flex:1; line-height:1.5;";
     const upBtn = document.createElement("button");
@@ -449,6 +454,32 @@ Strip.register({
         ctx.setLineDash([]);
         ctx.fillStyle = legal ? type.color + "44" : "rgba(232,99,127,0.14)";
         ctx.beginPath(); ctx.arc(x, y, CELL*0.32, 0, Math.PI*2); ctx.fill();
+      }
+
+      // R37 (auuudit.md §45 ADD "show sprites") — the next wave musters at
+      // the spawn point between waves: the same ink-dot + health-bar anatomy
+      // the real enemies wear, at muster size, with an ×N when the squad
+      // overflows the cluster. "7 foes · normal" on the button says HOW
+      // MANY; this says WHAT IS COMING, in the enemies' own bodies.
+      if(!waveActive && !gameOver && path && spawnPoint){
+        const spec = waveSpec(wave + 1);
+        const shown = Math.min(spec.count, 8);
+        const s0 = cellCenter(spawnPoint.r, spawnPoint.c);
+        for(let i = 0; i < shown; i++){
+          const a = (i / shown) * Math.PI * 2;
+          const px = s0.x + Math.cos(a) * 11, py = s0.y + Math.sin(a) * 11;
+          ctx.fillStyle = TD_INK;
+          ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = "#6FCF97";
+          ctx.fillRect(px - 6.5, py - 8.5, 13, 2);
+        }
+        if(spec.count > shown){
+          ctx.fillStyle = TD_INK;
+          ctx.font = "9px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("×" + spec.count, s0.x, s0.y + 24);
+          ctx.textAlign = "start";
+        }
       }
 
       enemies.forEach(e => {

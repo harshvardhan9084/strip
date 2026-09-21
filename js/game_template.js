@@ -18,6 +18,10 @@
  *      file to sw.js precache, and bump BOTH sw cache versions.
  *   5. `node --check js/games/<yourid>.js`, then the full checklist at the
  *      bottom of GAMES.md ("Adding Cartridge #53").
+ *   6. R36 anatomy: your header is the SHELL's — declare stats through
+ *      api.setStats([{label,value,color}]) (≤4), never hand-roll a stat row.
+ *      A cartridge that hand-rolls its header breaks the ONE card anatomy
+ *      the audit demanded and will fail the r36 suite pins.
  *
  * THE CONTRACT — ten rules, zero exceptions:
  *   1.  id is FOREVER. It is the IndexedDB save key. Renaming a shipped id

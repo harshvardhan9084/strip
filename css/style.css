@@ -488,6 +488,24 @@ html.scroll-locked #strip{
   white-space:nowrap;
 }
 
+/* R37 — MY SHELF: the ★ chip on a favorited card. Quiet, but visible in
+   the deck itself (the drawer already pins them; the deck now admits it). */
+.cart-fav{
+  font-size:12px; color:var(--amber);
+  text-shadow:0 0 8px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1)));
+  flex-shrink:0;
+  align-self:center;
+}
+
+/* R37 — codebreaker's active-slot invitation (auuudit.md §12: "pulse the
+   active row"). Pulses the NEXT EMPTY slot only — one invitation, not a
+   whole row shouting. The reduce-motion kill-switch collapses the pulse. */
+@keyframes cbInvite{
+  0%,100%{ box-shadow:0 0 0 0 rgba(255,179,71,0); }
+  50%{ box-shadow:0 0 7px 1px rgba(255,179,71,.4); }
+}
+.cb-next{ animation:cbInvite 1.2s ease-in-out infinite; }
+
 .cart-body{
   flex:1; position:relative;
   display:flex; align-items:center; justify-content:center;

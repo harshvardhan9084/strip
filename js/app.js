@@ -127,14 +127,39 @@
     return a;
   }
 
+  // ---------- R37 — MY SHELF (auuudit.md §2 personalization #1) ----------
+  // "promote them into a virtual drawer filter that reorders the DECK
+  // itself (pinned cards cycle first). Zero new data." The favorites set
+  // already lives in __deck_meta__ (drawer.js, the single writer); the deck
+  // now reads it — read-only, via StripDrawer.getFavorites() — and leads
+  // EVERY fresh pass with the pinned cartridges (shuffled among themselves,
+  // then the rest). A favorited game can never be more than one pass away.
+  // No caching: nextBatch and the chip painter both ask live, so the
+  // drawer's async loadMeta can never strand a stale set in a second copy.
+  function shelfIds(){
+    try{
+      return new Set(window.StripDrawer && StripDrawer.getFavorites ? StripDrawer.getFavorites() : []);
+    }catch(e){ return new Set(); }
+  }
+  // pure + exposed (StripShell._shelfOrder) so the regression suite pins the
+  // EXACT code path nextBatch uses, not a copy of it (r20 _testMakeApi rule).
+  // Input is expected pre-shuffled; sub-order is preserved (stable partition).
+  function orderShelfFirst(mods, ids){
+    if(!ids || !ids.size) return mods;
+    const pinned = [], rest = [];
+    mods.forEach(m => (ids.has(m.id) ? pinned : rest).push(m));
+    return pinned.concat(rest);
+  }
+
   // Build the next chunk of the "infinite" deck.
   // Strategy: shuffle full module set each pass so repeats don't clump,
   // and never place the same id twice in a row across pass boundaries.
+  // R37: each fresh pass opens with the MY SHELF pins (orderShelfFirst).
   function nextBatch(n){
     const out = [];
     while(out.length < n){
       if(cursor >= baseModules.length){
-        const fresh = shuffle(allModules);
+        const fresh = orderShelfFirst(shuffle(allModules), shelfIds());
         // avoid immediate repeat of the last card already in the deck
         if(deck.length){
           const lastId = deck[deck.length - 1].id;
@@ -169,6 +194,7 @@
             <div class="cart-label">${escapeHtml(mod.label || "STRIP")}</div>
             <div class="cart-title">${escapeHtml(mod.title || mod.id)}</div>
           </div>
+          ${shelfIds().has(mod.id) ? `<div class="cart-fav" title="On your shelf" aria-label="On your shelf">★</div>` : ""}
           ${mod.tag ? `<div class="cart-tag">${escapeHtml(mod.tag)}</div>` : ""}
         </div>
         <div class="cart-stats" hidden></div>
@@ -197,6 +223,34 @@
     });
     stripEl.appendChild(frag);
   }
+
+  // R37 — MY SHELF chips stay live: the drawer toggles a favorite AFTER
+  // cards were built (and its loadMeta resolves after boot built batch 1),
+  // so the ★ chips re-sync from the live set. create/remove only — a chip
+  // that already matches is never touched (no DOM churn per pass).
+  function refreshFavChips(){
+    const ids = shelfIds();
+    cards.forEach(entry => {
+      const header = entry.el && entry.el.querySelector(".cart-header");
+      if(!header) return;
+      const chip = header.querySelector(".cart-fav");
+      const want = ids.has(entry.mod.id);
+      if(want && !chip){
+        const c = document.createElement("div");
+        c.className = "cart-fav";
+        c.title = "On your shelf";
+        c.setAttribute("aria-label", "On your shelf");
+        c.textContent = "★";
+        header.insertBefore(c, header.querySelector(".cart-tag"));
+      } else if(!want && chip){
+        chip.remove();
+      }
+    });
+  }
+  window.addEventListener("strip:fav-changed", refreshFavChips, { passive:true });
+  // batch 1 is built BEFORE the drawer's async loadMeta resolves — one
+  // delayed pass catches up the chips that toggle events can't cover.
+  setTimeout(refreshFavChips, 1500);
 
   function mountCard(entry){
     if(entry.mounted || entry.mounting) return;
@@ -238,14 +292,24 @@
 
   function unmountCard(entry){
     if(entry.mounting){ entry.unmountRequested = true; return; }
+    // R37 — the stats reap is UNCONDITIONAL of mount state. The R36 contract
+    // says "a stale SCORE never outlives its session", but the guard below
+    // meant a never-mounted card wearing stats (the QA seam, or any future
+    // shell feature) kept them forever: unmountCard early-returned and the
+    // prune pass skipped the reap. That latent hole made r36-A4 a shuffle
+    // coin-flip (it only passed when lightsout happened to have been mounted
+    // by an earlier jump). Reap FIRST, then honor the mount guard — the reap
+    // is idempotent (guarded on !hidden), so settled prune passes don't churn.
+    const statsSlot = entry.el && entry.el.querySelector(".cart-stats");
+    if(statsSlot && !statsSlot.hidden){
+      statsSlot.hidden = true; statsSlot.innerHTML = ""; delete statsSlot.dataset.sig;
+    }
     if(!entry.mounted) return;
     try{ entry.cleanup && entry.cleanup(); }catch(e){}
     const body = entry.el.querySelector(".cart-body");
     body.innerHTML = "";
     // R36 — the stat row is shell-owned, so its reaping is shell-owned too:
     // a scrolled-away card never wears a stale SCORE from the last session.
-    const statsSlot = entry.el.querySelector(".cart-stats");
-    if(statsSlot){ statsSlot.hidden = true; statsSlot.innerHTML = ""; delete statsSlot.dataset.sig; }
     entry.mounted = false;
   }
 
@@ -467,7 +531,11 @@
     // QA seam (Round 28): which cartridge is centered right now — lets the
     // live-sparkline pin WAIT for the jump to actually land instead of
     // guessing sleep durations over smooth scroll.
-    _centeredMod: () => (cards[currentCenterIdx] || {}).mod || null
+    _centeredMod: () => (cards[currentCenterIdx] || {}).mod || null,
+    // QA seam (R37 — MY SHELF): the exact pass-ordering code path nextBatch
+    // uses, so the suite pins production behavior (stable favorites-first
+    // partition), not a lookalike.
+    _shelfOrder: orderShelfFirst
   };
 
   // Round 28 (R27 handoff #1) — the sparkline goes LIVE. Its depth readout

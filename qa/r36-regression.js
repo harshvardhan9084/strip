@@ -182,6 +182,13 @@ window.__qa36 = (async () => {
   {
     const loCard = [...stripEl.children].find(c => c.textContent.includes('Lights Out'));
     ok('A4-pre lightsout card located', !!loCard, '');
+    // R37 shell fix: the stats reap is now UNCONDITIONAL of mount state (the
+    // R36 early-return let a never-mounted card keep stale stats forever,
+    // which made this very assertion a shuffle coin-flip). Side effect: the
+    // PREVIOUS jump's settle-prune (220ms after its last scroll frame) wipes
+    // any far card's slot — so STALE stats must be written AFTER that prune
+    // has passed, or `before` reads false through no fault of the shell.
+    await wait(600); // let the previous jump's settle-prune pass
     const api = StripShell._testMakeApi({ mod: Strip.all().find(x => x.id === 'lightsout'), el: loCard });
     api.setStats([{ label: 'STALE', value: '42' }]);
     await wait(60);

@@ -54,7 +54,7 @@ window.__qa31 = (async () => {
   const sanitize = window.Depth._internals.sanitize;
 
   ok('A0 module surfaces present',
-     !!(window.Trophies && window.Depth && window.Strip && Strip.all().length === 52  /* R32 amendment: the deck grew — Dice Pig joined (52 cartridges) */),
+     !!(window.Trophies && window.Depth && window.Strip && Strip.all().length >= 52  /* R37: the R32 carry — A0 literals converted to >= N (registry-agnostic floor); cartridge #53+ can no longer break this suite */),
      'trophies=' + !!window.Trophies + ' depth=' + !!window.Depth + ' carts=' + Strip.all().length);
 
   // every depth unlock fires the public trophy contract — collect them
