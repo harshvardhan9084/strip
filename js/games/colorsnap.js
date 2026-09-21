@@ -106,6 +106,7 @@ Strip.register({
     function endGame(){
       running = false;
       clearTimeout(timer);
+      const prevBest = best;
 api.gameover("over", score);
       api.setHighscore(score).then(newBest => {
         best = newBest;
@@ -114,6 +115,18 @@ api.gameover("over", score);
       wordEl.textContent = "GAME OVER";
       wordEl.style.color = "var(--danger)";
       barInner.style.width = "0%";
+      // R34: the pink wall used to sit there with no invitation back — the
+      // audit's broken exit from failure. The standard panel brings the verb.
+      RunCeremony.show(container, {
+        tone: "over",
+        label: "SNAPPED",
+        score: score,
+        unit: "streak",
+        delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+        deltaTone: score > prevBest ? "good" : "",
+        verb: "RETRY",
+        onVerb: start,
+      });
     }
 
     function start(){

@@ -200,7 +200,10 @@ Strip.register({
         }
       } else {
         card.textContent = FACTS[idx];
-        counter.textContent = `FACT #${state.seen + 1}`;
+        // R34 (auuudit P3): the counter said FACT #1 while the content
+        // changed — `seen` is session-relative, the card is not. Number the
+        // FACT ITSELF so the label can never disagree with what's on screen.
+        counter.textContent = `FACT #${idx + 1}/${FACTS.length}`;
       }
       state.bag = bag.serialize();
       paintStar();

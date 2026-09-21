@@ -9,7 +9,11 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
 
     const canvas = document.createElement("canvas");
-    canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; width:min(78vw,280px); height:min(50vh,300px);";
+    // Round 34 contrast floor: the screen sat ~4% luminance above --panel in
+    // dark mode, so the pile had no visible vessel — shapes rendered into a
+    // void and the card read as empty. A 1px frame + inner shadow anchors
+    // the screen on every chassis (the R33 daylight token still owns the fill).
+    canvas.style.cssText = "background:var(--screen, #12121a); border:1px solid var(--line); box-shadow:inset 0 0 0 1px rgba(0,0,0,.25); border-radius:12px; width:min(78vw,280px); height:min(50vh,300px);";
     wrap.appendChild(canvas);
 
     const controls = document.createElement("div");
@@ -43,7 +47,7 @@ Strip.register({
         y: -10,
         vx: (Math.random()-0.5)*2,
         vy: 0,
-        r: 10 + Math.random()*8,
+        r: 12 + Math.random()*10,
         rot: 0,
         vrot: (Math.random()-0.5)*0.1,
         color: COLORS[Math.floor(Math.random()*COLORS.length)],

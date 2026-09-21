@@ -49,7 +49,7 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;";
 
     const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:12px; font-family:var(--font-display); font-size:8px; color:var(--ink-dim);";
+    statRow.style.cssText = "display:flex; gap:12px; font-family:var(--font-display); font-size:11px; color:var(--ink-dim);"; // R34 type floor (was 8px)
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = `width:min(82vw,${COLS*CELL}px); height:auto; aspect-ratio:${COLS}/${ROWS}; border-radius:8px; background:var(--screen, #0d1420); touch-action:none;`;

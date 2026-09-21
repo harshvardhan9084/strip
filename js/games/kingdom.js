@@ -62,7 +62,7 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:300px;";
 
     const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:10px; font-family:var(--font-display); font-size:8px; color:var(--ink-dim); text-align:center; flex-wrap:wrap; justify-content:center;";
+    statRow.style.cssText = "display:flex; gap:10px; font-family:var(--font-display); font-size:11px; color:var(--ink-dim); text-align:center; flex-wrap:wrap; justify-content:center;"; // R34 type floor (was 8px)
     wrap.appendChild(statRow);
 
     const assignBox = document.createElement("div");
@@ -115,7 +115,7 @@ Strip.register({
         <div>POP<br><span style="color:var(--purple); font-size:12px;">${state.population}/${state.houses*POP_CAP_PER_HOUSE}</span></div>
         <div>BEST<br><span style="color:var(--ink-dim); font-size:12px;">${best}</span></div>
       `;
-      eraEl.textContent = `the ${era.title} of day ${state.day} · next era at pop ${ERAS[Math.min(ERAS.indexOf(era)+1, ERAS.length-1)].pop}`;
+      eraEl.textContent = `The ${era.title} — Day ${state.day} · next era at pop ${ERAS[Math.min(ERAS.indexOf(era)+1, ERAS.length-1)].pop}`;
     }
 
     function renderAssign(){

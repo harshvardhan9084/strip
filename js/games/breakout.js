@@ -183,8 +183,21 @@ Strip.register({
       Feedback.buzz("lose");
       startBtn.disabled = false;
       startBtn.textContent = "Wall won — retry";
+      const prevBest = best;
 api.gameover("over", score);
       api.setHighscore(score).then(v => { best = v; statUpdate(); });
+      // R34: the bare text swaps for the standard end-of-run panel —
+      // same ceremony as LEVEL UP, with the run's numbers and one verb.
+      RunCeremony.show(container, {
+        tone: "over",
+        label: "THE WALL WON",
+        score: score,
+        unit: "points",
+        delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+        deltaTone: score > prevBest ? "good" : "",
+        verb: "RETRY",
+        onVerb: launch,
+      });
     }
 
     function draw(){

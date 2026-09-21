@@ -112,6 +112,10 @@ Strip.register({
       if(solved){
         Feedback.buzz("win");
         api.gameover("win", moves);
+        // R34: the board-clear used to dissolve into a fresh grid with zero
+        // ceremony — the audit's loudest missing dopamine. The standard panel
+        // now owns the moment; "NEXT BOARD" hands it a verb.
+        const isNew = moves < best;
         if(moves < best){
           best = moves;
           bests[SIZES[sizeIdx].key] = moves;
@@ -122,6 +126,16 @@ Strip.register({
             api.save({ size: sizeIdx, bests }).catch(()=>{});
           }
         }
+        RunCeremony.show(container, {
+          tone: "clear",
+          label: "BOARD CLEARED",
+          score: moves,
+          unit: "moves",
+          delta: isNew ? "NEW BEST" : (best === Infinity ? "" : "BEST " + best),
+          deltaTone: isNew ? "good" : "",
+          verb: "NEXT BOARD",
+          onVerb: newGame,
+        });
         render();
       }
     }

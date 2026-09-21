@@ -46,10 +46,10 @@ Strip.register({
     }
 
     const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
+    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:11px; color:var(--ink-dim);";
 
     const board = document.createElement("div");
-    board.style.cssText = "display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:min(64vw,210px); height:min(64vw,210px);";
+    board.style.cssText = "display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:min(72vw,248px); height:min(72vw,248px);";
 
     const statusLine = document.createElement("div");
     statusLine.style.cssText = "font-size:13px; color:var(--ink-dim); min-height:18px;";
@@ -156,7 +156,11 @@ Strip.register({
         c.textContent = grid[i] || "";
         c.style.color = grid[i] === "X" ? "var(--amber)" : "var(--purple)";
         c.disabled = !!grid[i] || over;
-        c.style.background = winLine && winLine.includes(i) ? "rgba(255,179,71,0.15)" : "var(--panel-2)";
+        // R34: the winning row now wears a 2px accent stroke + glow — the
+        // old 15% tint was invisible at arm's length.
+        const isWin = winLine && winLine.includes(i);
+        c.style.background = isWin ? "rgba(255,179,71,0.15)" : "var(--panel-2)";
+        c.style.boxShadow = isWin ? "inset 0 0 0 2px var(--amber), 0 0 12px rgba(var(--glow-rgb),calc(.55*var(--glow-mul,1)))" : "none";
       });
       statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${state.wins}</span></div><div>DRAWS <span style="color:var(--ink)">${state.draws}</span></div><div>AI <span style="color:var(--purple)">${state.losses}</span></div>`;
     }
@@ -168,6 +172,17 @@ Strip.register({
       else { state.draws++; statusLine.textContent = "Draw."; Feedback.tone("toggle"); Feedback.haptic("medium"); api.gameover("over", 0); }
       api.save(state);
       render(result.line);
+      // R34: "AI wins." as a bare line was a fair duel told in a flat voice.
+      // The standard panel closes every round — the draw keeps its minimax
+      // pride, the win/loss carry the running tally.
+      const tally = `${state.wins}W · ${state.draws}D · ${state.losses}L`;
+      if(result.winner === "X"){
+        RunCeremony.show(container, { tone: "win", label: "YOU WIN", score: "X", delta: tally, verb: "NEW ROUND", onVerb: newRound });
+      } else if(result.winner === "O"){
+        RunCeremony.show(container, { tone: "over", label: "AI WINS", score: "O", delta: tally, verb: "NEW ROUND", onVerb: newRound });
+      } else {
+        RunCeremony.show(container, { tone: "draw", label: "YOU HELD THE MACHINE", score: "=", delta: tally, verb: "NEW ROUND", onVerb: newRound });
+      }
     }
 
     function onCellClick(i){

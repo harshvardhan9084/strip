@@ -139,10 +139,23 @@ Strip.register({
     function gameOver(){
       running = false;
       hint.textContent = "Tap to try again";
+      const prevBest = best;
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#st-best").textContent = best;
+      });
+      // R34: death used to reset into silence — the height you fought for
+      // just vanished. The standard panel says goodbye with the numbers.
+      RunCeremony.show(container, {
+        tone: "over",
+        label: "THE TOWER FELL",
+        score: score,
+        unit: "blocks high",
+        delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+        deltaTone: score > prevBest ? "good" : "",
+        verb: "REBUILD",
+        onVerb: () => { reset(); running = true; hint.textContent = ""; spawnBlock(); },
       });
     }
 

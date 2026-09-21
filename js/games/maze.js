@@ -27,7 +27,7 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
 
     const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
+    statRow.style.cssText = "font-family:var(--font-display); font-size:11px; color:var(--ink-dim);";
     wrap.appendChild(statRow);
 
     const sizeRow = document.createElement("div");
@@ -129,6 +129,7 @@ Strip.register({
         const isGoal = goal[0]===r && goal[1]===c;
         cell.style.cssText = `
           background:${walls[r][c] ? "var(--panel-2)" : "var(--bg)"};
+          box-shadow:${walls[r][c] ? "inset 0 0 0 1px var(--line)" : "none"};
           border-radius:2px; display:flex; align-items:center; justify-content:center;
           font-size:${SIZE === 9 ? 11 : 14}px;
         `;

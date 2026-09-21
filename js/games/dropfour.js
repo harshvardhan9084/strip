@@ -70,7 +70,7 @@ Strip.register({
     for(let r = 0; r < H; r++){
       for(let c = 0; c < W; c++){
         const d = document.createElement("div");
-        d.style.cssText = "aspect-ratio:1; border-radius:50%; background:var(--bg); cursor:pointer; transition:background .15s ease, box-shadow .15s ease;";
+        d.style.cssText = "aspect-ratio:1; border-radius:50%; background:var(--bg); cursor:pointer; box-shadow:inset 0 3px 6px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06); transition:background .15s ease, box-shadow .15s ease;";
         d.addEventListener("click", () => drop(c));
         board.appendChild(d);
         holes.push(d);
@@ -83,10 +83,16 @@ Strip.register({
       for(let r = 0; r < H; r++) for(let c = 0; c < W; c++){
         const el = holes[idx(r, c)];
         const v = grid[r][c];
+        // R34 contrast floor: empty holes are RECESSED wells (they used to be
+        // flat --bg dots on a --panel-2 board — near-invisible); discs sit
+        // raised with a top light so the column reads at a glance.
         el.style.background = v === 1 ? "var(--amber)" : v === 2 ? "var(--purple)" : "var(--bg)";
-        el.style.boxShadow = "none";
+        el.style.boxShadow = v
+          ? "inset 0 2px 3px rgba(255,255,255,.25), inset 0 -2px 4px rgba(0,0,0,.3)"
+          : "inset 0 3px 6px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.06)";
         if(winCells && winCells.some(([wr, wc]) => wr === r && wc === c)){
-          el.style.boxShadow = "0 0 12px rgba(255,255,255,.8)";
+          // the winning four: 2px ink stroke + glow — the moment exists now
+          el.style.boxShadow = "0 0 0 2px var(--ink), 0 0 14px rgba(255,255,255,.85)";
         }
       }
       statRow.innerHTML = `WIN STREAK <span style="color:var(--amber)">${streak}</span> · BEST <span style="color:var(--purple)">${best}</span>`;

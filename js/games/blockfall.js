@@ -37,7 +37,10 @@ Strip.register({
     playRow.style.cssText = "display:flex; gap:10px; align-items:flex-start;";
 
     const board = document.createElement("div");
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${COLS},14px); grid-auto-rows:14px; gap:1px; background:var(--screen-line, #101018); padding:6px; border-radius:10px;`;
+    // R34 contrast floor: the well used to float unanchored — its --screen-line
+    // bg sits ~4% under --panel in dark, so the arena was invisible. 1px frame
+    // + inner shadow anchors it on every chassis.
+    board.style.cssText = `display:grid; grid-template-columns:repeat(${COLS},14px); grid-auto-rows:14px; gap:1px; background:var(--screen-line, #101018); padding:6px; border-radius:10px; border:1px solid var(--line); box-shadow:inset 0 0 14px rgba(0,0,0,.35);`;
     playRow.appendChild(board);
 
     const sideCol = document.createElement("div");

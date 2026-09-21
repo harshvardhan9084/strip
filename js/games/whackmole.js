@@ -22,7 +22,10 @@ Strip.register({
     wrap.appendChild(statRow);
 
     const board = document.createElement("div");
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${GRID},1fr); gap:10px; width:min(70vw,240px);`;
+    // R34 contrast floor: the 3×3 lawn used to be naked holes floating on the
+    // panel — dark-brown-on-dark in DARK, pure-black punch-outs in LIGHT. The
+    // lawn gets a framed yard; the holes ride a mode-aware dirt token.
+    board.style.cssText = `display:grid; grid-template-columns:repeat(${GRID},1fr); gap:10px; width:min(76vw,272px); background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:14px;`;
     wrap.appendChild(board);
 
     const startBtn = document.createElement("button");
@@ -37,7 +40,7 @@ Strip.register({
       const hole = document.createElement("button");
       hole.style.cssText = `
         aspect-ratio:1; border-radius:50%; border:none; cursor:pointer;
-        background:#1a1510; box-shadow:inset 0 6px 12px rgba(0,0,0,.6);
+        background:var(--screen-hole, #1a1510); box-shadow:inset 0 6px 12px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.05);
         font-size:28px; display:flex; align-items:center; justify-content:center;
         overflow:hidden;
       `;

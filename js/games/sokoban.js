@@ -226,7 +226,7 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
     const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
+    statRow.style.cssText = "font-family:var(--font-display); font-size:11px; color:var(--ink-dim); text-align:center; width:100%;"; // R34 type floor
     wrap.appendChild(statRow);
 
     const boardWrap = document.createElement("div");
@@ -369,18 +369,24 @@ Strip.register({
     function render(){
       const rows = LEVELS[levelIdx].length;
       const cols = Math.max(...LEVELS[levelIdx].map(r => r.length));
+      // R34 (auuudit P0): the board was hard-locked to 18px cells — a matchbox
+      // floating in a 350px card. Cells now scale to fill the shell (40px cap)
+      // so the puzzle owns its playfield; walls wear the maze's --line stroke
+      // so the rooms read in dark mode.
+      const CS = Math.max(24, Math.min(40, Math.floor(276 / cols)));
       board.innerHTML = "";
       board.style.display = "grid";
-      board.style.gridTemplateColumns = `repeat(${cols},18px)`;
-      board.style.gridAutoRows = "18px";
+      board.style.gridTemplateColumns = `repeat(${cols},${CS}px)`;
+      board.style.gridAutoRows = `${CS}px`;
       board.style.gap = "1px";
       for(let r = 0; r < rows; r++){
         for(let c = 0; c < cols; c++){
           const d = document.createElement("div");
-          d.style.cssText = "width:18px; height:18px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:11px;";
+          d.style.cssText = `width:${CS}px; height:${CS}px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:${Math.round(CS * 0.55)}px;`;
           const k = key(r, c);
           if(walls.has(k)){
             d.style.background = "var(--panel-2)";
+            d.style.boxShadow = "inset 0 0 0 1px var(--line)";
             d.style.borderRadius = "2px";
           } else if(player && player[0] === r && player[1] === c){
             d.style.background = "var(--amber)";
@@ -388,6 +394,8 @@ Strip.register({
           } else if(crates.has(k)){
             d.style.background = goals.has(k) ? "var(--purple)" : "#C08A3E";
             d.style.borderRadius = "3px";
+            // the audit's ADD: a crate seating into its target must GLOW
+            if(goals.has(k)) d.style.boxShadow = "0 0 10px rgba(var(--accent2-rgb),calc(.75*var(--glow-mul,1)))";
           } else if(goals.has(k)){
             d.style.background = "var(--screen, #101018)";
             d.style.boxShadow = "inset 0 0 0 2px var(--purple-dim)";

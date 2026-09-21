@@ -141,9 +141,9 @@ Strip.register({
         const boxParity = (Math.floor(r/bh) + Math.floor(c/bw)) % 2;
         cell.style.cssText = `
           aspect-ratio:1; border:none; cursor:pointer;
-          background:${fixed[r][c] ? "var(--panel-2)" : (boxParity ? "#1B1B24" : "#161620")};
-          color:${fixed[r][c] ? "var(--ink-dim)" : "var(--amber)"};
-          font-size:${N === 6 ? 14 : 18}px; font-weight:700;
+          background:${fixed[r][c] ? "var(--panel-2)" : (boxParity ? "var(--screen-2, #1B1B24)" : "var(--screen, #161620)")};
+          color:${fixed[r][c] ? "var(--ink)" : "var(--amber)"};
+          font-size:${N === 6 ? 14 : 18}px; font-weight:${fixed[r][c] ? 800 : 700};
           outline:${selected && selected[0]===r && selected[1]===c ? "2px solid var(--amber)" : "none"};
           outline-offset:-2px;
         `;

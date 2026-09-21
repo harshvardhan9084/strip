@@ -98,10 +98,14 @@ Strip.register({
       const small = S.pairs > 6; // denser fields get smaller tiles & glyphs
       cards.forEach((c, i) => {
         const btn = document.createElement("button");
+        // Round 34 contrast floor + audit faces fix: face-down tiles wear a
+        // faint card rim (a flat purple slab read as a colored gap), and the
+        // emoji faces grew — 22px orbs were placeholder-grade memory bait.
         btn.style.cssText = `
           aspect-ratio:1; border-radius:8px; border:none; cursor:pointer;
           background:${c.flipped || c.matched ? "var(--panel-2)" : "var(--purple)"};
-          font-size:${small ? 17 : 22}px; display:flex; align-items:center; justify-content:center;
+          box-shadow:${c.flipped || c.matched ? "inset 0 0 0 1px var(--line)" : "inset 0 0 0 1px rgba(255,255,255,.14), inset 0 2px 6px rgba(255,255,255,.10)"};
+          font-size:${small ? 24 : 30}px; display:flex; align-items:center; justify-content:center;
           opacity:${c.matched ? 0.4 : 1};
           transition:background .15s ease;
         `;

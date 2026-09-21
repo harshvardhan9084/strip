@@ -170,6 +170,7 @@ html[data-mode="light"]{
   --screen-water-2: #BCDFE0;   /* aquarium: deeper water */
   --screen-water-edge: #B8CCC9;/* aquarium: tank trim */
   --screen-ft-shadow: 0 1px 2px rgba(42,38,32,.18); /* float-text shadow on daylight glass */
+  --screen-hole:    #B9A98C;   /* R34: whackmole holes — sunlit dirt shadow, not a black punch-out */
 }
 /* daylight phosphors — legible accents on paper, per skin */
 html[data-mode="light"][data-theme="ice"]{
@@ -283,7 +284,11 @@ html,body{
 
 /* ---------- Lock toast ---------- */
 #lock-toast{
-  position:fixed; top:70px; left:50%; transform:translateX(-50%) translateY(-8px);
+  /* R34 (auuudit): toasts landed on the card title and ate it. Both toast
+     surfaces drop below the title row (~146px on every viewport the deck
+     supports) — top-center over the playfield, where a toast informs
+     instead of masking the one thing the player is reading. */
+  position:fixed; top:158px; left:50%; transform:translateX(-50%) translateY(-8px);
   /* 350: must clear the bottom sheets (200) AND the hint overlay (300) —
      the nudge/share feedback fires while a sheet is open, and rendering it
      BEHIND the backdrop made it invisible exactly when it mattered
@@ -592,7 +597,7 @@ html.scroll-locked #strip{
 }
 .drawer-group-label{
   grid-column:1 / -1;
-  font-family:var(--font-display); font-size:9px; color:var(--ink-dim);
+  font-family:var(--font-display); font-size:10px; color:var(--ink-dim);
   letter-spacing:.14em; margin:10px 6px 2px;
 }
 .drawer-item{
@@ -616,7 +621,9 @@ html.scroll-locked #strip{
 }
 .drawer-item:has(.drawer-item-main:active){ transform:scale(.97); border-color:var(--amber); }
 .drawer-item-label{
-  font-family:var(--font-display); font-size:7px; color:var(--purple);
+  /* R34 type floor: 7px eyebrows were dust (auuudit #7) — 9px is the deck's
+     PS2P micro-label floor and still clears the 60px column. */
+  font-family:var(--font-display); font-size:9px; color:var(--purple);
   letter-spacing:.04em; flex:none; width:60px;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
@@ -796,7 +803,7 @@ html.scroll-locked #strip{
 
 /* ---------- Trophy toast (unlock announcement) ---------- */
 #trophy-toast{
-  position:fixed; top:70px; left:50%; z-index:250;
+  position:fixed; top:158px; left:50%; z-index:250;
   transform:translateX(-50%) translateY(-16px) scale(.95);
   display:flex; align-items:center; gap:10px;
   background:var(--panel-2); border:1px solid var(--amber);
@@ -1373,6 +1380,83 @@ html.reduce-motion .cart-sparkline{ animation:none !important; }
 .levelup-tap{
   position:relative;
   margin-top:18px; font-size:10px; color:var(--ink-dim); letter-spacing:.06em;
+}
+
+/* ---------- Round 34 — RUN CEREMONY (the one end-of-run panel) ----------
+   The audit's P0 dopamine finding: three end-of-run stories disagreed
+   (LEVEL UP panel / bare GAME OVER text / silent board reset). Every scored
+   cartridge now renders THIS panel at its natural run end — the LEVEL UP
+   card's visual language, scoped to the playfield instead of the viewport,
+   hue keyed to the outcome, tier-class-able for depth promotions. Hosted
+   INSIDE the game container so the shell's unmount always reaps it; the
+   game's own cleanup never has to know it existed. */
+.run-ceremony{
+  position:absolute; inset:0; z-index:8;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(5,5,8,.55); backdrop-filter:blur(2px);
+  border-radius:inherit;
+  opacity:0; transition:opacity .26s ease;
+}
+.run-ceremony.rc-show{ opacity:1; }
+.rc-card{
+  position:relative; overflow:hidden;
+  text-align:center;
+  padding:24px 34px;
+  border-radius:18px;
+  background:var(--panel);
+  border:1px solid var(--amber);
+  box-shadow:0 0 40px rgba(var(--glow-rgb),calc(.28*var(--glow-mul,1))), 0 18px 44px rgba(0,0,0,.5);
+  transform:scale(.8);
+  transition:transform .34s cubic-bezier(.34,1.56,.64,1);
+  max-width:88%;
+}
+.run-ceremony.rc-show .rc-card{ transform:scale(1); }
+/* tone hues — one vocabulary: gains green for clears, phosphor for wins,
+   danger for losses, ink for the minimax draw */
+.run-ceremony.rc-clear  .rc-card{ border-color:var(--good); }
+.run-ceremony.rc-over   .rc-card{ border-color:var(--danger); box-shadow:0 0 34px rgba(232,99,127,.24), 0 18px 44px rgba(0,0,0,.5); }
+.run-ceremony.rc-draw   .rc-card{ border-color:var(--line); }
+.run-ceremony.t-supernova .rc-card,
+.run-ceremony.t-plasma    .rc-card,
+.run-ceremony.t-phosphor  .rc-card,
+.run-ceremony.t-neon      .rc-card{ border-color:currentColor; }
+.rc-label{
+  font-family:var(--font-display); font-size:10px;
+  letter-spacing:.42em; color:var(--ink-dim);
+}
+.rc-score{
+  font-family:var(--font-display); font-size:30px;
+  color:var(--amber);
+  text-shadow:0 0 24px rgba(var(--glow-rgb),calc(.7*var(--glow-mul,1)));
+  margin:14px 0 6px;
+  animation:levelup-pop .65s cubic-bezier(.34,1.56,.64,1);
+}
+.run-ceremony.rc-over .rc-score{ color:var(--danger); text-shadow:0 0 24px rgba(232,99,127,.55); }
+.run-ceremony.rc-clear .rc-score{ color:var(--good); text-shadow:0 0 24px rgba(111,207,151,.5); }
+.rc-unit{
+  font-size:11px; font-weight:700; letter-spacing:.14em;
+  color:var(--ink-dim); text-transform:uppercase;
+}
+.rc-delta{
+  margin-top:12px; font-size:12px; font-weight:700;
+  letter-spacing:.08em; color:var(--ink-dim);
+}
+.rc-delta-good{ color:var(--good); }
+.rc-verb{
+  margin-top:16px;
+  font-family:var(--font-body); font-weight:700; font-size:13px;
+  letter-spacing:.06em;
+  background:var(--amber); color:var(--on-accent);
+  border:none; border-radius:12px;
+  padding:10px 22px; cursor:pointer;
+  box-shadow:0 0 18px rgba(var(--glow-rgb),calc(.4*var(--glow-mul,1)));
+}
+.rc-verb:active{ transform:scale(.96); }
+html.reduce-motion .rc-card{ transition:none; transform:scale(1); }
+html.reduce-motion .rc-score{ animation:none; }
+@media (prefers-reduced-motion: reduce){
+  .rc-card{ transition:none; transform:scale(1); }
+  .rc-score{ animation:none; }
 }
 
 /* ---------- Settings: section labels ---------- */
@@ -2200,17 +2284,20 @@ html[data-mode="light"] .player-league::before{ box-shadow:none; }
 /* ---- Round 33 — DAYLIGHT SCREENS: 2048 tile ramp ----
    The ramp left sandbox2048.js as .s2-t* classes so a chassis flip re-grades
    every tile instantly (inline hexes used to strand dark-navy low tiles on
-   the daylight board — the "inverted photo" the light chassis was). DARK
-   values here are EXACTLY the hexes the game used to inline (pixel-identical);
-   LIGHT re-derives the same hue families at daylight grade, dark-ink on the
-   pale low tiles and white-ink once the tile goes saturated. */
+   the daylight board — the "inverted photo" the light chassis was). LIGHT
+   re-derives the same hue families at daylight grade, dark-ink on the
+   pale low tiles and white-ink once the tile goes saturated.
+   R34 amendment (auuudit P0): the DARK low ramp was daylighted too —
+   2/4 were two steps from the board and from each other (#2A2A34/#3A3A46
+   ≈ 4% luminance apart = "identical grays"); they now read instantly while
+   staying gray-family so the amber ramp still lands at 8. */
 .s2-t{
   background:#FFB347;               /* v > 8192 fallback (was COLORS || #FFB347) */
   color:#EDEAE3;
   display:flex; align-items:center; justify-content:center;
 }
-.s2-t2  { background:#2A2A34; }
-.s2-t4  { background:#3A3A46; }
+.s2-t2  { background:#3F3F4D; }   /* R34: daylighted — 2A2A34 sat ~4% over the board */
+.s2-t4  { background:#54546A; }   /* R34: was 3A3A46 — 2-vs-4 read as one gray */
 .s2-t8  { background:#5A4A2E; color:#fff; }
 .s2-t16 { background:#7A5A22; color:#fff; }
 .s2-t32 { background:#9A6A1E; color:#fff; }

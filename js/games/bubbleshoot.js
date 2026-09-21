@@ -251,11 +251,24 @@ Strip.register({
       nextColorIdx = Math.floor(Math.random()*COLORS.length);
 
       if(settleBoard()){
+        const prevBest = best;
         saveBest();
         over = true;
         overMessage = "You cleared the board! Tap New game";
         Feedback.buzz("win");
         api.gameover("win", score);
+        // R34: the board-clear is one of the deck's rarest wins — it finally
+        // gets the panel, with the win-line idea applied to the whole board.
+        RunCeremony.show(container, {
+          tone: "clear",
+          label: "BOARD CLEARED",
+          score: score,
+          unit: "points",
+          delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+          deltaTone: score > prevBest ? "good" : "",
+          verb: "NEW GAME",
+          onVerb: newGame,
+        });
         return;
       }
       saveBest();
@@ -264,10 +277,22 @@ Strip.register({
       // the old check used grid.length, which never shrank
       const lowestOccupied = grid.reduce((max, row, ri) => row.some(v => v != null) ? ri : max, 0);
       if((lowestOccupied + 1) * R * 1.7 > ch - 60){
+        const prevBest = best;
         over = true;
         overMessage = "Game Over — tap New game";
         Feedback.buzz("lose");
         api.gameover("over", score);
+        // R34: the loss gets the standard panel too — one end-of-run story.
+        RunCeremony.show(container, {
+          tone: "over",
+          label: "THE CEILING WON",
+          score: score,
+          unit: "points",
+          delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+          deltaTone: score > prevBest ? "good" : "",
+          verb: "NEW GAME",
+          onVerb: newGame,
+        });
       }
     }
 

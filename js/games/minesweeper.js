@@ -114,7 +114,7 @@ Strip.register({
       cells = [];
       for(let i = 0; i < W * H; i++){
         const c = document.createElement("button");
-        c.style.cssText = "aspect-ratio:1; border-radius:5px; border:none; cursor:pointer; font-family:var(--font-display); font-size:9px; line-height:1; display:flex; align-items:center; justify-content:center; padding:0; background:var(--panel-2);";
+        c.style.cssText = "aspect-ratio:1; border-radius:5px; border:none; cursor:pointer; font-family:var(--font-display); font-size:11px; line-height:1; display:flex; align-items:center; justify-content:center; padding:0; background:var(--panel-2);";
         const r = Math.floor(i / W), col = i % W;
 
         c.addEventListener("pointerdown", () => {
@@ -161,17 +161,24 @@ Strip.register({
         const r = Math.floor(i / W) + 1, c = (i % W) + 1;
         if(revealed[i]){
           const n = mines[i];
+          // Round 34 contrast floor: dug vs undug differed by ~4% luminance in
+          // dark — the board ran in fog. The dig is now a RECESS (darker fill
+          // + inner shadow) while the undug cells above keep a faint raised
+          // rim, so the two states read by texture as well as luminance.
           el.style.background = "var(--screen, #101018)";
+          el.style.boxShadow = "inset 0 2px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.3)";
           el.textContent = n > 0 ? String(n) : "";
           el.style.color = NUM_COLORS[n];
           el.setAttribute("aria-label", `row ${r} col ${c}, revealed${n ? `, ${n} neighbor mine${n>1?"s":""}` : ""}`);
         } else if(flagged[i]){
           el.style.background = "var(--panel-2)";
+          el.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px rgba(255,255,255,.05)";
           el.textContent = "⚑";
           el.style.color = "var(--amber)";
           el.setAttribute("aria-label", `row ${r} col ${c}, flagged`);
         } else {
           el.style.background = "var(--panel-2)";
+          el.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px rgba(255,255,255,.05)";
           el.textContent = "";
           el.setAttribute("aria-label", `row ${r} col ${c}, hidden`);
         }

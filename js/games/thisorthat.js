@@ -88,7 +88,9 @@ Strip.register({
 
     function leanText(){
       const l = state.leftCount, r = state.rightCount, t = l + r;
-      if(!t) return "";
+      // R34 (auuudit P3): "100%" after ONE pick is statistically silly —
+      // the lean line stays silent until n>=5 can actually back it up.
+      if(t < 5) return "";
       const lp = Math.round((l / t) * 100);
       return lp >= 60 ? `you lean LEFT · ${lp}% ` : lp <= 40 ? `you lean RIGHT · ${100 - lp}% ` : `dead even · ${lp}% `;
     }

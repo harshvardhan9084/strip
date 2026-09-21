@@ -73,8 +73,14 @@ Strip.register({
       answerRow.innerHTML = "";
       for(let i=0;i<word.length;i++){
         const slot = document.createElement("div");
+        // Round 34: the TARGET state was a faint 1px outline — the slots now
+        // read as wells, and the NEXT empty slot wears the accent so the tap
+        // destination is visible before the first letter lands.
+        const isNext = i === chosen.length;
         slot.style.cssText = `
-          width:30px; height:36px; border-radius:8px; border:1px solid var(--line);
+          width:30px; height:36px; border-radius:8px;
+          border:${isNext ? "2px" : "1px"} solid ${isNext ? "var(--amber)" : "var(--ink-dim)"};
+          ${isNext ? "box-shadow:0 0 10px rgba(var(--glow-rgb),calc(.35*var(--glow-mul,1)));" : ""}
           display:flex; align-items:center; justify-content:center;
           font-weight:700; font-size:16px; background:var(--panel-2);
         `;
@@ -91,7 +97,7 @@ Strip.register({
         btn.textContent = letter;
         btn.disabled = used;
         btn.style.cssText = `
-          width:36px; height:40px; border-radius:8px; border:1px solid var(--line);
+          width:36px; height:40px; border-radius:8px; border:1px solid ${used ? "var(--line)" : "var(--ink-dim)"};
           background:${used ? "var(--bg)" : "var(--panel-2)"}; color:${used ? "var(--ink-dim)" : "var(--ink)"};
           font-weight:700; font-size:16px; cursor:${used ? "default" : "pointer"};
         `;

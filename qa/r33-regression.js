@@ -20,7 +20,8 @@
  *      falls back pixel-identically; in light they resolve to the daylight
  *      values. One engine, two chassis, dark untouched BY CONSTRUCTION.
  *  A2. The re-grades are REAL: snake's board computes #12121a in dark and
- *      #FBFAF6 in light; a .s2-t2 tile computes #2A2A34 in dark and the
+ *      #FBFAF6 in light; a .s2-t2 tile computes #3F3F4D in dark (R34
+ *      daylighted the dark low ramp; was #2A2A34 pre-R34) and the
  *      daylight beige #EAE5DA in light — dark values EXACTLY the hexes the
  *      game used to inline.
  *  A3. LIVE RETINT: the same mounted fixture re-grades on a real
@@ -123,6 +124,11 @@ window.__qa33 = (async () => {
 
     // the 2048 ramp: dark values EXACTLY the old inline hexes, light the
     // daylight re-grades — verified on a live element through the SAME flip
+    // R34 AMENDMENT (auuudit P0): the DARK low ramp was daylighted — 2/4 were
+    // ~4% luminance over the board and over each other ("identical grays").
+    // The dark s2-t2 pin moves 2A2A34 → 3F3F4D (rgb 63,63,77); the LIGHT
+    // value is untouched. The old pixel-identity guarantee was R33-scoped:
+    // the R34 audit supersedes it by design.
     const tile = document.createElement('div');
     tile.className = 's2-t s2-t2';
     document.body.appendChild(tile);
@@ -130,8 +136,8 @@ window.__qa33 = (async () => {
     Settings.set({ colorMode: 'light' });
     await wait(220);
     const tileLight = getComputedStyle(tile).backgroundColor;
-    ok('A2b 2048 tile ramp: s2-t2 = #2A2A34 dark (the old inline hex) → daylight beige in light',
-       tileDark === 'rgb(42, 42, 52)' && tileLight === 'rgb(234, 229, 218)',
+    ok('A2b 2048 tile ramp: s2-t2 = #3F3F4D dark (R34 daylighted low ramp) → daylight beige in light',
+       tileDark === 'rgb(63, 63, 77)' && tileLight === 'rgb(234, 229, 218)',
        'dark=' + tileDark + ' light=' + tileLight);
 
     // ---------- A3: LIVE retint — same mounted elements, real flip ----------
@@ -145,7 +151,8 @@ window.__qa33 = (async () => {
     await wait(220);
     const tileBack = getComputedStyle(tile).backgroundColor;
     window.removeEventListener('strip:mode-changed', onMode);
-    const liveOk = modeEvent === 'dark' && tileBack === 'rgb(42, 42, 52)' &&
+    // R34 amendment: the dark low ramp moved 2A2A34 → 3F3F4D (see A2b)
+    const liveOk = modeEvent === 'dark' && tileBack === 'rgb(63, 63, 77)' &&
                    getComputedStyle(boardEl).backgroundColor === 'rgb(18, 18, 26)';
     if(cleanupSnake) cleanupSnake();
     try{ tile.remove(); }catch(e){}

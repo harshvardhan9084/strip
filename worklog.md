@@ -2450,3 +2450,177 @@ close it.
    daylight audit — OLED deliberately keeps the dark screens (only --bg/--panel
    change), confirm that's still the wanted reading now that LIGHT went daylight,
    (d) the standing mission-pool tuning once real profiles accumulate data.
+
+---
+
+# Round 34 — The One UI, P0 wave (auuudit implementation) + The Run Ceremony
+
+## ① Current project status / assessment
+
+- **Baseline at round start**: R33 (702a97c) committed and stable. The user then
+  pushed two commits of their own — `12f953b` (GAMES.md + game_template.js: the
+  cartridge catalog, the 31-row Mechanics Index, the Adding-#53 checklist, and
+  the game_template 10-rule contract; bonus catch: reaction.js/colormix.js had
+  undeclared inverted scores, both now declared) and `708f245` — **auuudit.md**,
+  the 52-cartridge teardown: 520 screenshots, every game played blind, verdicts
+  per cartridge (ADD/REMOVE/CHANGE/KEEP/FEEL), a centralized "ONE UI" spec
+  (type scale 22/16/13/11, shell-owned STAT ROW, single-hint rule, contrast
+  floor, verb hierarchy, one end-of-run ceremony, toast layer), a settings
+  rearrangement proposal (PLAY/SCREEN/ACCESS/SESSION/DATA + 5 new settings +
+  6 personalization approaches), and a P0–P3 priority matrix. Directive from
+  the user: "Work bravely on that. Take your time but give me impressive results."
+- **This round = the audit's P0 wave, fully implemented + the cheap high-value
+  P1/P2/P3 tail**: the dark-mode contrast floor across all 10 named cartridges,
+  the ONE end-of-run ceremony (new shell component wired into 7 games),
+  win-line strokes (xox/dropfour), the toast-layer reposition, the 11px type
+  floor on the named dust offenders, and the 4 named copy bugs. Light-mode
+  residuals found by my own pre-audit sweep (minisudoku's half-inverted grid,
+  whackmole's pure-black daylight holes) fixed in the same pass.
+- All green: **qa/r34 NEW 30/30** + the full fresh-session gauntlet
+  **r23→r33 = 154 assertions, all pass** (two documented r33 pin amendments).
+  52/52 mount, fresh boot 0 console errors, SW v33.
+
+## ② Goals / completed modifications / verification results
+
+1. **THE RUN CEREMONY (`js/ceremony.js` NEW — the audit's P0 dopamine item)**
+   - One end-of-run panel for the whole deck: outcome label + hero score +
+     unit + delta-vs-best + one verb button, wearing the LEVEL UP card's exact
+     visual language (same border/glow/pop scale-in), tone-hued (win=phosphor,
+     clear=--good, over=--danger, draw=--line) and tier-class-able (`.t-*`).
+   - Design contract enforced in code: PRESENTATION ONLY (never computes XP,
+     never writes saves, never derives encodings — games pass display-ready
+     strings; inverted-encoding cartridges render "14 moves", never CEILING−x).
+     HOSTED inside the game's container so the shell's unmount always reaps
+     it; no window/document listeners (the R32 lesson: role=status, passive,
+     pointer-only); reduce-motion collapses the entrance.
+   - A live WeakMap registry + stray sweep makes rapid deaths (tap-spam into
+     repeated gameovers) and rapid show()/hide() race-free: replacement is
+     instant, the fade can never strand a panel, and `#levelup-overlay` (z400)
+     coexists above the card-scoped panel (z8) without collision.
+   - **Wired into 7 games**: lightsout (BOARD CLEARED / NEXT BOARD), stacktower
+     (THE TOWER FELL / REBUILD — the death no longer resets into silence),
+     colorsnap (SNAPPED / RETRY — the audit's broken exit-from-failure has an
+     invitation back), breakout (THE WALL WON / RETRY), xox (YOU WIN / AI WINS
+     / YOU HELD THE MACHINE + the running W·D·L tally / NEW ROUND), bubbleshoot
+     (BOARD CLEARED + THE CEILING WON / NEW GAME). Each captures prevBest
+     BEFORE setHighscore so the delta is honest ("NEW BEST" vs "BEST n").
+   - index.html + sw.js precache carry ceremony.js; sw bumped v31→v32→v33 line.
+2. **DARK-MODE CONTRAST FLOOR (the audit's #1 damage item) — 10 cartridges**
+   - maze: wall cells wear `inset 0 0 0 1px var(--line)` (the blob is a maze).
+   - physicsdrop: the screen gets a 1px --line frame + inner shadow (the pile
+     had no visible vessel — shapes rendered into a void); shapes bumped
+     r 10–18 → 12–22. Live test note: the shapes DID render in dark; the audit
+     autoplay's synthetic `click()` never fires the mousedown/touchstart
+     handlers — the real defect was the invisible canvas boundary.
+   - minesweeper: dug cells are a RECESS (darker fill + inner shadow), undug
+     cells keep a raised rim — the two states read by texture, not 4% luminance;
+     cell digits 9px → 11px (flags/digits legible).
+   - mini2048: the dark tile ramp is DAYLIGHTED (audit overrides R33's
+     pixel-identity scope): t2 #2A2A34→#3F3F4D, t4 #3A3A46→#54546A — 2-vs-4
+     finally distinct; light ramp untouched.
+   - dropfour: empty holes are recessed wells (inset shadow + rim), landed
+     discs sit raised with a top light.
+   - memorymatch: face-down tiles get a card rim + top light; emoji faces
+     grew 17/22px → 24/30px (the faces ARE the memory game).
+   - unscramble: answer slots read as wells (--ink-dim border), and the NEXT
+     empty slot wears a 2px amber outline + glow — the tap destination is
+     visible before the first letter lands.
+   - whackmole: the 3×3 gets a framed yard (--panel-2 + --line border); holes
+     ride the new LIGHT-ONLY `--screen-hole` token (#B9A98C sunlit dirt in
+     light, raw #1a1510 in dark) — no more black punch-outs on paper.
+   - blockfall: the well gets 1px --line + inner shadow (no longer floats
+     unanchored).
+   - sokoban: cells scale to fill the shell (`max(24, min(40, 276/cols))px`,
+     was hard-locked 18px) — a matchbox puzzle became console-grade; walls
+     wear the maze stroke; crate-on-target glows (accent2).
+3. **Light-mode residuals (pre-audit sweep, same bug class as R33's report)**
+   - minisudoku: free cells were hardcoded #1B1B24/#161620 — half-inverted
+     checkerboard on paper. Now `var(--screen-2, #1B1B24)` / `var(--screen,
+     #161620)`; givens = bold --ink on --panel-2 (the audit's unify rule).
+4. **Win-line strokes (P0)**: xox's winning row wears a 2px accent stroke +
+   glow (was a 15% tint nobody could see); dropfour's four carry a 2px ink
+   stroke + glow; bubbleshoot's whole-board clear gets the ceremony.
+5. **Toast layer (P2 meta)**: #lock-toast + #trophy-toast move 70px → 158px —
+   below the card title row, top-center over the playfield (toasts no longer
+   eat the title; the audit's wouldyourather collision is dead).
+6. **Type floor (audit finding #7)**: TD + kingdom stat rows 8px → 11px; maze
+   10px → 11px; sokoban 10px → 11px + centered; xox stat row 9px → 11px and
+   the board grew to min(72vw, 248px); drawer eyebrows 7px → 9px, group labels
+   9px → 10px (PS2P micro-label floor).
+7. **Copy fixes (P3 voice)**: randomfact numbers the FACT ITSELF
+   (`FACT #n/52` — the session-relative counter lied); thisorthat's lean line
+   stays silent until n≥5 ("100%" after one pick was statistically silly);
+   kingdom reads "The Hamlet — Day 1" (was "the Hamlet of day 1"); perfectring
+   was already bracket-free (verified).
+
+**Verification (all live via agent-browser on a served build, fresh sessions):**
+
+- **qa/r34 NEW 30/30**: A1 ceremony engine (anatomy/role=status, verb fires
+  exactly once then retires, replace-per-host, hide); A2 REAL colorsnap death
+  → SNAPPED/rc-over/streak/RETRY; A3 REAL xox round → tally delta + the
+  win-line stroke pinned in render(); A4 REAL stacktower death → THE TOWER
+  FELL + REBUILD restarts clean (score 0, panel gone); A5a 2048 ramp t2 =
+  rgb(63,63,77) and t2↔t4 ≥ 14 apart; A5b maze walls stroked; A5c sokoban
+  cells ≥ 24px; A5d minesweeper recess; A5e dropfour wells; A5f whackmole
+  dirt token dark #1a1510 → light #B9A98C through a real Settings flip;
+  A6 minisudoku light: 0 stranded dark cells; B1a toasts at 158px; B1b TD
+  header ≥ 11px computed; B2a FACT #n/52; B2b no lean % before n=5; C1 52/52
+  center+mount sweep; C2 zero console errors.
+- **Fresh-session gauntlet r23→r33**: r23 18/18, r24 25/25, r25 18/18,
+  r26 15/15, r27 10/10, r28 9/9, r29 11/11, r30 12/12, r31 12/12, r32 13/13,
+  r33 11/11. Total 154 assertions. Two r33 pins amended the documented way
+  (A2b + A3 tail: the dark 2048 low ramp the audit daylighted).
+- **Live screenshots**: ceremony panels (colorsnap SNAPPED with danger hue +
+  glowing RETRY verb; a real LEVEL UP coexisting on the same session), sokoban
+  console-grade board, maze stroked walls, whackmole framed yard (dark AND
+  light), minisudoku daylight grid, 2048 ramp colors, physicsdrop framed glass
+  with visible shapes on both chassis.
+- `node --check` clean on all 22 touched files + both suites; fresh boot 0
+  errors, 52/52 registered, SW v33 installs and controls (ceremony.js precache
+  verified by install success).
+- **Infrastructure lessons recorded**: (a) the stale-service-worker trap — a
+  plain reload serves the OLD SW's cached game files, which masquerades as
+  "my edit didn't work"; the gauntlet's fresh-session protocol exists for
+  exactly this, and HTTP-cache busting needed a fresh port/origin in this
+  environment. (b) `Settings.set` takes a PATCH OBJECT — `set('mode','light')`
+  silently string-spreads and does nothing. (c) agent-browser eval awaits
+  returned promises — long-running suite launches "time out" while continuing
+  in-page; poll the published promise instead.
+
+## ③ Unresolved issues / risks + priority recommendations for the next phase
+
+1. **Real-device pass (18th carry)**: haptics curves, wake lock, badge fade,
+   iOS install flow — and now the R34 ceremony on a real screen (the panel is
+   card-scoped; confirm the veil + verb thumb-reach on device). The audit's
+   synthetic-tap blind spots (plinko DROPS, whackmole Start) were reproduced
+   as test artifacts here — a real finger remains the only honest check.
+2. **P1 wave is the next big rock — THE ONE ANATOMY**: shell-owned STAT ROW
+   (`{label,value,color}[]` declared by the game, rendered by the shell at
+   the consistent 13px/tabular-nums), the single-hint rule (kill the 6
+   duplicated in-card hints: anthill, aquarium, flapdot, blobmerge,
+   bubbleshoot, dicepig), and the verb hierarchy (one accent primary per
+   card; Deal/FIRE/Advance/Start promoted; "Playing…" becomes a status chip).
+   This touches all 52 cartridges' headers — schedule it as its own round.
+3. **P1 density wave**: balloonpop spawn 3–5 concurrent, aquarium tank fill
+   (flex-1 + fish ×2), breakout paddle/bricks scale, TD court + enemy
+   preview sprites, blackjack's face-down deck graphic (the one card where
+   the game "never visually happened").
+4. **P2 access settings** (the audit ships five): text size (S/M/L scaling
+   the 11px floor), colorblind symbols (~10 games), board scale, flash
+   reduction, auto night chassis (a timer + one Settings.set — the R33/R34
+   token engines re-grade live, so this is genuinely cheap now).
+5. **P2 meta**: sparkline footer on every scored card (exists on ~3 today);
+   the toast reposition landed this round, but the XP pill still collides at
+   390px — verify on device before moving it.
+6. **Ceremony adoption is 7/52 by design** — the other 45 cartridges keep
+   their own honest end-of-run shapes (idle/tend games have no run; toys
+   like breathe/sanddrag/spinner have nothing to announce). Next round
+   should sweep the remaining SCORED games with a bare "GAME OVER" text
+   (whackmole banner, flappy-style deaths, maze REACHED, memory SOLVED,
+   slidepuzzle, simonsays, typespeed, unscramble) onto the standard panel —
+   one mechanical pass, each one line of wiring.
+7. **Suite hygiene**: r34's C1 sweep jumps all 52 cards (~3–4 min) — if the
+   gauntlet grows again, consider a headless mount-all harness that mounts
+   every cartridge into a fixture column without scrolling. The r33/r34 pin
+   amendments are documented in-suite; the A0 `>= N` conversion (R32 carry)
+   remains open.
