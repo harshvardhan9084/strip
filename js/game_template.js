@@ -150,19 +150,20 @@ Strip.register({
       "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;" +
       "font-variant-numeric:tabular-nums; user-select:none;";
 
-    // Top stat row — display font, dim ink, tabular numbers. Match the deck's
-    // visual voice; the card chrome (borders, header, hint line) is already
-    // rendered by the shell around your playfield.
-    const statRow = document.createElement("div");
-    statRow.style.cssText =
-      "display:flex; gap:18px; font-family:var(--font-display); font-size:10px;" +
-      "letter-spacing:.14em; color:var(--ink-dim);";
-    statRow.innerHTML =
-      '<div>RUN <span id="cr-score" style="color:var(--amber); font-size:13px;">0</span></div>' +
-      '<div>GOAL <span style="color:var(--ink)">8</span></div>' +
-      '<div>BEST <span id="cr-best" style="color:var(--purple)">' + best + '</span></div>' +
-      '<div>TIME <span id="cr-time" style="color:var(--ink)">15</span></div>';
-    wrap.appendChild(statRow);
+    // R36 — STATS ARE SHELL-OWNED NOW: declare the live row with
+    //   api.setStats([{ label:"SCORE", value:score, color:"var(--amber)" }])
+    // and the shell renders it in the slot between title and playfield —
+    // one type scale (13px/11px), tabular nums, ≤4 stats, idempotent. Never
+    // hand-roll a stat header inside the card again.
+    function renderStats(){
+      api.setStats([
+        { label: "RUN", value: String(0), color: "var(--amber)" },
+        { label: "GOAL", value: "8", color: "var(--ink)" },
+        { label: "BEST", value: String(best), color: "var(--purple)" },
+        { label: "TIME", value: "15", color: "var(--ink)" },
+      ]);
+    }
+    renderStats();
 
     // The playfield: position:relative, coins are absolutely positioned
     // children. min-height keeps the card from jumping while the run is idle.
@@ -209,8 +210,7 @@ Strip.register({
     function resetRun(){
       if(run){ timers.forEach(clearTimeout); timers = []; }
       run = { score: 0, over: false, endsAt: 0 };
-      q("#cr-score").textContent = "0";
-      q("#cr-time").textContent = RUN_SECONDS;
+      renderStats();
       field.innerHTML = "";              // removes any coin left over
       status.textContent = "Catch " + GOAL + " coins in " + RUN_SECONDS + " seconds.";
     }
@@ -272,7 +272,7 @@ Strip.register({
       const tickEvery = setInterval(() => {
         if(!run || run.over){ clearInterval(tickEvery); return; }
         const left = Math.max(0, Math.ceil((run.endsAt - Date.now()) / 1000));
-        q("#cr-time").textContent = left;
+        renderStats();
         if(left <= 0) clearInterval(tickEvery);
       }, 250);
       timers.push(tickEvery);
@@ -286,7 +286,7 @@ Strip.register({
       coin.remove();
       run.score++;
       state.lifetime++;                  // lifetime is a state-blob number
-      q("#cr-score").textContent = run.score;
+      renderStats();
       sfx.coin();
       // NO save() here — hot-path saves belong to meaningful transitions
       // (rule 10). This run writes once, at the end (§6).

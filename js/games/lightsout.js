@@ -29,9 +29,9 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): MOVES + BEST live in
+    // the slot between title and playfield. The old solved sentence is the
+    // run ceremony's job now (one celebration, one place).
 
     const sizeRow = document.createElement("div");
     sizeRow.style.cssText = "display:flex; gap:6px;";
@@ -76,7 +76,7 @@ Strip.register({
     function buildCells(){
       board.innerHTML = "";
       cells.length = 0;
-      board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,${SIZE * 50}px);`;
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,calc(${SIZE * 50}px * var(--board-scale,1)));`;
       for(let i=0;i<SIZE*SIZE;i++){
         const c = document.createElement("button");
         c.style.cssText = "aspect-ratio:1; border-radius:6px; border:none; cursor:pointer; transition:background .12s ease;";
@@ -92,7 +92,10 @@ Strip.register({
         el.style.background = grid[r][c] ? "var(--amber)" : "var(--panel-2)";
         el.style.boxShadow = grid[r][c] ? "0 0 14px rgba(var(--glow-rgb),calc(.5*var(--glow-mul,1)))" : "none";
       }
-      statRow.textContent = solved ? `SOLVED in ${moves} — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
+      api.setStats([
+        { label: "MOVES", value: String(moves), color: "var(--amber)" },
+        { label: "BEST", value: best === Infinity ? "—" : String(best), color: "var(--purple)" },
+      ]);
     }
 
     function toggle(r, c){

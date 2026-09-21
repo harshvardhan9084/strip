@@ -139,7 +139,7 @@ window.__qa25 = (async () => {
   host.style.cssText = 'position:fixed;left:0;top:0;width:420px;height:560px;z-index:9999;background:var(--panel);pointer-events:none;opacity:0.01';
   document.body.appendChild(host);
   const lightsout = window.Strip.all().find(m => m.id === 'lightsout');
-  lightsout.mount(host, window.StripShell._testMakeApi('lightsout'));
+  lightsout.mount(host, window.StripShell._testMakeApi({ mod: { id: "lightsout" }, el: document.querySelector(".cart") }));
   await wait(150);
   const activeTab = [...host.querySelectorAll('button')].find(b => b.style.color && b.style.background.includes('var(--amber)'));
   ok('A6b active tab live color', activeTab && getComputedStyle(activeTab).color === 'rgb(0, 0, 0)',
@@ -166,10 +166,15 @@ window.__qa25 = (async () => {
   };
   const mountAndCheck = async (id, matcher) => {
     const mod = window.Strip.all().find(m => m.id === id);
-    const r = mod.mount(host, window.StripShell._testMakeApi(id));
+    // R36 signature: the factory takes the card entry ({ mod, el })
+    const r = mod.mount(host, window.StripShell._testMakeApi({ mod: { id }, el: document.querySelector('.cart') }));
     if (typeof r === 'function') { try { r(); } catch (e) {} }
     await wait(140);
-    const el = [...host.querySelectorAll('*')].find(matcher);
+    // R36 amendment: stat values render into the SHELL slot (outside the stub
+    // host) — the search scope includes the first card's stat row
+    const shellStats = document.querySelector('.cart .cart-stats');
+    const scope = [...host.querySelectorAll('*'), ...(shellStats ? [...shellStats.querySelectorAll('.cart-stat-value')] : [])];
+    const el = scope.find(matcher);
     const out = el ? { ratio: ratio(parseC(getComputedStyle(el).color), bgOf(el)), text: (el.textContent || '').trim().slice(0, 10) } : null;
     host.innerHTML = '';
     return out;
@@ -243,7 +248,7 @@ window.__qa25 = (async () => {
   // ---------- A11 + B1: r23 ladder intact (cap-aware) + mount sweep ----------
   const capped = XP.getState().runToday >= XP._internals.RUN_DAILY_CAP;
   if (!capped) {
-    await StripShell._testMakeApi('qa-pin-game').setHighscore(200);
+    await StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).setHighscore(200);
     await wait(150);
     const before = XP.getState().xp;
     // R29 amendment (day-fresh missions fix): the raw xp delta also carries
@@ -254,7 +259,7 @@ window.__qa25 = (async () => {
     let runSum = 0;
     const onAward = (e) => { if (e.detail && e.detail.reason === 'run') runSum += (e.detail.amount || 0); };
     window.addEventListener('strip:xp-awarded', onAward, { passive: true });
-    StripShell._testMakeApi('qa-pin-game').gameover('win', 250);
+    StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).gameover('win', 250);
     await wait(250);
     window.removeEventListener('strip:xp-awarded', onAward, { passive: true });
     ok('A11 win still pays +8', runSum === XP._internals.AWARD.runWin,

@@ -40,9 +40,9 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim); flex-wrap:wrap; justify-content:center;";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): MINES · TIME · BEST ·
+    // WINS in the slot between title and playfield (the streak rides the
+    // WINS value).
 
     const diffRow = document.createElement("div");
     diffRow.style.cssText = "display:flex; gap:6px;";
@@ -110,7 +110,7 @@ Strip.register({
       // user played a shell: "the main board is missing"). Every field switch
       // re-writes the whole cssText so stale columns from a bigger grid can
       // never leak into a smaller one.
-      board.style.cssText = `display:grid; grid-template-columns:repeat(${W},1fr); gap:3px; width:min(72vw,${W * 24}px);`;
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${W},1fr); gap:3px; width:min(72vw,calc(${W * 24}px * var(--board-scale,1)));`;
       cells = [];
       for(let i = 0; i < W * H; i++){
         const c = document.createElement("button");
@@ -150,7 +150,12 @@ Strip.register({
     const NUM_COLORS = ["", "#6FA8FF", "#5AC98A", "#E8637F", "#B58CF2", "#FFB347", "#5FD4D0", "var(--screen-ink, #EDEAE3)", "var(--screen-dim, #8B8A94)"];
 
     function statUpdate(){
-      statRow.innerHTML = `<div>MINES <span style="color:var(--danger)">${MINES - flags}</span></div><div>TIME <span style="color:var(--amber)">${elapsed}s</span></div><div>BEST <span style="color:var(--purple)">${bestFor() === Infinity ? "-" : bestFor() + "s"}</span></div><div>WINS <span style="color:var(--ink)">${wins}</span>${streak > 1 ? ` · <span style="color:var(--good, #6FCF97)">×${streak} streak</span>` : ""}</div>`;
+      api.setStats([
+        { label: "MINES", value: String(MINES - flags), color: "var(--danger)" },
+        { label: "TIME", value: elapsed + "s", color: "var(--amber)" },
+        { label: "BEST", value: bestFor() === Infinity ? "—" : bestFor() + "s", color: "var(--purple)" },
+        { label: "WINS", value: String(wins) + (streak > 1 ? " ×" + streak : ""), color: "var(--ink)" },
+      ]);
     }
 
     function render(){

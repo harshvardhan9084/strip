@@ -45,11 +45,27 @@ Strip.register({
       });
     }
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:11px; color:var(--ink-dim);";
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's keys live on so update sites stay one-liners.
+    const statVals = {
+      "YOU": "",
+      "DRAWS": "",
+      "AI": "",
+    };
+    const STAT_KEYS = [
+      ["YOU", "YOU", "var(--amber)"],
+      ["DRAWS", "DRAWS", "var(--ink)"],
+      ["AI", "AI", "var(--purple)"],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color]) => ({ label, value: statVals[k], color })));
+    }
+    function syncStats36(){ statVals["YOU"] = state.wins; statVals["DRAWS"] = state.draws; statVals["AI"] = state.losses;renderStats(); }
+    renderStats();
 
     const board = document.createElement("div");
-    board.style.cssText = "display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:min(72vw,248px); height:min(72vw,248px);";
+    board.style.cssText = "display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:min(72vw,calc(248px * var(--board-scale,1))); height:min(72vw,calc(248px * var(--board-scale,1)));"; // R36 board-scale dial
 
     const statusLine = document.createElement("div");
     statusLine.style.cssText = "font-size:13px; color:var(--ink-dim); min-height:18px;";
@@ -59,7 +75,6 @@ Strip.register({
     newBtn.textContent = "New round";
 
     wrap.appendChild(diffRow);
-    wrap.appendChild(statRow);
     wrap.appendChild(board);
     wrap.appendChild(statusLine);
     wrap.appendChild(newBtn);
@@ -162,7 +177,7 @@ Strip.register({
         c.style.background = isWin ? "rgba(255,179,71,0.15)" : "var(--panel-2)";
         c.style.boxShadow = isWin ? "inset 0 0 0 2px var(--amber), 0 0 12px rgba(var(--glow-rgb),calc(.55*var(--glow-mul,1)))" : "none";
       });
-      statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${state.wins}</span></div><div>DRAWS <span style="color:var(--ink)">${state.draws}</span></div><div>AI <span style="color:var(--purple)">${state.losses}</span></div>`;
+      syncStats36();
     }
 
     function endRound(result){

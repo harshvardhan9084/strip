@@ -24,10 +24,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:280px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>MATCHED <span id="cm-score" style="color:var(--amber)">${state.matched}</span></div><div>BEST <span id="cm-best" style="color:var(--purple)">${best ? (9999 - best) + " tweaks" : "-"}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "cm-score": String(state.matched),
+      "cm-best": String(best ? (9999 - best) + " tweaks" : "-"),
+    };
+    const STAT_KEYS = [
+      ["cm-score", "MATCHED", "var(--amber)", null],
+      ["cm-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const swatches = document.createElement("div");
     swatches.style.cssText = "display:flex; gap:16px; align-items:center;";
@@ -110,7 +125,7 @@ Strip.register({
         matchNote.style.color = "var(--amber)";
         Feedback.buzz("success");
         state.matched++;
-        q("#cm-score").textContent = state.matched;
+        statVals["cm-score"] = state.matched; renderStats();
         api.gameover("win", tweakCount);
         api.save(state);
         // Round 19 (S7 fix): BEST used to be the lifetime counter mirrored
@@ -119,7 +134,7 @@ Strip.register({
         const record = Math.max(1, 9999 - tweakCount);
         api.setHighscore(record).then(v => {
           best = v;
-          q("#cm-best").textContent = (9999 - best) + " tweaks";
+          statVals["cm-best"] = (9999 - best) + " tweaks"; renderStats();
         });
         setTimeout(newTarget, 600);
       } else if(d < 60){

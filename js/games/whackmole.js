@@ -16,16 +16,33 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="wm-score" style="color:var(--amber)">0</span></div><div>TIME <span id="wm-time" style="color:var(--purple)">30</span></div><div>BEST <span id="wm-best" style="color:var(--ink)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "wm-score": "0",
+      "wm-time": "30",
+      "wm-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["wm-score", "SCORE", "var(--amber)", null],
+      ["wm-time", "TIME", "var(--purple)", null],
+      ["wm-best", "BEST", "var(--ink)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const board = document.createElement("div");
     // R34 contrast floor: the 3×3 lawn used to be naked holes floating on the
     // panel — dark-brown-on-dark in DARK, pure-black punch-outs in LIGHT. The
     // lawn gets a framed yard; the holes ride a mode-aware dirt token.
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${GRID},1fr); gap:10px; width:min(76vw,272px); background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:14px;`;
+    board.style.cssText = `display:grid; grid-template-columns:repeat(${GRID},1fr); gap:10px; width:min(76vw,calc(272px * var(--board-scale,1))); background:var(--panel-2); border:1px solid var(--line); border-radius:14px; padding:14px;`;
     wrap.appendChild(board);
 
     const startBtn = document.createElement("button");
@@ -106,7 +123,7 @@ Strip.register({
         clearTimeout(active.get(i));
         active.delete(i);
         score++;
-        q("#wm-score").textContent = score;
+        statVals["wm-score"] = score; renderStats();
         h.textContent = "💥";
         setTimeout(() => { if(h.textContent === "💥") h.textContent = ""; }, 180);
         Feedback.haptic("light");
@@ -116,7 +133,7 @@ Strip.register({
 
     function tickCountdown(){
       timeLeft--;
-      q("#wm-time").textContent = timeLeft;
+      statVals["wm-time"] = timeLeft; renderStats();
       if(timeLeft === 20 || timeLeft === 10) advanceWave();
       if(timeLeft <= 0) endGame();
     }
@@ -135,7 +152,7 @@ Strip.register({
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
-        q("#wm-best").textContent = best;
+        statVals["wm-best"] = best; renderStats();
       });
       // R35 ceremony adoption: the 30s round used to end in a stat-row
       // flicker — the standard panel carries the run out with the honest
@@ -157,8 +174,8 @@ api.gameover("over", score);
       score = 0; timeLeft = 30; wave = 1; running = true;
       active.forEach(t => clearTimeout(t));
       active.clear();
-      q("#wm-score").textContent = 0;
-      q("#wm-time").textContent = 30;
+      statVals["wm-score"] = 0; renderStats();
+      statVals["wm-time"] = 30; renderStats();
       // R35 verb hierarchy: "Playing…" was a disabled accent control —
       // mid-round the slot is a status chip, not a fake button.
       startBtn.className = "status-chip";

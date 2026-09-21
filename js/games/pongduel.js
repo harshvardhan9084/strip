@@ -22,8 +22,12 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
+    // R36 — the stat row is shell-owned (api.setStats): YOU · AI · STREAK ·
+    // BEST in the slot between title and playfield. The MATCH POINT pulse
+    // stays in-card — it's a moment, not a stat.
+    const matchPointEl = document.createElement("div");
+    matchPointEl.style.cssText = "display:none; color:var(--danger); font-family:var(--font-display); font-size:10px; letter-spacing:.2em; animation:pdPulse 1s infinite;";
+    matchPointEl.textContent = "MATCH POINT";
 
     // difficulty pills — the audit's missing escalation curve
     const diffRow = document.createElement("div");
@@ -49,8 +53,8 @@ Strip.register({
         b.style.color = active ? "var(--on-accent)" : "var(--ink-dim)";
       });
     }
-    wrap.appendChild(statRow);
     wrap.appendChild(diffRow);
+    wrap.appendChild(matchPointEl);
 
     const canvas = document.createElement("canvas");
     // R33 daylight screens: glass follows the chassis via the light-only token.
@@ -88,8 +92,13 @@ Strip.register({
 
     function statUpdate(){
       const matchPoint = (you === WIN - 1 || ai === WIN - 1) && running;
-      statRow.innerHTML = `<div>YOU <span style="color:var(--amber)">${you}</span></div><div>AI <span style="color:var(--purple)">${ai}</span></div><div>STREAK <span style="color:var(--ink-dim)">${streak}</span> · BEST <span style="color:var(--purple)">${best}</span></div>` +
-        (matchPoint ? `<div style="color:var(--danger); animation:pdPulse 1s infinite;">MATCH POINT</div>` : "");
+      api.setStats([
+        { label: "YOU", value: String(you), color: "var(--amber)" },
+        { label: "AI", value: String(ai), color: "var(--purple)" },
+        { label: "STREAK", value: String(streak), color: "var(--ink-dim)" },
+        { label: "BEST", value: String(best), color: "var(--purple)" },
+      ]);
+      matchPointEl.style.display = matchPoint ? "block" : "none";
     }
 
     function serve(dir){

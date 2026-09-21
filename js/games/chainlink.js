@@ -16,13 +16,29 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="cl-score" style="color:var(--amber)">0</span></div><div>BEST <span id="cl-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "cl-score": "0",
+      "cl-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["cl-score", "SCORE", "var(--amber)", null],
+      ["cl-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const boardWrap = document.createElement("div");
-    boardWrap.style.cssText = `position:relative; width:min(72vw,240px); height:min(72vw,240px); touch-action:none;`;
+    // R36 — the dial scales the wrap; the svg's 240×240 viewBox scales with it
+    boardWrap.style.cssText = `position:relative; width:min(72vw,calc(240px * var(--board-scale,1))); height:min(72vw,calc(240px * var(--board-scale,1))); touch-action:none;`;
     wrap.appendChild(boardWrap);
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -46,7 +62,7 @@ Strip.register({
       chain = [];
       dragging = false;
       render();
-      q("#cl-score").textContent = 0;
+      statVals["cl-score"] = 0; renderStats();
     }
 
     function cellCenter(r,c){ return [c*CELL + CELL/2, r*CELL + CELL/2]; }
@@ -144,7 +160,7 @@ Strip.register({
         chain.forEach(([r,c]) => { grid[r][c] = null; });
         Feedback.tone("success"); Feedback.haptic("medium");
         score += chain.length * (chain.length - 1);
-        q("#cl-score").textContent = score;
+        statVals["cl-score"] = score; renderStats();
         // Round 19 (S6): an 8-chain used to land exactly like a 3-chain —
         // length titles give every tier its own little flagpole
         const n = chain.length;
@@ -155,7 +171,7 @@ Strip.register({
         if(score > best){
           best = score;
           api.setHighscore(best);
-          q("#cl-best").textContent = best;
+          statVals["cl-best"] = best; renderStats();
         }
         applyGravity();
       }

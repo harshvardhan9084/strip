@@ -43,13 +43,26 @@ Strip.register({
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; font-variant-numeric:tabular-nums;";
 
     // ---- top row: banked total vs best, and the goal ----
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:18px; font-family:var(--font-display); font-size:10px; letter-spacing:.14em; color:var(--ink-dim);";
-    statRow.innerHTML =
-      '<div>BANKED <span id="dp-total" style="color:var(--amber); font-size:13px;">0</span></div>' +
-      '<div>GOAL <span style="color:var(--ink)">' + GOAL + '</span></div>' +
-      '<div>BEST <span id="dp-best" style="color:var(--purple)">' + best + '</span></div>';
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "dp-total": "0",
+      "dp-best": "' + best + '",
+    };
+    const STAT_KEYS = [
+      ["dp-total", "BANKED", "var(--amber)", null],
+      [null, "GOAL", "var(--ink)", "' + GOAL + '"],
+      ["dp-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     // ---- turn dots (5) — spent turns fill in ----
     const dots = document.createElement("div");
@@ -149,7 +162,7 @@ Strip.register({
       turn = 1; total = 0; potVal = 0; over = false;
       endBox.style.display = "none";
       btnRow.style.display = "flex";
-      q("#dp-total").textContent = "0";
+      statVals["dp-total"] = "0"; renderStats();
       log.textContent = "Turn 1 of 5 — roll.";
       drawDots();
       drawDie(6, false);
@@ -254,7 +267,7 @@ Strip.register({
       if(over || rolling || potVal <= 0) return;
       total += potVal;
       potVal = 0;
-      q("#dp-total").textContent = total;
+      statVals["dp-total"] = total; renderStats();
       try{ Feedback.tone("win"); Feedback.haptic("medium"); }catch(e){}
       if(total >= GOAL){
         setPot();

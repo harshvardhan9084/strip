@@ -17,9 +17,24 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:18px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's keys live on so update sites stay one-liners.
+    const statVals = {
+      "SCORE": "0",
+      "LIVES": "\u2665\u2665\u2665",
+      "BEST": String(best),
+    };
+    const STAT_KEYS = [
+      ["SCORE", "SCORE", "var(--amber)"],
+      ["LIVES", "LIVES", "var(--danger)"],
+      ["BEST", "BEST", "var(--purple)"],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color]) => ({ label, value: statVals[k], color })));
+    }
+    function syncStats36(){ statVals["SCORE"] = score; statVals["LIVES"] = "♥".repeat(lives) || "—"; statVals["BEST"] = best;renderStats(); }
+    renderStats();
 
     const canvas = document.createElement("canvas");
     // R33 daylight screens: glass follows the chassis (light-only token);
@@ -80,7 +95,7 @@ Strip.register({
     container.appendChild(wrap);
 
     function statUpdate(){
-      statRow.innerHTML = `<div>SCORE <span style="color:var(--amber)">${score}</span></div><div>LIVES <span style="color:var(--danger)">${"♥".repeat(lives) || "—"}</span></div><div>BEST <span style="color:var(--purple)">${best}</span></div>`;
+      syncStats36();
     }
 
     function buildWall(){

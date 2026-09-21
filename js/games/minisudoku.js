@@ -28,9 +28,10 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): SIZE · TIME · BEST in
+    // the slot between title and playfield. The in-card instruction sentence
+    // is gone — the shell hint already says it (the audit's duplicate-hint
+    // REMOVE) — and the solved sentence is the run ceremony's job now.
 
     const sizeRow = document.createElement("div");
     sizeRow.style.cssText = "display:flex; gap:6px;";
@@ -128,7 +129,7 @@ Strip.register({
       selected = null;
       solved = false;
       startTime = Date.now();
-      board.style.cssText = `display:grid; grid-template-columns:repeat(${N},1fr); gap:4px; width:min(72vw,${N * 52}px); background:var(--line); padding:4px; border-radius:10px;`;
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${N},1fr); gap:4px; width:min(72vw,calc(${N * 52}px * var(--board-scale,1))); background:var(--line); padding:4px; border-radius:10px;`;
       renderBoard();
       updateStat();
     }
@@ -190,17 +191,29 @@ Strip.register({
           api.save({ size: sizeIdx, bests }).catch(()=>{});
         }
       }
+      // R36 — the board's own words moved into the standard run ceremony
+      try{
+        RunCeremony.show(container, {
+          tone: "clear",
+          label: "SOLVED",
+          score: seconds + "s",
+          unit: "time",
+          delta: best === seconds ? "NEW BEST" : "BEST " + best + "s",
+          deltaTone: best === seconds ? "good" : "",
+          verb: "NEW PUZZLE",
+          onVerb: () => { RunCeremony.hide(container); newGame(); },
+        });
+      }catch(e){}
       updateStat();
       renderBoard();
     }
 
     function updateStat(){
-      if(solved){
-        const seconds = Math.round((Date.now() - startTime)/1000);
-        statRow.textContent = `SOLVED in ${seconds}s — best ${best === Infinity ? "-" : best+"s"}`;
-      } else {
-        statRow.textContent = `Fill the grid — ${S.label}, no repeats`;
-      }
+      api.setStats([
+        { label: "SIZE", value: S.label, color: "var(--ink)" },
+        { label: "TIME", value: solved ? String(Math.round((Date.now() - startTime)/1000)) + "s" : "0s", color: "var(--amber)" },
+        { label: "BEST", value: best === Infinity ? "—" : best + "s", color: "var(--purple)" },
+      ]);
     }
 
     function buildNumRow(){

@@ -107,7 +107,7 @@ window.__qa33 = (async () => {
       const r = snake.mount(body, {
         save(){ return Promise.resolve(); }, load(){ return Promise.resolve(null); },
         getHighscore(){ return Promise.resolve(0); }, setHighscore(){ return Promise.resolve(0); },
-        gameover(){}, tend(){}
+        gameover(){}, tend(){}, setStats(){}
       });
       const c = (r && typeof r.then === 'function') ? await r : r; // async mount resolves to its cleanup
       if(typeof c === 'function') cleanupSnake = c;
@@ -172,7 +172,7 @@ window.__qa33 = (async () => {
 
     // seed a real best THROUGH THE SHELL'S OWN API FACTORY so the depth
     // ratio has a denominator no matter how the run ends
-    const api = StripShell._testMakeApi('dicepig');
+    const api = StripShell._testMakeApi({ mod: { id: "dicepig" }, el: document.querySelector(".cart") });
     await api.setHighscore(80);
     // jump the strip to the cartridge and WAIT for the smooth scroll to land
     window.StripShell.jumpToModule(pig);
@@ -260,7 +260,7 @@ window.__qa33 = (async () => {
         const r = m.mount(body, {
           save(){ return Promise.resolve(); }, load(){ return Promise.resolve(null); },
           getHighscore(){ return Promise.resolve(0); }, setHighscore(){ return Promise.resolve(0); },
-          gameover(){}, tend(){}
+          gameover(){}, tend(){}, setStats(){}
         });
         if(r && typeof r.then === 'function') await r;
       }catch(err){ fails++; console.error('B1 mount fail', m.id, err); }

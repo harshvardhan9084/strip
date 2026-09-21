@@ -241,6 +241,15 @@ html[data-text-size="s"] .cart-hint{ font-size:10px; }
 html[data-text-size="l"] .cart-hint{ font-size:13px; }
 html[data-text-size="l"] .setting-desc{ font-size:13px; }
 
+/* R36 — BOARD SCALE: the audit's third ACCESS dial ("zoom for grid games —
+   sokoban's 150px board, minesweeper 8×8 at 320px"). One var, three values;
+   grid games multiply their cell/board math by var(--board-scale,1) —
+   inline calc() re-grades LIVE (no listeners, no remounts), canvas games
+   read the same var through getComputedStyle at board-build time. */
+:root{ --board-scale: 1; }
+html[data-board-scale="s"]{ --board-scale: .82; }
+html[data-board-scale="l"]{ --board-scale: 1.22; }
+
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body{
   margin:0; padding:0; height:100%; overflow:hidden;
@@ -486,6 +495,26 @@ html.scroll-locked #strip{
   z-index:3;
   min-height:0;
 }
+
+/* R36 — THE ONE STAT ROW (auuudit.md section 0). The shell owns the slot,
+   the type scale (13px values / 11px labels — the audit's four-step scale),
+   tabular numbers and the ≤4 cap; games only DECLARE
+   {label,value,color}[]. Replaces 52 hand-rolled 8–13px header rows.
+   Lives between header and playfield; [hidden] keeps no-stat cards
+   pixel-identical to their pre-R36 look. */
+.cart-stats{
+  display:flex; flex-wrap:wrap; justify-content:center; gap:1px 18px;
+  padding:2px 22px 2px; z-index:3;
+  font-family:var(--font-display);
+  font-variant-numeric:tabular-nums;
+}
+.cart-stats[hidden]{ display:none; }
+.cart-stat{ display:flex; align-items:baseline; gap:7px; }
+.cart-stat-label{ font-size:11px; letter-spacing:.16em; color:var(--ink-dim); }
+.cart-stat-value{ font-size:13px; letter-spacing:.04em; color:var(--ink); }
+html[data-text-size="s"] .cart-stat-value{ font-size:12px; }
+html[data-text-size="l"] .cart-stat-label{ font-size:13px; }
+html[data-text-size="l"] .cart-stat-value{ font-size:15px; }
 
 .cart-hint{
   position:absolute; bottom:14px; left:0; right:0;

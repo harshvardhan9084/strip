@@ -61,9 +61,9 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:300px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:10px; font-family:var(--font-display); font-size:11px; color:var(--ink-dim); text-align:center; flex-wrap:wrap; justify-content:center;"; // R34 type floor (was 8px)
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): DAY · GOLD · FOOD ·
+    // POP (four is the cap; BEST lives on the sparkline chip every scored
+    // card now wears).
 
     const assignBox = document.createElement("div");
     assignBox.style.cssText = "width:100%; background:var(--panel-2); border-radius:12px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;";
@@ -108,13 +108,12 @@ Strip.register({
 
     function renderStats(){
       const era = eraFor(state.population);
-      statRow.innerHTML = `
-        <div>DAY<br><span style="color:var(--ink); font-size:12px;">${state.day}</span></div>
-        <div>GOLD<br><span style="color:var(--amber); font-size:12px;">${fmt(state.gold)}</span></div>
-        <div>FOOD<br><span style="color:var(--good, #6FCF97); font-size:12px;">${fmt(state.food)}</span></div>
-        <div>POP<br><span style="color:var(--purple); font-size:12px;">${state.population}/${state.houses*POP_CAP_PER_HOUSE}</span></div>
-        <div>BEST<br><span style="color:var(--ink-dim); font-size:12px;">${best}</span></div>
-      `;
+      api.setStats([
+        { label: "DAY", value: String(state.day), color: "var(--ink)" },
+        { label: "GOLD", value: String(fmt(state.gold)), color: "var(--amber)" },
+        { label: "FOOD", value: String(fmt(state.food)), color: "var(--good, #6FCF97)" },
+        { label: "POP", value: state.population + "/" + state.houses * POP_CAP_PER_HOUSE, color: "var(--purple)" },
+      ]);
       eraEl.textContent = `The ${era.title} — Day ${state.day} · next era at pop ${ERAS[Math.min(ERAS.indexOf(era)+1, ERAS.length-1)].pop}`;
     }
 

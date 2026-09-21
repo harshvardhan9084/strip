@@ -107,9 +107,7 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:300px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:14px; font-family:var(--font-display); font-size:8px; color:var(--ink-dim); text-align:center;";
-    wrap.appendChild(statRow);
+    // R36 — the stat row moved into the shell slot (api.setStats)
 
     // event banner — the market's weather report
     const eventEl = document.createElement("div");
@@ -311,12 +309,14 @@ Strip.register({
       resolveCaravan();
       maybeEvent();
       const worth = netWorth();
-      statRow.innerHTML = `
-        <div>GOLD<br><span style="color:var(--amber); font-size:13px;">${fmt(state.gold)}</span></div>
-        <div>STORAGE<br><span style="color:var(--ink); font-size:13px;">${totalStock()}/${state.cap}</span></div>
-        <div>NET WORTH<br><span style="color:var(--purple); font-size:13px;">${fmt(worth)}</span></div>
-        <div>PEAK<br><span style="color:var(--ink-dim); font-size:13px;">${fmt(best)}</span></div>
-      `;
+      // R36 — the stat row is shell-owned (api.setStats): GOLD · STORAGE ·
+      // NET WORTH · PEAK in the slot between title and playfield.
+      api.setStats([
+        { label: "GOLD", value: String(fmt(state.gold)), color: "var(--amber)" },
+        { label: "STORAGE", value: totalStock() + "/" + state.cap, color: "var(--ink)" },
+        { label: "NET WORTH", value: String(fmt(worth)), color: "var(--purple)" },
+        { label: "PEAK", value: String(fmt(best)), color: "var(--ink-dim)" },
+      ]);
       if(state.event){
         const g = state.event.good;
         const secs = Math.max(0, Math.ceil((state.event.until - Date.now())/1000));
@@ -448,6 +448,11 @@ Strip.register({
       api.save(state);
     }
 
+    // R36 — first paint BEFORE the timers: a mount that throws mid-render
+    // must never leave an armed interval behind (the cleanup hasn't been
+    // returned yet, so the timers would outlive the card and fire uncaught).
+    render();
+
     // prices drift live, wobble random-walks, traders pay, caravans land —
     // watching the strip for a bit now has payoff every few seconds
     const driftInterval = setInterval(() => {
@@ -462,8 +467,6 @@ Strip.register({
       render();
     }, 1000);
     const autosave = setInterval(persist, 8000);
-
-    render();
 
     return () => {
       clearInterval(driftInterval);

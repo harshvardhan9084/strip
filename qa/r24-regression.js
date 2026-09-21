@@ -161,9 +161,9 @@ window.__qa24 = (async () => {
   ok('A11a missions internals live', !!MI, 'internals ' + !!MI);
   if (MI) {
     const xpBefore = XP.getState().xp;
-    StripShell._testMakeApi('garden').tend();
-    StripShell._testMakeApi('garden').tend(); // duplicate: must dedupe
-    StripShell._testMakeApi('plinko').tend();
+    StripShell._testMakeApi({ mod: { id: "garden" }, el: document.querySelector(".cart") }).tend();
+    StripShell._testMakeApi({ mod: { id: "garden" }, el: document.querySelector(".cart") }).tend(); // duplicate: must dedupe
+    StripShell._testMakeApi({ mod: { id: "plinko" }, el: document.querySelector(".cart") }).tend();
     await wait(150);
     const st = MI.getState();
     const ids = st.tendedIds || [];
@@ -209,16 +209,16 @@ window.__qa24 = (async () => {
   // ---------- A14 + B1: depth samples & r23 ladder (cap-aware) ----------
   const capped = XP.getState().runToday >= XP._internals.RUN_DAILY_CAP;
   if (!capped) {
-    await StripShell._testMakeApi('qa-pin-game').setHighscore(200); // seeds/raises a best
+    await StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).setHighscore(200); // seeds/raises a best
     await wait(150);
-    StripShell._testMakeApi('qa-pin-game').gameover('over', 100); // 100/200 = 50%
+    StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).gameover('over', 100); // 100/200 = 50%
     await wait(250);
     const st = XP.getState();
     const sampleOk = Array.isArray(st.depthRuns) && st.depthRuns[st.depthRuns.length - 1] === 50;
     ok('A14a depth sample 50%', sampleOk, 'last=' + (st.depthRuns || []).slice(-1)[0]);
     ok('A14b depthAvg rounds', st.depthAvg != null && Number.isFinite(st.depthAvg), 'avg=' + st.depthAvg);
     const before = XP.getState().xp;
-    StripShell._testMakeApi('qa-pin-game').gameover('win', 250);
+    StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).gameover('win', 250);
     await wait(200);
     ok('B1 win still pays +8', XP.getState().xp - before === XP._internals.AWARD.runWin,
        'delta ' + (XP.getState().xp - before));

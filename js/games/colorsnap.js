@@ -23,9 +23,23 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:22px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:24px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="cs-score" style="color:var(--amber)">0</span></div><div>BEST <span id="cs-best" style="color:var(--purple)">${best}</span></div>`;
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's keys live on so update sites stay one-liners.
+    const statVals = {
+      "cs-score": "0",
+      "cs-best": "",
+    };
+    const STAT_KEYS = [
+      ["cs-score", "SCORE", "var(--amber)"],
+      ["cs-best", "BEST", "var(--purple)"],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color]) => ({ label, value: statVals[k], color })));
+    }
+    function syncStats36(){ statVals["cs-best"] = best;renderStats(); }
+    renderStats();
+      syncStats36();
 
     const wordEl = document.createElement("div");
     wordEl.style.cssText = "font-size:42px; font-weight:700; height:60px; display:flex; align-items:center;";
@@ -49,7 +63,6 @@ Strip.register({
     btnRow.appendChild(matchBtn);
     btnRow.appendChild(noMatchBtn);
 
-    wrap.appendChild(statRow);
     wrap.appendChild(wordEl);
     wrap.appendChild(barOuter);
     wrap.appendChild(btnRow);
@@ -94,7 +107,7 @@ Strip.register({
       if(correct){
         Feedback.tone("success"); Feedback.haptic("light");
         score++;
-        q("#cs-score").textContent = score;
+        statVals["cs-score"] = score; renderStats();
         ROUND_MS = Math.max(ROUND_FLOOR, ROUND_MS - 40); // the ramp
         nextRound();
       } else {
@@ -110,7 +123,7 @@ Strip.register({
 api.gameover("over", score);
       api.setHighscore(score).then(newBest => {
         best = newBest;
-        q("#cs-best").textContent = best;
+        statVals["cs-best"] = best; renderStats();
       });
       wordEl.textContent = "GAME OVER";
       wordEl.style.color = "var(--danger)";
@@ -132,7 +145,7 @@ api.gameover("over", score);
     function start(){
       running = true; score = 0;
       ROUND_MS = 1600; // reset the ramp each run
-      q("#cs-score").textContent = 0;
+      statVals["cs-score"] = 0; renderStats();
       nextRound();
     }
 

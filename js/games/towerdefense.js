@@ -48,8 +48,8 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:12px; font-family:var(--font-display); font-size:11px; color:var(--ink-dim);"; // R34 type floor (was 8px)
+    // R36 — the stat row is shell-owned (api.setStats): GOLD · LIVES · WAVE ·
+    // BEST in the slot between title and playfield.
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = `width:min(82vw,${COLS*CELL}px); height:auto; aspect-ratio:${COLS}/${ROWS}; border-radius:8px; background:var(--screen, #0d1420); touch-action:none;`;
@@ -122,7 +122,6 @@ Strip.register({
     panel.appendChild(sellBtn);
     panel.appendChild(closeBtn);
 
-    wrap.appendChild(statRow);
     wrap.appendChild(canvas);
     wrap.appendChild(towerRow);
     wrap.appendChild(panel);
@@ -366,7 +365,12 @@ Strip.register({
     }
 
     function updateStat(){
-      statRow.innerHTML = `<div>GOLD<br><span style="color:var(--amber); font-size:12px;">${gold}</span></div><div>LIVES<br><span style="color:var(--danger); font-size:12px;">${lives}</span></div><div>WAVE<br><span style="color:var(--purple); font-size:12px;">${wave}</span></div><div>BEST<br><span style="color:var(--ink); font-size:12px;">${best}</span></div>`;
+      api.setStats([
+        { label: "GOLD", value: String(gold), color: "var(--amber)" },
+        { label: "LIVES", value: String(lives), color: "var(--danger)" },
+        { label: "WAVE", value: String(wave), color: "var(--purple)" },
+        { label: "BEST", value: String(best), color: "var(--ink)" },
+      ]);
       // next-wave preview on the button itself: banking gold vs building is a
       // real decision only when you can see what's coming
       if(!gameOver && !waveActive){

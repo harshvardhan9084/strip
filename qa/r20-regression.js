@@ -63,7 +63,7 @@ window.__qa20 = (async () => {
   // ---- 3. new-best hook through the REAL api factory ----
   try {
     await StripDB.clearHighscore('__qa_best_probe__');
-    const api = StripShell._testMakeApi('__qa_best_probe__');
+    const api = StripShell._testMakeApi({ mod: { id: "__qa_best_probe__" }, el: document.querySelector(".cart") });
     const before = XP.getState().xp;
     await api.setHighscore(42);
     const afterFirst = XP.getState().xp;

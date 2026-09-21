@@ -19,10 +19,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:18px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SOLVED <span id="us-score" style="color:var(--amber)">0</span></div><div>BEST <span id="us-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "us-score": "0",
+      "us-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["us-score", "SOLVED", "var(--amber)", null],
+      ["us-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const answerRow = document.createElement("div");
     answerRow.style.cssText = "display:flex; gap:6px; min-height:44px; flex-wrap:wrap; justify-content:center;";
@@ -122,11 +137,11 @@ Strip.register({
         Feedback.buzz("success");
         solvedCount++;
         runStreak++;
-        q("#us-score").textContent = solvedCount;
+        statVals["us-score"] = solvedCount; renderStats();
         api.gameover("over", runStreak);
         api.setHighscore(runStreak).then(v => {
           best = v;
-          q("#us-best").textContent = best;
+          statVals["us-best"] = best; renderStats();
         });
         setTimeout(newWord, 500);
       } else {

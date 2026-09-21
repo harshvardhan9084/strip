@@ -15,10 +15,27 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="bp-score" style="color:var(--amber)">0</span></div><div>TIME <span id="bp-time" style="color:var(--purple)">60</span></div><div>BEST <span id="bp-best" style="color:var(--ink)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "bp-score": "0",
+      "bp-time": "60",
+      "bp-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["bp-score", "SCORE", "var(--amber)", null],
+      ["bp-time", "TIME", "var(--purple)", null],
+      ["bp-best", "BEST", "var(--ink)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const field = document.createElement("div");
     field.style.cssText = "position:relative; width:min(78vw,280px); height:min(50vh,320px); background:var(--screen, #12121a); border-radius:14px; overflow:hidden;";
@@ -138,7 +155,7 @@ Strip.register({
           popBurst(el, "+1", "var(--amber)");
           bumpCombo();
         }
-        q("#bp-score").textContent = score;
+        statVals["bp-score"] = score; renderStats();
         cleanup();
       });
     }
@@ -155,7 +172,7 @@ Strip.register({
 
     function tickCountdown(){
       timeLeft--;
-      q("#bp-time").textContent = timeLeft;
+      statVals["bp-time"] = timeLeft; renderStats();
       if(timeLeft <= 0) endGame();
     }
 
@@ -173,7 +190,7 @@ Strip.register({
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
-        q("#bp-best").textContent = best;
+        statVals["bp-best"] = best; renderStats();
       });
       // R35 ceremony adoption: the 60s run ended in a stat-row flicker —
       // the standard panel carries it out with the honest delta + verb.
@@ -192,8 +209,8 @@ api.gameover("over", score);
     function start(){
       RunCeremony.hide(container); // a restart never fights the flourish
       score = 0; timeLeft = 60; running = true;
-      q("#bp-score").textContent = 0;
-      q("#bp-time").textContent = 60;
+      statVals["bp-score"] = 0; renderStats();
+      statVals["bp-time"] = 60; renderStats();
       startBtn.disabled = false;
       startBtn.textContent = "End round";
       spawnLoop();

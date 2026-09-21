@@ -14,10 +14,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="fd-score" style="color:var(--amber)">0</span></div><div>BEST <span id="fd-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "fd-score": "0",
+      "fd-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["fd-score", "SCORE", "var(--amber)", null],
+      ["fd-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; touch-action:none; width:min(70vw,240px); height:min(50vh,320px);";
@@ -57,7 +72,7 @@ Strip.register({
 
     function reset(){
       dotY = 100; vel = 0; pipes = []; score = 0; running = false;
-      q("#fd-score").textContent = 0;
+      statVals["fd-score"] = 0; renderStats();
       spawnPipe();
     }
 
@@ -91,7 +106,7 @@ Strip.register({
             p.passed = true;
             score++;
             Feedback.tone("select");
-            q("#fd-score").textContent = score;
+            statVals["fd-score"] = score; renderStats();
           }
           const dotX = 40;
           const hitX = dotX + 10 > p.x && dotX - 10 < p.x + PIPE_W;
@@ -133,7 +148,7 @@ Strip.register({
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
-        q("#fd-best").textContent = best;
+        statVals["fd-best"] = best; renderStats();
       });
       // R35 ceremony adoption: death used to be an 11px line at the field's
       // bottom edge — the standard panel carries the run out, centered.

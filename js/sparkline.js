@@ -65,7 +65,7 @@ window.Sparkline = (function(){
       '<circle cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="1.8" fill="currentColor"/>';
   }
 
-  function buildChip(mod, rec, sig){
+  function buildChip(mod, rec, sig, thin){
     const real = rec.history.slice(-MAX_POINTS).map(v => decode(mod, v));
     const bestReal = decode(mod, rec.best);
     const lowerBetter = !!(mod && mod.scoreEncoding === "inverted");
@@ -87,12 +87,17 @@ window.Sparkline = (function(){
     const tierCls = (depth != null && window.Depth && Depth.tierFor)
       ? " " + Depth.tierFor(depth).cls : "";
     const chip = document.createElement("div");
-    chip.className = "cart-sparkline";
+    chip.className = "cart-sparkline" + (thin ? " cart-sparkline-thin" : "");
     chip.dataset.sig = sig;
     chip.innerHTML =
-      '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" aria-hidden="true">' +
-        polyline(real) +
-      '</svg>' +
+      // R36 — a record with ONE play can't draw a line, but it already earned
+      // its readout: the thin chip carries BEST (+ DEPTH) without the chart
+      // so every scored card speaks after its very first run — the audit's
+      // "the footer exists on only ~3 cards" was exactly this gate.
+      (thin ? '' :
+        '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" aria-hidden="true">' +
+          polyline(real) +
+        '</svg>') +
       '<span class="cart-sparkline-best">BEST ' + fmt(bestReal) +
         (lowerBetter ? ' <span class="cart-sparkline-note">· FEWER WINS</span>' : '') +
       '</span>' +
@@ -192,6 +197,21 @@ window.Sparkline = (function(){
   function apply(cartEl, mod, rec){
     const existing = cartEl.querySelector(".cart-sparkline");
     if(!rec || !Array.isArray(rec.history) || rec.history.length < 2){
+      // R36 — ONE play still earns the readout: a real best with a too-thin
+      // history renders the chart-less chip. Zero data (never played, or the
+      // record was wiped) still removes the chip — absence stays honest.
+      if(rec && rec.best > 0){
+        const sig = "thin|" + signature(mod, rec);
+        if(existing && existing.dataset.sig === sig){ syncLadderAria(cartEl); return; }
+        const chip = buildChip(mod, rec, sig, true);
+        if(existing) existing.replaceWith(chip);
+        else{
+          const inner = cartEl.querySelector(".cart-inner");
+          if(inner) inner.appendChild(chip);
+        }
+        syncLadderAria(cartEl);
+        return;
+      }
       if(existing){
         existing.remove(); // record gone (wipe/repair) or too thin to chart
         // Round 29 — a ladder anchored to a readout that no longer exists

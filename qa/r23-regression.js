@@ -70,21 +70,21 @@ window.__qa23 = (async () => {
 
   // ---------- A1: WIN pays +8 ----------
   const before1 = xpNow();
-  StripShell._testMakeApi('qa-pin-game').gameover('win', 42);
+  StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).gameover('win', 42);
   await wait(120);
   ok('A1 win pays +8', xpNow() - before1 === XP._internals.AWARD.runWin,
      'delta ' + (xpNow() - before1));
 
   // ---------- A2/A3: DEEP band vs plain run ----------
-  await StripShell._testMakeApi('qa-pin-game').setHighscore(100); // seeds a best (also fires a real "best" award)
+  await StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).setHighscore(100); // seeds a best (also fires a real "best" award)
   await wait(150);
   const before2 = xpNow();
-  StripShell._testMakeApi('qa-pin-game').gameover('over', 80); // 80 >= 60, < 100 → DEEP
+  StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).gameover('over', 80); // 80 >= 60, < 100 → DEEP
   await wait(220);
   const deepDelta = xpNow() - before2;
   ok('A2 deep run pays +5', deepDelta === XP._internals.AWARD.runDeep, 'delta ' + deepDelta);
   const before3 = xpNow();
-  StripShell._testMakeApi('qa-pin-game').gameover('over', 10); // 10 < 60% of 100 → plain
+  StripShell._testMakeApi({ mod: { id: "qa-pin-game" }, el: document.querySelector(".cart") }).gameover('over', 10); // 10 < 60% of 100 → plain
   await wait(220);
   ok('A3 plain run pays +2', xpNow() - before3 === XP._internals.AWARD.runOver,
      'delta ' + (xpNow() - before3));
@@ -93,7 +93,7 @@ window.__qa23 = (async () => {
   let caught = null;
   const goCap = (e) => { caught = e.detail; };
   window.addEventListener('strip:gameover', goCap);
-  StripShell._testMakeApi('trivia').gameover('sideways', NaN);
+  StripShell._testMakeApi({ mod: { id: "trivia" }, el: document.querySelector(".cart") }).gameover('sideways', NaN);
   await wait(60);
   window.removeEventListener('strip:gameover', goCap);
   ok('A6 gameover sanitizes NaN/unknown', caught && caught.score === 0 && caught.outcome === 'over',
@@ -188,11 +188,14 @@ window.__qa23 = (async () => {
   await StripDB.saveState('trivia', { runBest: 14, bag: null });
   const triviaCard = await centerOn('trivia');
   await wait(700);
-  const tvBest = triviaCard && triviaCard.querySelector('#tv-best');
-  ok('B1 trivia legacy clamp 10/10*', tvBest && tvBest.textContent.trim() === '10/10*',
-     tvBest ? tvBest.textContent.trim() : 'no #tv-best');
-  ok('B1 clamp note present', tvBest && /normalized/.test(tvBest.getAttribute('title') || ''),
-     tvBest ? (tvBest.getAttribute('title') || '') : '');
+  // R36 amendment: BEST RUN lives in the shell-owned .cart-stats slot now
+  // (no span ids). The hover-only "normalized" note retired with the inline
+  // row — it was unreachable on touch (deck convention); the * marker stays.
+  const slot36 = triviaCard && triviaCard.querySelector('.cart-stats');
+  const bestStat = slot36 ? [...slot36.querySelectorAll('.cart-stat')].find(s => s.textContent.includes('BEST RUN')) : null;
+  const bestVal = bestStat ? bestStat.querySelector('.cart-stat-value').textContent.trim() : '';
+  ok('B1 trivia legacy clamp 10/10*', bestVal === '10/10*', bestVal || 'no BEST RUN stat');
+  ok('B1 clamp marker (*) present', bestVal.endsWith('*'), bestVal);
 
   // ---------- B2: blob combo chip present + hidden pre-chain ----------
   const blobCard = await centerOn('blobmerge');
@@ -206,7 +209,7 @@ window.__qa23 = (async () => {
   const runToday = XP.getState().runToday;
   const room = Math.max(0, RUN_CAP - runToday);
   const b6 = xpNow();
-  for (let i = 0; i < room + 3; i++) StripShell._testMakeApi('qa-pin-cap').gameover('over', 1);
+  for (let i = 0; i < room + 3; i++) StripShell._testMakeApi({ mod: { id: "qa-pin-cap" }, el: document.querySelector(".cart") }).gameover('over', 1);
   await wait(400);
   const capPaid = xpNow() - b6;
   ok('A4 run cap enforced', capPaid === room * XP._internals.AWARD.runOver, 'paid for ' + (capPaid / XP._internals.AWARD.runOver) + ' of ' + (room + 3));

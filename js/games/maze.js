@@ -26,9 +26,9 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:11px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): MOVES + BEST live in
+    // the slot between title and playfield. The reached sentence is the run
+    // ceremony's job now.
 
     const sizeRow = document.createElement("div");
     sizeRow.style.cssText = "display:flex; gap:6px;";
@@ -141,7 +141,10 @@ Strip.register({
     }
 
     function updateStat(){
-      statRow.textContent = won ? `REACHED in ${moves} moves — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
+      api.setStats([
+        { label: "MOVES", value: String(moves), color: "var(--amber)" },
+        { label: "BEST", value: best === Infinity ? "—" : String(best), color: "var(--purple)" },
+      ]);
     }
 
     function move(dr,dc){

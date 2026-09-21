@@ -225,9 +225,14 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:11px; color:var(--ink-dim); text-align:center; width:100%;"; // R34 type floor
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): LEVEL · MOVES · PB ·
+    // PAR (daily mode swaps PB for STREAK) in the slot between title and
+    // playfield. The daily instructions + ship sentences live on a dedicated
+    // message line — words are messages, not stats.
+    const msgEl = document.createElement("div");
+    msgEl.style.cssText = "font-family:var(--font-display); font-size:10px; letter-spacing:.08em; color:var(--ink-dim); min-height:14px; text-align:center; width:100%;";
+    msgEl.hidden = true;
+    wrap.appendChild(msgEl);
 
     const boardWrap = document.createElement("div");
     boardWrap.style.cssText = "position:relative;";
@@ -325,15 +330,14 @@ Strip.register({
     function startDaily(){
       const t = todayStr();
       const already = daily.last === t;
-      if(already){
-        statRow.innerHTML = `DAILY CRATE — done today · streak <span style="color:var(--amber)">${daily.streak}</span>`;
-      }
       dailyActive = true;
       levelIdx = dailyLevelIdx();
       loadLevel(levelIdx);
       toggleSelect(false);
-      if(already) statRow.innerHTML = `DAILY CRATE — replay · streak <span style="color:var(--amber)">${daily.streak}</span>`;
-      else statRow.innerHTML = `DAILY CRATE — level ${levelIdx+1} · beat it for the streak`;
+      msgEl.innerHTML = already
+        ? `DAILY CRATE — replay · streak <span style="color:var(--amber)">${daily.streak}</span>`
+        : `DAILY CRATE — level ${levelIdx+1} · beat it for the streak`;
+      msgEl.hidden = false;
     }
 
     container.appendChild(wrap);
@@ -360,6 +364,7 @@ Strip.register({
     }
 
     function loadLevel(i){
+      msgEl.hidden = true;
       parse(LEVELS[i]);
       moves = 0; history = []; done = false;
       overlay.style.display = "none";
@@ -373,7 +378,10 @@ Strip.register({
       // floating in a 350px card. Cells now scale to fill the shell (40px cap)
       // so the puzzle owns its playfield; walls wear the maze's --line stroke
       // so the rooms read in dark mode.
-      const CS = Math.max(24, Math.min(40, Math.floor(276 / cols)));
+      // R36 — the BOARD SCALE dial multiplies the cell math; the settings
+      // listener below re-renders so a mid-session flip lands immediately.
+      const bs = Math.max(0.5, bscale36());
+      const CS = Math.max(Math.round(24 * bs), Math.round(Math.min(40, 276 / cols) * bs));
       board.innerHTML = "";
       board.style.display = "grid";
       board.style.gridTemplateColumns = `repeat(${cols},${CS}px)`;
@@ -407,9 +415,22 @@ Strip.register({
         }
       }
       const best = bests[levelIdx];
-      const parStar = best != null && best <= PARS[levelIdx] ? "★ " : "";
-      const label = dailyActive ? `DAILY · level ${levelIdx+1}` : `LEVEL ${levelIdx + 1}/${LEVELS.length}`;
-      statRow.innerHTML = `${label} · MOVES <span style="color:var(--ink)">${moves}</span> · PB <span style="color:var(--purple)">${best ?? "-"}</span> · par ${PARS[levelIdx]}${done ? ' · <span style="color:var(--purple)">' + parStar + 'CLEAR!</span>' : ""}`;
+      const parStar = best != null && best <= PARS[levelIdx] ? " \u2605" : "";
+      if(dailyActive){
+        api.setStats([
+          { label: "DAILY", value: "level " + (levelIdx + 1), color: "var(--amber)" },
+          { label: "MOVES", value: String(moves), color: "var(--ink)" },
+          { label: "PAR", value: String(PARS[levelIdx]), color: "var(--ink)" },
+          { label: "STREAK", value: String(daily.streak), color: "var(--purple)" },
+        ]);
+      } else {
+        api.setStats([
+          { label: "LEVEL", value: (levelIdx + 1) + "/" + LEVELS.length, color: "var(--amber)" },
+          { label: "MOVES", value: String(moves), color: "var(--ink)" },
+          { label: "PB", value: (best != null ? String(best) : "\u2014") + parStar, color: "var(--purple)" },
+          { label: "PAR", value: String(PARS[levelIdx]), color: "var(--ink)" },
+        ]);
+      }
     }
 
     function move(dr, dc){
@@ -491,12 +512,14 @@ Strip.register({
       if(wasDaily){
         // daily clears celebrate and return to the shelf — the daily level is
         // often one you've already beaten, so no unlock/advance flow
-        statRow.innerHTML += ` — streak <span style="color:var(--amber)">${daily.streak}</span>!`;
+        msgEl.innerHTML = `CRATE SHIPPED — streak <span style="color:var(--amber)">${daily.streak}</span>!`;
+        msgEl.hidden = false;
         dailyActive = false;
         return;
       }
       if(levelIdx < LEVELS.length - 1){
-        statRow.innerHTML += ` — next level…`;
+        msgEl.innerHTML = `SHIPPED — next level…`;
+        msgEl.hidden = false;
         setTimeout(() => {
           if(!done) return; // card may have been reset meanwhile
           levelIdx++;
@@ -520,8 +543,21 @@ Strip.register({
     }
     window.addEventListener("keydown", onKey);
 
+    // R36 — board scale dial: the numeric cell math can't follow a CSS var
+    // through calc(), so the board re-renders when the dial moves.
+    let settingsUnsub36 = null;
+    function bscale36(){
+      const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--board-scale"));
+      return Number.isFinite(v) && v > 0 ? v : 1;
+    }
+    const onBoardScale36 = () => { try{ render(); }catch(e){} };
+    if(window.Settings && Settings.onChange) settingsUnsub36 = Settings.onChange(onBoardScale36);
+
     loadLevel(Math.min(levelIdx, LEVELS.length - 1));
 
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      if(settingsUnsub36) settingsUnsub36();
+    };
   }
 });

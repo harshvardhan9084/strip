@@ -21,10 +21,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:16px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>ROUND <span id="sm-round" style="color:var(--amber)">0</span></div><div>BEST <span id="sm-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "sm-round": "0",
+      "sm-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["sm-round", "ROUND", "var(--amber)", null],
+      ["sm-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const grid = document.createElement("div");
     grid.style.cssText = "display:grid; grid-template-columns:1fr 1fr; gap:8px; width:min(60vw,200px); height:min(60vw,200px);";
@@ -78,7 +93,7 @@ Strip.register({
     function nextRound(){
       round++;
       sequence.push(Math.floor(Math.random()*4));
-      q("#sm-round").textContent = round;
+      statVals["sm-round"] = round; renderStats();
       playSequence();
     }
 
@@ -109,7 +124,7 @@ Strip.register({
         api.gameover("over", finalRound);
         api.setHighscore(finalRound).then(v => {
           best = v;
-          q("#sm-best").textContent = best;
+          statVals["sm-best"] = best; renderStats();
         });
       }
       // R35 ceremony adoption: the fail state was a bare button relabel —
@@ -131,7 +146,7 @@ Strip.register({
     function start(){
       RunCeremony.hide(container); // a restart never fights the flourish
       sequence = []; round = 0; playerPos = 0;
-      q("#sm-round").textContent = 0;
+      statVals["sm-round"] = 0; renderStats();
       startBtn.disabled = true;
       startBtn.textContent = "Watch…";
       nextRound();

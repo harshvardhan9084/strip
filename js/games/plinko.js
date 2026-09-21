@@ -15,12 +15,27 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>DROPS <span id="pk-drops" style="color:var(--amber)">${state.drops}</span></div><div>TOTAL <span id="pk-total" style="color:var(--ink)">${state.totalScore || 0}</span></div><div>BEST SLOT <span id="pk-best" style="color:var(--purple)">${best}</span></div>`;
-    // Round 19 (ILLOGICITY-lite fix): totalScore accumulated but was never
-    // displayed — dead data. Now shown with its average per drop.
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "pk-drops": String(state.drops),
+      "pk-total": String(state.totalScore || 0),
+      "pk-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["pk-drops", "DROPS", "var(--amber)", null],
+      ["pk-total", "TOTAL", "var(--ink)", null],
+      ["pk-best", "BEST SLOT", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const canvas = document.createElement("canvas");
     // R33 daylight screens: the glass follows the chassis via the light-only
@@ -162,13 +177,13 @@ Strip.register({
           Feedback.tone(score >= 100 ? "win" : "tap"); Feedback.haptic("medium");
           state.drops++;
           state.totalScore += score;
-          q("#pk-drops").textContent = state.drops;
-          q("#pk-total").textContent = state.totalScore;
+          statVals["pk-drops"] = state.drops; renderStats();
+          statVals["pk-total"] = state.totalScore; renderStats();
           api.save(state);
           if(score > best){
             best = score;
             api.setHighscore(best);
-            q("#pk-best").textContent = best;
+            statVals["pk-best"] = best; renderStats();
           }
           setTimeout(() => { balls = balls.filter(x => x !== b); }, 600);
         }

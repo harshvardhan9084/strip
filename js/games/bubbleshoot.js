@@ -16,10 +16,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="bs-score" style="color:var(--amber)">0</span></div><div>BEST <span id="bs-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "bs-score": "0",
+      "bs-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["bs-score", "SCORE", "var(--amber)", null],
+      ["bs-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; width:min(70vw,230px); height:min(58vh,340px); touch-action:none;";
@@ -79,7 +94,7 @@ Strip.register({
       flying = null;
       shooter = { colorIdx: Math.floor(Math.random()*COLORS.length), angle: -Math.PI/2 };
       nextColorIdx = Math.floor(Math.random()*COLORS.length);
-      q("#bs-score").textContent = 0;
+      statVals["bs-score"] = 0; renderStats();
       draw();
     }
 
@@ -184,7 +199,7 @@ Strip.register({
       // the real board height — otherwise the death line eventually triggers
       // even when almost everything has been cleared
       while(grid.length && grid[grid.length-1].every(v => v == null)) grid.pop();
-      q("#bs-score").textContent = score;
+      statVals["bs-score"] = score; renderStats();
       return grid.every(row => row.every(v => v == null));
     }
 
@@ -320,7 +335,7 @@ Strip.register({
       if(score > best){
         best = score;
         api.setHighscore(best);
-        q("#bs-best").textContent = best;
+        statVals["bs-best"] = best; renderStats();
       }
     }
 

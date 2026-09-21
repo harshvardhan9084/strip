@@ -30,9 +30,9 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): MOVES · PAIRS · BEST
+    // in the slot between title and playfield. The solved sentence is the run
+    // ceremony's job now.
 
     // size pills
     const sizeRow = document.createElement("div");
@@ -89,7 +89,7 @@ Strip.register({
       const deck = shuffle(POOL.slice(0, S.pairs).flatMap(e => [e, e]));
       cards = deck.map(e => ({ emoji: e, flipped:false, matched:false }));
       flipped = []; matched = 0; moves = 0; busy = false;
-      board.style.cssText = `display:grid; grid-template-columns:repeat(${S.cols},1fr); gap:8px; width:min(78vw,${Math.min(S.pairs * 2, S.cols) * 62}px);`;
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${S.cols},1fr); gap:8px; width:min(78vw,calc(${Math.min(S.pairs * 2, S.cols) * 62}px * var(--board-scale,1)));`;
       renderBoard();
       updateStat();
     }
@@ -117,9 +117,11 @@ Strip.register({
     }
 
     function updateStat(){
-      statRow.textContent = matched === S.pairs
-        ? `SOLVED in ${moves} — best ${best === Infinity ? "-" : best}`
-        : `MOVES ${moves} · PAIRS ${matched}/${S.pairs}`;
+      api.setStats([
+        { label: "MOVES", value: String(moves), color: "var(--amber)" },
+        { label: "PAIRS", value: matched + "/" + S.pairs, color: "var(--ink)" },
+        { label: "BEST", value: best === Infinity ? "—" : String(best), color: "var(--purple)" },
+      ]);
     }
 
     function flip(i){

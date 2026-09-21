@@ -57,6 +57,10 @@ window.Settings = (function(){
     // follows the local clock (19:00–07:00 → dark chassis); a manual scheme
     // pick turns it off so the two writers never fight.
     autoNight: false,
+    // Round 36 — BOARD SCALE (the audit's third ACCESS dial): "s" | "m" | "l"
+    // → html[data-board-scale] → --board-scale (.82/1/1.22). Grid games
+    // multiply cell math by the var; canvas games read it at board-build.
+    boardScale: "m",
   };
 
   const THEME_META_COLORS = {
@@ -182,6 +186,10 @@ window.Settings = (function(){
     document.documentElement.classList.toggle("cb-symbols", !!current.colorblind);
     document.documentElement.classList.toggle("flash-safe", !!current.flashSafe);
     applyTextScale();
+    // Round 36 — board scale: one attribute, CSS var engine re-grades every
+    // wired grid live (inline calc() needs no listeners); unknown degrades to m.
+    document.documentElement.dataset.boardScale =
+      ["s", "m", "l"].includes(current.boardScale) ? current.boardScale : "m";
     applyManifestTheme(theme, mode);
     try{ localStorage.setItem(THEME_LS_KEY, theme); }catch(e){}
     try{ localStorage.setItem(MODE_LS_KEY, mode); }catch(e){}

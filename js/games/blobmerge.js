@@ -65,10 +65,21 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="bm-score" style="color:var(--amber)">0</span></div><div>BEST <span id="bm-best" style="color:var(--purple)">${best}</span></div><div id="bm-combo" style="display:none; color:#6FCF97;"></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): SCORE · BEST in the
+    // slot between title and playfield. The live COMBO chip stays in-card —
+    // it's a moment, not a stat.
+    const statVals = { "bm-score": "0", "bm-best": String(best) };
+    function renderStats(){
+      api.setStats([
+        { label: "SCORE", value: statVals["bm-score"], color: "var(--amber)" },
+        { label: "BEST", value: statVals["bm-best"], color: "var(--purple)" },
+      ]);
+    }
+    renderStats();
+    const comboChip = document.createElement("div");
+    comboChip.id = "bm-combo";
+    comboChip.style.cssText = "display:none; color:var(--good, #6FCF97); font-family:var(--font-display); font-size:10px; letter-spacing:.14em; text-align:center;";
+    wrap.appendChild(comboChip);
 
     // goal line: states the actual objective + carries the MEGA BLOB win note
     const noteEl = document.createElement("div");
@@ -127,7 +138,7 @@ Strip.register({
       score = Number.isFinite(s.score) && s.score > 0 ? Math.floor(s.score) : 0;
       maxStage = Number.isFinite(s.maxStage) ? Math.max(0, Math.floor(s.maxStage)) : 0;
       winShown = !!s.winShown;
-      q("#bm-score").textContent = score;
+      statVals["bm-score"] = score; renderStats();
       return true;
     }
 
@@ -139,7 +150,7 @@ Strip.register({
       combo = 0; lastMergeAt = 0;
       for(let i=0;i<4;i++) addBlob();
       render();
-      q("#bm-score").textContent = 0;
+      statVals["bm-score"] = 0; renderStats();
       persistState();
     }
 
@@ -308,11 +319,11 @@ Strip.register({
       const pts = (blob.stage + 1) * (blob.stage + 1); // stage² (displayed number is stage+1)
       score += pts;
       grid[r][c] = null;
-      q("#bm-score").textContent = score;
+      statVals["bm-score"] = score; renderStats();
       if(score > best){
         best = score;
         api.setHighscore(best);
-        q("#bm-best").textContent = best;
+        statVals["bm-best"] = best; renderStats();
       }
       // Round 21: spending breaks the chain — recycle OR chain-merge is a
       // real tempo decision now
@@ -346,11 +357,11 @@ Strip.register({
         const mult = combo;
         const pts = Math.pow(2, source.stage + 1) * mult;
         score += pts;
-        q("#bm-score").textContent = score;
+        statVals["bm-score"] = score; renderStats();
         if(score > best){
           best = score;
           api.setHighscore(best);
-          q("#bm-best").textContent = best;
+          statVals["bm-best"] = best; renderStats();
         }
         try{ Feedback.tone(300 + source.stage * 55 + (mult - 1) * 70, 0.07); }catch(e){}
         Feedback.haptic("light");

@@ -14,7 +14,12 @@
   let cursor = 0;
 
   // ---- persistence helper passed into each game (backed by IndexedDB) ----
-  function makeApi(id){
+  // R36 — makeApi now receives the whole card ENTRY (not just the id): the
+  // shell-owned stat row needs the card ELEMENT to render into, and the id
+  // still comes along for the persistence methods. One factory, unchanged
+  // callers (mountCard + the QA seam).
+  function makeApi(entry){
+    const id = entry.mod.id;
     return {
       save(obj){ return StripDB.saveState(id, obj); },      // returns a Promise
       load(){ return StripDB.loadState(id); },              // returns a Promise<data|null>
@@ -72,6 +77,37 @@
       // missions pool never saw them. A tend() is their natural caretaking
       // beat — watering, feeding, trading, dropping, dealing — and missions
       // (not XP) consume it: TEND goals count unique cartridges per day.
+      // R36 — THE ONE STAT ROW (auuudit.md P1, the last un-raided item).
+      // A game declares its live stats instead of hand-rolling a header:
+      //   api.setStats([{ label:"SCORE", value:score, color:"var(--amber)" }])
+      // The shell owns the slot (between header and playfield), the type
+      // scale (13px values / 11px labels, tabular nums), the ≤4 cap, and the
+      // render. Idempotent by signature — a stat tick that writes the same
+      // row never touches the DOM. Empty list hides the slot again. Games
+      // that never call this look exactly as they did before.
+      setStats(list){
+        const slot = entry.el && entry.el.querySelector(".cart-stats");
+        if(!slot) return;
+        if(!Array.isArray(list) || !list.length){
+          if(!slot.hidden || slot.innerHTML){
+            slot.hidden = true; slot.innerHTML = ""; delete slot.dataset.sig;
+          }
+          return;
+        }
+        const items = list.filter(s => s && s.label != null).slice(0, 4);
+        const sig = JSON.stringify(items.map(s => [String(s.label), String(s.value), s.color || ""]));
+        if(slot.dataset.sig === sig && !slot.hidden) return; // already rendered
+        slot.dataset.sig = sig;
+        slot.hidden = false;
+        slot.innerHTML = items.map(s => {
+          // first-party colors only; the guard keeps a stray value from
+          // becoming a style-injection vector even so
+          const c = (typeof s.color === "string" && /^[#(),.%\w\s-]+$/.test(s.color)) ? s.color : "";
+          return '<div class="cart-stat"><span class="cart-stat-label">' + escapeHtml(s.label) +
+            '</span><span class="cart-stat-value"' + (c ? ' style="color:' + escapeHtml(c) + '"' : '') + '>' +
+            escapeHtml(s.value) + '</span></div>';
+        }).join("");
+      },
       tend(){
         window.dispatchEvent(new CustomEvent("strip:tend", {
           detail: { id, ts: Date.now() }
@@ -121,6 +157,11 @@
     cart.className = "cart";
     cart.dataset.idx = idx;
 
+    // R36 — the audit's ONE card anatomy, now literal:
+    //   [shell] eyebrow · title · tag
+    //   [shell] STAT ROW slot   ← games declare {label,value,color}[]
+    //   [game]  playfield (.cart-body)
+    //   [shell] hint line
     cart.innerHTML = `
       <div class="cart-inner">
         <div class="cart-header">
@@ -130,6 +171,7 @@
           </div>
           ${mod.tag ? `<div class="cart-tag">${escapeHtml(mod.tag)}</div>` : ""}
         </div>
+        <div class="cart-stats" hidden></div>
         <div class="cart-body"></div>
         ${mod.hint ? `<div class="cart-hint">${escapeHtml(mod.hint)}</div>` : ""}
       </div>
@@ -159,10 +201,14 @@
   function mountCard(entry){
     if(entry.mounted || entry.mounting) return;
     const body = entry.el.querySelector(".cart-body");
+    // R36 — a fresh mount never inherits the previous session's stat row
+    // (unmount clears it too, but the error path below skips that cleanup).
+    const statsSlot = entry.el.querySelector(".cart-stats");
+    if(statsSlot){ statsSlot.hidden = true; statsSlot.innerHTML = ""; delete statsSlot.dataset.sig; }
     entry.mounting = true;
     let result;
     try{
-      result = entry.mod.mount(body, makeApi(entry.mod.id));
+      result = entry.mod.mount(body, makeApi(entry));
     }catch(err){
       entry.mounting = false;
       console.error("Failed to mount", entry.mod.id, err);
@@ -196,6 +242,10 @@
     try{ entry.cleanup && entry.cleanup(); }catch(e){}
     const body = entry.el.querySelector(".cart-body");
     body.innerHTML = "";
+    // R36 — the stat row is shell-owned, so its reaping is shell-owned too:
+    // a scrolled-away card never wears a stale SCORE from the last session.
+    const statsSlot = entry.el.querySelector(".cart-stats");
+    if(statsSlot){ statsSlot.hidden = true; statsSlot.innerHTML = ""; delete statsSlot.dataset.sig; }
     entry.mounted = false;
   }
 
@@ -477,6 +527,20 @@
       }
     }
     maybeShowLadderHint(entry, d);
+  }, { passive:true });
+
+  // R36 — the first play earns its readout NOW. A card whose record is thin
+  // (or absent) cached that null/1-point record for the 15s TTL; the run that
+  // just ended on it would otherwise wait out the clock before its first
+  // "BEST n" chip could appear. Same bust-and-regrade shape as the depth
+  // listener above, fired on the honest end-of-run event.
+  window.addEventListener("strip:gameover", (e) => {
+    const d = e.detail;
+    if(!d || !d.id) return;
+    const entry = cards[currentCenterIdx];
+    if(!entry || !entry.mod || entry.mod.id !== d.id || !entry.el) return;
+    entry.el._sparkRec = null;
+    if(window.Sparkline) Sparkline.badge(entry.el, entry.mod);
   }, { passive:true });
 
   // ---------- Round 30 — the one-time ladder hint ----------

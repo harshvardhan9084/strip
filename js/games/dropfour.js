@@ -23,9 +23,9 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): WIN STREAK · BEST in
+    // the slot between title and playfield; the round-end sentence is the run
+    // ceremony's job now.
 
     const diffRow = document.createElement("div");
     diffRow.style.cssText = "display:flex; gap:6px;";
@@ -49,7 +49,7 @@ Strip.register({
     wrap.appendChild(diffRow);
 
     const board = document.createElement("div");
-    board.style.cssText = `display:grid; grid-template-columns:repeat(${W},1fr); gap:5px; width:min(74vw,266px); background:var(--panel-2); padding:8px; border-radius:12px;`;
+    board.style.cssText = `display:grid; grid-template-columns:repeat(${W},1fr); gap:5px; width:min(74vw,calc(266px * var(--board-scale,1))); background:var(--panel-2); padding:8px; border-radius:12px;`;
     wrap.appendChild(board);
 
     const newBtn = document.createElement("button");
@@ -100,7 +100,10 @@ Strip.register({
           el.style.boxShadow = "0 0 0 2px var(--ink), 0 0 14px rgba(255,255,255,.85)";
         }
       }
-      statRow.innerHTML = `WIN STREAK <span style="color:var(--amber)">${streak}</span> · BEST <span style="color:var(--purple)">${best}</span>`;
+      api.setStats([
+        { label: "WIN STREAK", value: String(streak), color: "var(--amber)" },
+        { label: "BEST", value: String(best), color: "var(--purple)" },
+      ]);
       undoBtn.disabled = !history.length || busy || over;
       undoBtn.style.opacity = undoBtn.disabled ? 0.4 : 1;
     }
@@ -278,13 +281,19 @@ Strip.register({
         Feedback.tone("thud");
       }
       render(line);
-      statRow.innerHTML = winner === 1
-        ? `YOU WIN — streak <span style="color:var(--amber)">${streak}</span> · best ${best}`
-        : winner === 2 ? `AI WINS — streak reset · best <span style="color:var(--purple)">${best}</span>` : `DRAW`;
+      // R36 — the round-end sentence became the standard run ceremony
+      try{
+        RunCeremony.show(container, winner === 1
+          ? { tone: "win", label: "YOU WIN", score: String(streak), unit: "streak", delta: "BEST " + best, deltaTone: "good", verb: "NEW ROUND", onVerb: () => { RunCeremony.hide(container); newRound(); } }
+          : winner === 2
+          ? { tone: "over", label: "AI WINS", score: "0", unit: "streak", delta: "STREAK RESET · BEST " + best, verb: "NEW ROUND", onVerb: () => { RunCeremony.hide(container); newRound(); } }
+          : { tone: "draw", label: "STALEMATE", delta: "BEST " + best, verb: "NEW ROUND", onVerb: () => { RunCeremony.hide(container); newRound(); } });
+      }catch(e){}
     }
 
     function newRound(){
       roundGen++; // invalidate any AI move still pending from the old round
+      RunCeremony.hide(container); // a restart never fights the flourish
       grid = Array.from({ length: H }, () => Array(W).fill(0));
       history = [];
       over = false; busy = false;

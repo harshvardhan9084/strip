@@ -114,9 +114,8 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:280px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): Q · SCORE · BEST RUN
+    // in the slot between title and playfield.
 
     // the completion meter — the run's shape, visible at a glance
     const meterTrack = document.createElement("div");
@@ -140,7 +139,11 @@ Strip.register({
     const bag = ShuffleBag.restore(savedState.bag, Q.length);
 
     function paintStats(){
-      statRow.innerHTML = `<div>Q <span id="tv-q" style="color:var(--amber)">${Math.min(qNum + 1, RUN_LEN)}</span>/${RUN_LEN}</div><div>SCORE <span id="tv-score" style="color:var(--amber)">${runScore}</span></div><div>BEST RUN <span id="tv-best" style="color:var(--purple)"${legacyBest ? ' title="Pre-Round-22 record, normalized to the 10-question format"' : ''}>${savedRunBest === null ? "-" : savedRunBest + "/" + RUN_LEN + (legacyBest ? "*" : "")}</span></div>`;
+      api.setStats([
+        { label: "Q", value: Math.min(qNum + 1, RUN_LEN) + "/" + RUN_LEN, color: "var(--amber)" },
+        { label: "SCORE", value: String(runScore), color: "var(--amber)" },
+        { label: "BEST RUN", value: savedRunBest === null ? "—" : savedRunBest + "/" + RUN_LEN + (legacyBest ? "*" : ""), color: "var(--purple)" },
+      ]);
       meterFill.style.width = (qNum / RUN_LEN) * 100 + "%";
     }
 

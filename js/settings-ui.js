@@ -13,6 +13,8 @@
   const glowBtns = Array.from(document.querySelectorAll(".glow-seg-btn"));
   // Round 35 — text size dial (S/M/L → html[data-text-size] + the inline pass)
   const tsizeBtns = Array.from(document.querySelectorAll(".tsize-seg-btn"));
+  // Round 36 — board scale dial (S/M/L → html[data-board-scale] → --board-scale)
+  const bscaleBtns = Array.from(document.querySelectorAll(".bscale-seg-btn"));
   // Round 24 — wake lock support: the control is only real where the API ships
   const wakeLockToggle = document.getElementById("wakelock-toggle");
   const wakeLockNote = document.getElementById("wakelock-note");
@@ -197,6 +199,25 @@
     b.addEventListener("click", () => {
       if(Settings.get().textSize === b.dataset.textsizeValue) return;
       Settings.set({ textSize: b.dataset.textsizeValue });
+      Feedback.uiTone("toggle");
+      Feedback.haptic("light");
+    });
+  });
+
+  // ---------- Round 36 — board scale dial ----------
+  // Same contract as the text size dial: one key, one attribute, instant
+  // re-grade. Wired grids reflow through calc(var(--board-scale)) with zero
+  // listeners; canvas boards pick the var up at their next board-build.
+  function syncBScaleBtns(settings){
+    const cur = settings.boardScale || "m";
+    bscaleBtns.forEach(b => {
+      b.setAttribute("aria-pressed", b.dataset.bscaleValue === cur ? "true" : "false");
+    });
+  }
+  bscaleBtns.forEach(b => {
+    b.addEventListener("click", () => {
+      if(Settings.get().boardScale === b.dataset.bscaleValue) return;
+      Settings.set({ boardScale: b.dataset.bscaleValue });
       Feedback.uiTone("toggle");
       Feedback.haptic("light");
     });
@@ -418,6 +439,6 @@
   });
 
   // reflect settings changes made anywhere (e.g. the lock button) back into the panel toggles
-  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncTSizeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
-  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncTSizeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); syncWakeLockSupport(); });
+  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncTSizeBtns(s); syncBScaleBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
+  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncTSizeBtns(s); syncBScaleBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); syncWakeLockSupport(); });
 })();

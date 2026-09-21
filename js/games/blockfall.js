@@ -29,9 +29,8 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:14px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): SCORE · LINES · LV ·
+    // BEST declared to the slot between title and playfield.
 
     const playRow = document.createElement("div");
     playRow.style.cssText = "display:flex; gap:10px; align-items:flex-start;";
@@ -275,7 +274,12 @@ Strip.register({
     }
 
     function statUpdate(){
-      statRow.innerHTML = `<div>SCORE <span style="color:var(--amber)">${score}</span></div><div>LINES <span style="color:var(--purple)">${lines}</span></div><div>LV ${level}</div><div>BEST <span style="color:var(--amber)">${best}</span></div>`;
+      api.setStats([
+        { label: "SCORE", value: String(score), color: "var(--amber)" },
+        { label: "LINES", value: String(lines), color: "var(--purple)" },
+        { label: "LV", value: String(level), color: "var(--ink)" },
+        { label: "BEST", value: String(best), color: "var(--amber)" },
+      ]);
     }
 
     function draw(){

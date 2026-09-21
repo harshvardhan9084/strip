@@ -59,10 +59,27 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="pr-score" style="color:var(--amber)">0</span></div><div>BEST <span id="pr-best" style="color:var(--purple)">${best}</span></div><div>LIVES <span id="pr-lives" style="color:var(--danger)">♥♥♥</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "pr-score": "0",
+      "pr-best": String(best),
+      "pr-lives": "♥♥♥",
+    };
+    const STAT_KEYS = [
+      ["pr-score", "SCORE", "var(--amber)", null],
+      ["pr-best", "BEST", "var(--purple)", null],
+      ["pr-lives", "LIVES", "var(--danger)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const cv = document.createElement("canvas");
     cv.width = SIZE; cv.height = SIZE;
@@ -125,20 +142,20 @@ Strip.register({
       dir = Math.random() < 0.5 ? 1 : -1;
       angle = -Math.PI / 2;
       newTarget();
-      q("#pr-score").textContent = "0";
+      statVals["pr-score"] = "0"; renderStats();
       paintLives();
       hintEl.textContent = "tap inside the arc";
       try{ Feedback.tone("place"); Feedback.haptic("light"); }catch(e){}
     }
 
     function paintLives(){
-      q("#pr-lives").textContent = "♥".repeat(lives) + "♡".repeat(Math.max(0, 3 - lives));
+      statVals["pr-lives"] = "♥".repeat(lives) + "♡".repeat(Math.max(0, 3 - lives)); renderStats();
     }
 
     function hit(){
       const perfect = inPerfect();
       score += perfect ? 2 : 1;
-      q("#pr-score").textContent = score;
+      statVals["pr-score"] = score; renderStats();
       floatText(perfect ? "PERFECT +2" : "+1", perfect ? COLORS.perfect : COLORS.arc);
       try{
         // rising pitch with the score — the run literally climbs in key
@@ -179,7 +196,7 @@ Strip.register({
       shakeUntil = performance.now() + 220;
       if(score > best){
         best = score;
-        q("#pr-best").textContent = best;
+        statVals["pr-best"] = best; renderStats();
         api.setHighscore(best);
         hintEl.textContent = "NEW BEST — tap to go again";
       } else {

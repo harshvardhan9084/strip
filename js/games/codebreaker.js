@@ -40,9 +40,13 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): ROW · BEST in the slot
+    // between title and playfield. The loss reveal gets its own line — it's a
+    // answer, not a stat (and the board freezes around it on purpose).
+    const revealEl = document.createElement("div");
+    revealEl.style.cssText = "font-family:var(--font-display); font-size:10px; letter-spacing:.1em; color:var(--ink-dim); min-height:14px; text-align:center;";
+    revealEl.hidden = true;
+    wrap.appendChild(revealEl);
 
     const sizeRow = document.createElement("div");
     sizeRow.style.cssText = "display:flex; gap:6px;";
@@ -138,7 +142,10 @@ Strip.register({
 
     function render(){
       if(failed) return; // loss board is frozen with the reveal — don't repaint it
-      statRow.innerHTML = `ROW <span style="color:var(--amber)">${Math.min(row + 1, S.rows)}/${S.rows}</span> · BEST <span style="color:var(--purple)">${best === Infinity ? "-" : best + " rows"}</span>`;
+      api.setStats([
+        { label: "ROW", value: Math.min(row + 1, S.rows) + "/" + S.rows, color: "var(--amber)" },
+        { label: "BEST", value: best === Infinity ? "—" : best + " rows", color: "var(--purple)" },
+      ]);
       for(let r = 0; r < S.rows; r++){
         const { slotEls, pegs } = rowEls[r];
         const active = r === row && !solved && !failed;
@@ -213,7 +220,8 @@ Strip.register({
         // paint the secret AFTER render() — render() repaints the active row
         // from cur[] (the last guess), which used to overwrite the reveal
         showSecret();
-        statRow.innerHTML = `CODE WAS <span style="color:var(--danger)">${secret.map(hexColoredDot).join("")}</span>`;
+        revealEl.innerHTML = `CODE WAS <span style="color:var(--danger)">${secret.map(hexColoredDot).join("")}</span>`;
+        revealEl.hidden = false;
         return;
       }
       cur = Array(S.slots).fill(null);
@@ -233,6 +241,7 @@ Strip.register({
       secret = Array.from({ length: S.slots }, () => PALETTE[Math.floor(Math.random() * S.colors)].hex);
       row = 0; cur = Array(S.slots).fill(null);
       solved = false; failed = false; history = [];
+      revealEl.hidden = true;
       render();
     }
 

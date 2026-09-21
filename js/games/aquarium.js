@@ -78,9 +78,8 @@ Strip.register({
     // the full body and the tank owns the playfield slot.
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; height:100%; align-self:stretch; justify-content:center;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:14px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): FISH · FOOD · COINS ·
+    // ALBUM (four is the cap; BEST lives on the sparkline chip).
 
     const tank = document.createElement("div");
     tank.style.cssText = `
@@ -122,7 +121,12 @@ Strip.register({
     function albumCount(){ return Object.keys(state.album).length; }
 
     function renderStats(){
-      statRow.innerHTML = `<div>FISH <span style="color:var(--amber)">${state.fish.length}/${MAX_FISH}</span></div><div>FOOD <span style="color:var(--purple)">${state.food}</span></div><div>COINS <span style="color:var(--amber)">${Math.floor(state.coins)}</span></div><div>ALBUM <span style="color:var(--ink)">${albumCount()}/${SPECIES.length}</span></div><div>BEST <span style="color:var(--ink)">${best}</span></div>`;
+      api.setStats([
+        { label: "FISH", value: state.fish.length + "/" + MAX_FISH, color: "var(--amber)" },
+        { label: "FOOD", value: String(state.food), color: "var(--purple)" },
+        { label: "COINS", value: String(Math.floor(state.coins)), color: "var(--amber)" },
+        { label: "ALBUM", value: albumCount() + "/" + SPECIES.length, color: "var(--ink)" },
+      ]);
       foodBtn.textContent = "Food +10 (15c)";
       foodBtn.disabled = state.coins < 15;
       foodBtn.style.opacity = foodBtn.disabled ? 0.5 : 1;

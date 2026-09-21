@@ -98,7 +98,9 @@ window.__qa32 = (async () => {
     // once the game has real score history (>= 2 plays) — seed a genuine
     // record through the shell's production api factory (the R20 QA seam),
     // then seed depth (63 of best 100 → PHOSPHOR)
-    const api = StripShell._testMakeApi(cMod.id);
+    // R36 signature: the factory takes the card entry ({ mod, el }) — setStats
+    // needs the element, and the id still rides entry.mod.id
+    const api = StripShell._testMakeApi({ mod: { id: cMod.id }, el: (StripShell._centeredCardEl ? StripShell._centeredCardEl() : document.querySelector('.cart')) });
     await api.setHighscore(50); await api.setHighscore(63);
     rec(cMod.id, 63, 100);
     await wait(700); // sparkline rebuild path: cache bust + IndexedDB read + chip render
@@ -295,7 +297,7 @@ window.__qa32 = (async () => {
         const r = m.mount(body, {
           save(){ return Promise.resolve(); }, load(){ return Promise.resolve(null); },
           getHighscore(){ return Promise.resolve(0); }, setHighscore(){ return Promise.resolve(0); },
-          gameover(){}, tend(){}
+          gameover(){}, tend(){}, setStats(){}
         });
         if(r && typeof r.then === 'function') await r;
       }catch(err){ fails++; console.error('B1 mount fail', m.id, err); }

@@ -27,10 +27,27 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:290px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>WPM <span id="ty-score" style="color:var(--amber)">-</span></div><div>ACC <span id="ty-acc" style="color:var(--ink)">-</span></div><div>BEST <span id="ty-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "ty-score": "-",
+      "ty-acc": "-",
+      "ty-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["ty-score", "WPM", "var(--amber)", null],
+      ["ty-acc", "ACC", "var(--ink)", null],
+      ["ty-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const phraseBox = document.createElement("div");
     phraseBox.style.cssText = "font-size:15px; line-height:1.6; text-align:center; padding:14px; background:var(--panel-2); border-radius:12px; min-height:60px;";
@@ -101,8 +118,8 @@ Strip.register({
       keystrokes = 0; mistakes = 0; prevLen = 0;
       input.value = "";
       input.disabled = false;
-      q("#ty-score").textContent = "-";
-      q("#ty-acc").textContent = "-";
+      statVals["ty-score"] = "-"; renderStats();
+      statVals["ty-acc"] = "-"; renderStats();
       renderPhrase("");
     }
 
@@ -118,7 +135,7 @@ Strip.register({
         if(typed[i] !== phrase[i]) mistakes++;
       }
       prevLen = typed.length;
-      q("#ty-acc").textContent = accuracy() + "%";
+      statVals["ty-acc"] = accuracy() + "%"; renderStats();
       renderPhrase(typed);
       if(typed === phrase){
         done = true;
@@ -127,19 +144,19 @@ Strip.register({
         const words = phrase.split(" ").length;
         const wpm = Math.round((words / seconds) * 60);
         const acc = accuracy();
-        q("#ty-score").textContent = wpm;
+        statVals["ty-score"] = wpm; renderStats();
         const prevBest = best;
         if(acc >= 80){
           Feedback.buzz("success");
           api.gameover("win", wpm);
           api.setHighscore(wpm).then(v => {
             best = v;
-            q("#ty-best").textContent = best;
+            statVals["ty-best"] = best; renderStats();
           });
         } else {
           api.gameover("over", wpm);
           Feedback.buzz("error");
-          q("#ty-acc").innerHTML = `<span style="color:var(--danger)">${acc}%</span>`;
+          statVals["ty-acc"] = acc + "%"; renderStats(); // the danger hue rides the failing run's number
           phraseBox.title = "Accuracy below 80% — this run can't set a best";
         }
         // R35 ceremony adoption: a finished phrase was a stat-row update —

@@ -274,7 +274,7 @@ window.__qa27 = (async () => {
       getHighscore(){ return Promise.resolve(0); },
       setHighscore(s){ return Promise.resolve(s); },
       gameover(){},
-      tend(){},
+      tend(){}, setStats(){},
     };
     const div = document.createElement('div');
     div.style.cssText = 'position:fixed;left:-9999px;top:0;width:400px;height:400px';

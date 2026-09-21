@@ -112,13 +112,17 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:300px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:12px; font-family:var(--font-display); font-size:8px; color:var(--ink-dim); text-align:center;";
-    statRow.innerHTML = `
-      <div>FOOD<br><span id="ah-food" style="color:var(--amber); font-size:13px;">0</span></div>
-      <div>RATE<br><span id="ah-rate" style="color:var(--purple); font-size:13px;">0/s</span></div>
-      <div>BEST<br><span id="ah-best" style="color:var(--ink); font-size:13px;">0</span></div>
-    `;
+    // R36 — the stat row is shell-owned (api.setStats): FOOD · RATE · BEST in
+    // the slot between title and playfield.
+    const statVals = { "ah-food": "0", "ah-rate": "0/s", "ah-best": "0" };
+    function renderStats(){
+      api.setStats([
+        { label: "FOOD", value: statVals["ah-food"], color: "var(--amber)" },
+        { label: "RATE", value: statVals["ah-rate"], color: "var(--purple)" },
+        { label: "BEST", value: statVals["ah-best"], color: "var(--ink)" },
+      ]);
+    }
+    renderStats();
 
     // vault UI — the centerpiece of the new loop
     const vaultBox = document.createElement("button");
@@ -206,7 +210,6 @@ Strip.register({
     const vaultRow   = roleRow("vaultTier", "🧺", "raises vault capacity");
     const soldierRow = roleRow("soldiers", "🛡", "reduces raid losses on the vault");
 
-    wrap.appendChild(statRow);
     wrap.appendChild(vaultBox);
     wrap.appendChild(hillBtn);
     wrap.appendChild(offlineNote);
@@ -221,9 +224,11 @@ Strip.register({
     }
 
     function refresh(){
-      q("#ah-food").textContent = fmt(state.food);
-      q("#ah-rate").textContent = ratePerSec().toFixed(1) + "/s";
-      q("#ah-best").textContent = fmt(best);
+      statVals["ah-food"] = fmt(state.food); 
+      const rps = ratePerSec();
+      statVals["ah-rate"] = (Math.round(rps * 10) / 10).toString().replace(/\.0$/, "") + "/s"; // the audit's "0.0/s" glyph, told honestly
+      statVals["ah-best"] = fmt(best);
+      renderStats();
 
       const c = vaultCap();
       const pct = Math.min(100, (state.vault / c) * 100);

@@ -16,10 +16,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>SCORE <span id="sn-score" style="color:var(--amber)">0</span></div><div>BEST <span id="sn-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "sn-score": "0",
+      "sn-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["sn-score", "SCORE", "var(--amber)", null],
+      ["sn-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const board = document.createElement("div");
     board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); grid-template-rows:repeat(${SIZE},1fr); width:min(70vw,240px); height:min(70vw,240px); background:var(--screen, #12121a); border-radius:10px; touch-action:none;`;
@@ -50,7 +65,7 @@ Strip.register({
       placeFood();
       score = 0;
       running = true;
-      q("#sn-score").textContent = 0;
+      statVals["sn-score"] = 0; renderStats();
       startBtn.disabled = true;
       startBtn.textContent = "Playing…";
       draw();
@@ -79,7 +94,7 @@ Strip.register({
       api.gameover("win", score);
       api.setHighscore(score).then(v => {
         best = v;
-        q("#sn-best").textContent = best;
+        statVals["sn-best"] = best; renderStats();
       });
     }
 
@@ -110,7 +125,7 @@ Strip.register({
       if(nr===food[0] && nc===food[1]){
         score++;
         Feedback.tone("pop"); Feedback.haptic("light");
-        q("#sn-score").textContent = score;
+        statVals["sn-score"] = score; renderStats();
         placeFood();
         // Round 19 (S3): the genre's escalation IS the speed ramp — every 5
         // food the tick drops 12 ms toward a 90 ms floor
@@ -136,7 +151,7 @@ Strip.register({
       api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
-        q("#sn-best").textContent = best;
+        statVals["sn-best"] = best; renderStats();
       });
     }
 

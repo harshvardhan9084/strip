@@ -119,9 +119,13 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — stats live in the shell-owned slot (api.setStats: MODE · STREAK ·
+    // PLAYED); the word-level messages (rejections, the answer reveal) get
+    // this dedicated line — words are messages, not stats.
+    const msgEl = document.createElement("div");
+    msgEl.style.cssText = "font-family:var(--font-display); font-size:10px; letter-spacing:.08em; color:var(--ink-dim); min-height:14px; text-align:center;";
+    msgEl.hidden = true;
+    wrap.appendChild(msgEl);
 
     const grid = document.createElement("div");
     grid.style.cssText = "display:grid; grid-template-rows:repeat(6,1fr); gap:5px;";
@@ -178,12 +182,13 @@ Strip.register({
     container.appendChild(wrap);
 
     function statUpdate(msg){
-      if(msg){ statRow.innerHTML = msg; return; }
-      if(mode === "daily"){
-        statRow.innerHTML = `DAILY · STREAK <span style="color:var(--amber)">${daily.streak}</span>${dailyDone ? " · ✓ solved" : ""}`;
-      } else {
-        statRow.innerHTML = `FREE PLAY · PLAYED <span style="color:var(--purple)">${played}</span> · daily streak <span style="color:var(--amber)">${daily.streak}</span>`;
-      }
+      if(msg){ msgEl.innerHTML = msg; msgEl.hidden = false; return; }
+      msgEl.hidden = true;
+      api.setStats([
+        { label: "MODE", value: (mode === "daily" ? "DAILY" : "FREE") + (mode === "daily" && dailyDone ? " \u2713" : ""), color: "var(--ink)" },
+        { label: "STREAK", value: String(daily.streak), color: "var(--amber)" },
+        { label: "PLAYED", value: String(played), color: "var(--purple)" },
+      ]);
     }
 
     function newGame(countPlay, newMode){

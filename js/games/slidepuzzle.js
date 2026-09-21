@@ -27,9 +27,9 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    wrap.appendChild(statRow);
+    // R36 — the stat row is shell-owned (api.setStats): MOVES + BEST live in
+    // the slot between title and playfield. The solved sentence is the run
+    // ceremony's job now.
 
     const sizeRow = document.createElement("div");
     sizeRow.style.cssText = "display:flex; gap:6px;";
@@ -78,7 +78,7 @@ Strip.register({
     function newGame(){
       RunCeremony.hide(container); // a restart never fights the flourish
       tiles = Array.from({length: SIZE*SIZE-1}, (_,i) => i+1).concat(0);
-      board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,${SIZE * 62}px); height:min(70vw,${SIZE * 62}px);`;
+      board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,calc(${SIZE * 62}px * var(--board-scale,1))); height:min(70vw,calc(${SIZE * 62}px * var(--board-scale,1)));`;
       // shuffle via random valid moves from solved state -> always solvable
       const shuffleSteps = SIZE === 3 ? 80 : SIZE === 4 ? 150 : 260;
       let blank = tiles.indexOf(0);
@@ -160,7 +160,10 @@ Strip.register({
     }
 
     function updateStat(){
-      statRow.textContent = won ? `SOLVED in ${moves} — best ${best === Infinity ? "-" : best}` : `MOVES ${moves}`;
+      api.setStats([
+        { label: "MOVES", value: String(moves), color: "var(--amber)" },
+        { label: "BEST", value: best === Infinity ? "—" : String(best), color: "var(--purple)" },
+      ]);
     }
 
     newBtn.addEventListener("click", newGame);

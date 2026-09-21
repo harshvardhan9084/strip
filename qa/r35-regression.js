@@ -104,7 +104,9 @@ window.__qa35 = (async () => {
   }
 
   // ---------- A2: text size roundtrip ----------
-  ok('A2-pre jump whackmole', await jumpTo('whackmole'), StripShell._centeredMod().id);
+  // R36 amendment: whackmole's inline stat row moved into the shell slot;
+  // the inline-pass roundtrip probes codebreaker's inline 10px reveal line
+  ok('A2-pre jump codebreaker', await jumpTo('codebreaker'), StripShell._centeredMod().id);
   {
     const body = centeredBody();
     const probe = () => {
@@ -115,13 +117,13 @@ window.__qa35 = (async () => {
     const base = el0 ? parseFloat(el0.style.fontSize) : NaN;
     Settings.set({ textSize: 'l' });
     await wait(120);
-    const afterL = parseFloat(probe() && probe().style.fontSize);
+    const afterL = parseFloat(el0 && el0.style.fontSize);
     Settings.set({ textSize: 's' });
     await wait(120);
-    const afterS = parseFloat(probe() && probe().style.fontSize);
+    const afterS = parseFloat(el0 && el0.style.fontSize);
     Settings.set({ textSize: 'm' });
     await wait(120);
-    const restored = parseFloat(probe() && probe().style.fontSize);
+    const restored = parseFloat(el0 && el0.style.fontSize);
     ok('A2 text size L/S/M roundtrip on inline stat rows (base-pinned)',
        base === 10 && afterL === 12 && afterS === 9 && restored === 10
        && document.documentElement.dataset.textSize === 'm',

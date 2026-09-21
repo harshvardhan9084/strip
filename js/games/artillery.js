@@ -59,8 +59,9 @@ Strip.register({
       });
     }
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
+    // R36 — the stat row is shell-owned (api.setStats): YOU · AI · W-L ·
+    // STREAK (four is the cap; BEST lives on the sparkline chip). The FIRE
+    // button keeps its R34 top-billing in the controls row.
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "width:min(80vw,300px); height:min(45vh,220px); border-radius:10px; background:var(--screen, #0d1420);";
@@ -113,7 +114,6 @@ Strip.register({
     controls.appendChild(fireBtn);
 
     wrap.appendChild(diffRow);
-    wrap.appendChild(statRow);
     wrap.appendChild(canvas);
     wrap.appendChild(infoLine);
     wrap.appendChild(controls);
@@ -179,6 +179,9 @@ Strip.register({
     }
 
     function draw(){
+      // R36 — never paint an unmeasured canvas: W/H are undefined until the
+      // first fit(), and createLinearGradient(0,0,0,undefined) is a NaN throw
+      if(!(W > 0) || !(H > 0)) return;
       ctx.clearRect(0,0,W,H);
       // sky
       const grad = ctx.createLinearGradient(0,0,0,H);
@@ -395,7 +398,12 @@ Strip.register({
 
     function updateStat(){
       const hearts = (n) => "♥".repeat(n) + "♡".repeat(Math.max(0, 3 - n));
-      statRow.innerHTML = `<div style="color:var(--amber)">YOU ${hearts(playerHP || 3)}</div><div style="color:var(--purple)">AI ${hearts(aiHP || 3)}</div><div>W-L <span style="color:var(--ink)">${state.wins}-${state.losses}</span></div><div>STREAK <span style="color:var(--ink)">${state.streak || 0}</span> · BEST <span style="color:var(--ink)">${best}</span></div>`;
+      api.setStats([
+        { label: "YOU", value: hearts(playerHP || 3), color: "var(--amber)" },
+        { label: "AI", value: hearts(aiHP || 3), color: "var(--purple)" },
+        { label: "W-L", value: state.wins + "-" + state.losses, color: "var(--ink)" },
+        { label: "STREAK", value: String(state.streak || 0), color: "var(--ink)" },
+      ]);
     }
 
     fireBtn.addEventListener("click", () => {

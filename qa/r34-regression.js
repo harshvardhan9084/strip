@@ -183,8 +183,12 @@ window.__qa34 = (async () => {
     // the verb restarts: score resets to 0, panel retires
     if(rc) clickBtn(body, 'REBUILD');
     await wait(600);
-    const a4b = !body.querySelector(':scope > .run-ceremony')
-      && (body.querySelector('[id=st-score]') || { textContent: '?' }).textContent === '0';
+    // R36 amendment: HEIGHT lives in the shell-owned .cart-stats slot (the
+    // #st-score span is gone); "restarts clean" = slot HEIGHT back to 0
+    const stSlot = centeredCard().querySelector('.cart-stats');
+    const stHeight = stSlot ? [...stSlot.querySelectorAll('.cart-stat')].find(s => s.textContent.includes('HEIGHT')) : null;
+    const stVal = stHeight ? stHeight.querySelector('.cart-stat-value').textContent.trim() : '?';
+    const a4b = !body.querySelector(':scope > .run-ceremony') && stVal === '0';
     ok('A4 stacktower death → THE TOWER FELL + REBUILD restarts clean',
        a4a && a4b, 'panel=' + a4a + ' restart=' + a4b);
   }
@@ -293,10 +297,13 @@ window.__qa34 = (async () => {
     // ("font-size: 11px"), so match on rendered output, not attribute text
     const body = centeredBody();
     await wait(300);
-    const rows = [...body.querySelectorAll('div')].filter(d => d.textContent.includes('GOLD') && d.textContent.includes('WAVE'));
-    const row = rows[0];
-    const fs = row ? parseFloat(getComputedStyle(row).fontSize) : 0;
-    ok('B1b TD header at the 11px floor', fs >= 11, 'fontSize=' + fs + 'px rows=' + rows.length);
+    // R36 amendment: the header moved into the shell-owned .cart-stats slot —
+    // the 11px floor now lives in CSS (.cart-stat-label), not inline styles
+    const slot = centeredCard().querySelector('.cart-stats');
+    const label = slot ? slot.querySelector('.cart-stat-label') : null;
+    const fs = label ? parseFloat(getComputedStyle(label).fontSize) : 0;
+    const hasGOLD = slot ? slot.textContent.includes('GOLD') && slot.textContent.includes('WAVE') : false;
+    ok('B1b TD header at the 11px floor (shell-owned slot)', fs >= 11 && hasGOLD, 'fontSize=' + fs + 'px slot=' + !!slot);
   }
 
   // ---------- B2: copy ----------

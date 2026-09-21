@@ -166,10 +166,27 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:300px;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:16px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim); flex-wrap:wrap; justify-content:center;";
-    statRow.innerHTML = `<div>COINS <span id="gd-coins" style="color:var(--amber)">${Math.floor(state.coins)}</span></div><div>HARVESTS <span id="gd-best" style="color:var(--purple)">${best}</span></div><div>ALBUM <span id="gd-album" style="color:var(--ink)">${Object.keys(state.album).length}/${SPECIES.length}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "gd-coins": String(Math.floor(state.coins)),
+      "gd-best": String(best),
+      "gd-album": Object.keys(state.album).length + "/" + SPECIES.length,
+    };
+    const STAT_KEYS = [
+      ["gd-coins", "COINS", "var(--amber)", null],
+      ["gd-best", "HARVESTS", "var(--purple)", null],
+      ["gd-album", "ALBUM", "var(--ink)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const plotRow = document.createElement("div");
     plotRow.style.cssText = "display:flex; gap:10px; flex-wrap:wrap; justify-content:center;";
@@ -388,9 +405,9 @@ Strip.register({
           isDry ? "Needs water" :
           p.health < 30 ? "Weak · growing" : "Growing";
       });
-      q("#gd-coins").textContent = Math.floor(state.coins);
-      q("#gd-best").textContent = best;
-      q("#gd-album").textContent = albumCount() + "/" + SPECIES.length;
+      statVals["gd-coins"] = Math.floor(state.coins); renderStats();
+      statVals["gd-best"] = best; renderStats();
+      statVals["gd-album"] = albumCount() + "/" + SPECIES.length; renderStats();
 
       // Round 21 — plot ladder to 8
       const nextCost = PLOT_COSTS[state.plants.length];

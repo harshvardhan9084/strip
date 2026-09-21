@@ -14,10 +14,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; position:relative;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>HEIGHT <span id="st-score" style="color:var(--amber)">0</span></div><div>BEST <span id="st-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "st-score": "0",
+      "st-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["st-score", "HEIGHT", "var(--amber)", null],
+      ["st-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "background:var(--screen, #12121a); border-radius:12px; width:min(70vw,240px); height:min(55vh,340px); touch-action:none;";
@@ -67,7 +82,7 @@ Strip.register({
       running = false;
       score = 0;
       camY = 0;
-      q("#st-score").textContent = 0;
+      statVals["st-score"] = 0; renderStats();
     }
 
     function spawnBlock(){
@@ -128,7 +143,7 @@ Strip.register({
       } else {
         perfectStreak = 0;
       }
-      q("#st-score").textContent = score;
+      statVals["st-score"] = score; renderStats();
       current = null;
       if(blocks.length * BLOCK_H > (canvas.height/devicePixelRatio) * 0.6){
         camY += BLOCK_H;
@@ -143,7 +158,7 @@ Strip.register({
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
-        q("#st-best").textContent = best;
+        statVals["st-best"] = best; renderStats();
       });
       // R34: death used to reset into silence — the height you fought for
       // just vanished. The standard panel says goodbye with the numbers.

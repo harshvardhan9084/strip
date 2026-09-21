@@ -14,10 +14,25 @@ Strip.register({
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px; width:100%;";
 
-    const statRow = document.createElement("div");
-    statRow.style.cssText = "display:flex; gap:20px; font-family:var(--font-display); font-size:10px; color:var(--ink-dim);";
-    statRow.innerHTML = `<div>STREAK <span id="rt-score" style="color:var(--amber)">0</span></div><div>BEST <span id="rt-best" style="color:var(--purple)">${best}</span></div>`;
-    wrap.appendChild(statRow);
+    // R36 — the stat row is SHELL-OWNED now (api.setStats): one slot between
+    // title and playfield, one type scale, tabular nums, <=4 stats. The old
+    // header's span ids live on as value keys so update sites stay one-liners.
+    const statVals = {
+      "rt-score": "0",
+      "rt-best": String(best),
+    };
+    const STAT_KEYS = [
+      ["rt-score", "STREAK", "var(--amber)", null],
+      ["rt-best", "BEST", "var(--purple)", null],
+    ];
+    function renderStats(){
+      api.setStats(STAT_KEYS.map(([k, label, color, fixed]) => ({
+        label,
+        value: k ? statVals[k] : fixed,
+        color,
+      })));
+    }
+    renderStats();
 
     const stage = document.createElement("div");
     stage.style.cssText = "position:relative; width:180px; height:180px;";
@@ -76,7 +91,7 @@ Strip.register({
 
     function reset(){
       streak = 0;
-      q("#rt-score").textContent = 0;
+      statVals["rt-score"] = 0; renderStats();
       speed = 0.9;
       enterIdle();
     }
@@ -118,11 +133,11 @@ Strip.register({
         api.gameover("over", streak);
         api.setHighscore(streak).then(v => {
           best = v;
-          q("#rt-best").textContent = best;
+          statVals["rt-best"] = best; renderStats();
         });
       }
       streak = 0;
-      q("#rt-score").textContent = 0;
+      statVals["rt-score"] = 0; renderStats();
       setTimeout(() => { feedback.textContent = ""; spawnRing(); }, 700);
     }
 
@@ -157,11 +172,11 @@ Strip.register({
         miss();
         return;
       }
-      q("#rt-score").textContent = streak;
+      statVals["rt-score"] = streak; renderStats();
       if(streak > best){
         best = streak;
         api.setHighscore(best);
-        q("#rt-best").textContent = best;
+        statVals["rt-best"] = best; renderStats();
       }
       setTimeout(() => { feedback.textContent = ""; }, 400);
       spawnRing();
