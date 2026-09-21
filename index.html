@@ -81,29 +81,13 @@ try{
     </div>
 
     <div class="settings-body">
-      <label class="setting-row">
-        <div class="setting-text">
-          <div class="setting-label">Lock scroll</div>
-          <div class="setting-desc">Freeze the strip so swipes inside a game can't flip the card</div>
-        </div>
-        <input type="checkbox" class="setting-toggle" data-key="lockScroll">
-      </label>
+      <!-- R35 — the audit's 5-group mental model: how it plays / how it
+           looks / who I am becoming / when it runs / my data. Same controls,
+           same keys — regrouped so related dials live together. -->
 
-      <label class="setting-row">
-        <div class="setting-text">
-          <div class="setting-label">Reduce motion</div>
-          <div class="setting-desc">Turn off scanlines, flicker, and other non-essential animation</div>
-        </div>
-        <input type="checkbox" class="setting-toggle" data-key="reduceMotion">
-      </label>
-
-      <label class="setting-row">
-        <div class="setting-text">
-          <div class="setting-label">Haptics</div>
-          <div class="setting-desc">Vibration feedback on taps, where supported</div>
-        </div>
-        <input type="checkbox" class="setting-toggle" data-key="haptics">
-      </label>
+      <!-- PLAY: the feel cluster (was split across the unnamed top group
+           and CONTROLS; the audit's "one cluster, one place") -->
+      <div class="settings-section-label">PLAY</div>
 
       <label class="setting-row">
         <div class="setting-text">
@@ -113,81 +97,20 @@ try{
         <input type="checkbox" class="setting-toggle" data-key="sound">
       </label>
 
-      <!-- Daily nudge (Round 14): opt-in, local-only, while the app is open -->
-      <label class="setting-row">
-        <div class="setting-text">
-          <div class="setting-label">Daily nudge</div>
-          <div class="setting-desc">While Strip is open, ping you when tomorrow's pick lands. Honest scope: nothing is scheduled once the app is closed.</div>
-        </div>
-        <input type="checkbox" class="setting-toggle" data-key="dailyNudge">
-      </label>
-      <!-- Round 15: shown when the stored preference is on but the browser
-           no longer grants notification permission (revoked OR reset to
-           ask) — the toggle alone would keep claiming everything is fine -->
-      <div class="setting-note" id="nudge-note" hidden>
-        Notifications were revoked or reset in the browser's site settings — the nudge is paused until they're allowed again. Your preference is kept.
-      </div>
-
-      <div class="settings-divider"></div>
-
-      <!-- Round 20 — CONTROLS: feel of the console itself.
-             Round 21 order fix: Fullscreen leads the section — it's the
-             one-tap immersion switch and the most wanted control in the
-             list (user ask), so it reads first instead of hiding last. -->
-      <div class="settings-section-label">CONTROLS</div>
-
-      <div class="setting-row setting-row-col">
-        <div class="setting-text">
-          <div class="setting-label">Fullscreen</div>
-          <div class="setting-desc">Edge-to-edge play — hide the browser chrome</div>
-        </div>
-        <button id="fullscreen-btn" class="btn accent small-btn" type="button">Enter</button>
-      </div>
-
-      <div class="setting-row setting-row-col">
-        <div class="setting-text">
-          <div class="setting-label">Volume</div>
-          <div class="setting-desc">Master loudness for every game and chime</div>
-        </div>
-        <div class="volume-control">
-          <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" step="5" value="80" aria-label="Master volume">
-          <span id="volume-readout" class="volume-readout">80</span>
-        </div>
-      </div>
-
-      <label class="setting-row">
-        <div class="setting-text">
-          <div class="setting-label">Navigation arrows</div>
-          <div class="setting-desc">On-screen ▲▼ buttons to jump between cartridges — handy when scroll is locked</div>
-        </div>
-        <input type="checkbox" class="setting-toggle" data-key="navArrows">
-      </label>
-
-      <label class="setting-row">
-        <div class="setting-text">
-          <div class="setting-label">Left-handed arrows</div>
-          <div class="setting-desc">Flip the jump buttons to the left edge — for left thumbs</div>
-        </div>
-        <input type="checkbox" class="setting-toggle" data-key="leftHanded">
-      </label>
-
-      <label class="setting-row">
-        <div class="setting-text">
-          <div class="setting-label">Keep screen awake</div>
-          <div class="setting-desc">While Strip is open, ask the browser not to dim or sleep during play</div>
-        </div>
-        <input type="checkbox" class="setting-toggle" data-key="wakeLock" id="wakelock-toggle">
-      </label>
-      <div class="setting-note" id="wakelock-note" hidden>
-        Wake Lock isn't available in this browser, so the screen can still dim. Everything else keeps working.
-      </div>
-
       <label class="setting-row">
         <div class="setting-text">
           <div class="setting-label">Interface sounds</div>
           <div class="setting-desc">Clicks and chimes from the console itself — menus, arrows, pickers. Game audio is the Sound switch above.</div>
         </div>
         <input type="checkbox" class="setting-toggle" data-key="uiSounds">
+      </label>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Haptics</div>
+          <div class="setting-desc">Vibration feedback on taps, where supported</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="haptics">
       </label>
 
       <div class="setting-row setting-row-col">
@@ -202,12 +125,22 @@ try{
         </div>
       </div>
 
+      <div class="setting-row setting-row-col">
+        <div class="setting-text">
+          <div class="setting-label">Volume</div>
+          <div class="setting-desc">Master loudness for every game and chime</div>
+        </div>
+        <div class="volume-control">
+          <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" step="5" value="80" aria-label="Master volume">
+          <span id="volume-readout" class="volume-readout">80</span>
+        </div>
+      </div>
+
       <div class="settings-divider"></div>
 
-      <!-- Round 24 — APPEARANCE: two independent dials. COLOR SCHEME picks
-           what the console chassis is made of (the axis the retired texture
-           setting grew into); CRT SKIN picks the phosphor tint on top. -->
-      <div class="settings-section-label">APPEARANCE</div>
+      <!-- SCREEN: every visual dial in one place (motion lives in ACCESS —
+           it's an accessibility control, not a decoration) -->
+      <div class="settings-section-label">SCREEN</div>
 
       <div class="theme-row">
         <div class="setting-text">
@@ -227,10 +160,20 @@ try{
         </div>
       </div>
 
-      <div style="margin-top:12px"></div>
+      <!-- R35 — AUTO NIGHT CHASSIS: the audit's "timer + one call". The R33/R34
+           token engines already re-grade the whole deck live, so the schedule
+           is genuinely just the clock picking the scheme. A manual pick below
+           turns this off — two writers on one dial is how sheets lie. -->
+      <label class="setting-row" style="margin-top:12px">
+        <div class="setting-text">
+          <div class="setting-label">Auto night chassis</div>
+          <div class="setting-desc">Follow the clock: dark console from 19:00 to 07:00, daylight terminal by day. Picking a scheme yourself turns this off.</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="autoNight">
+      </label>
 
       <!-- CRT skin picker (Round 11) -->
-      <div class="theme-row">
+      <div class="theme-row" style="margin-top:12px">
         <div class="setting-text">
           <div class="setting-label">CRT skin</div>
           <div class="setting-desc">Phosphor tint for the whole console — pairs with any color scheme. Pure palette swap, nothing else changes.</div>
@@ -277,8 +220,122 @@ try{
         </div>
         <input type="checkbox" class="setting-toggle" data-key="crtEffects">
       </label>
-      <button id="install-setting-btn" class="btn" style="width:100%;">Install to play offline</button>
-      <div id="install-note" class="setting-desc" style="text-align:center; margin-top:6px; display:none;">If your browser doesn't show a prompt, use the browser menu (⋮) → "Install app" or "Add to Home screen".</div>
+
+      <div class="settings-divider"></div>
+
+      <!-- ACCESS: the audit's new group — the deck's goodwill play.
+           Reduce motion lives here now: motion is an accessibility
+           control, not a toy preference. -->
+      <div class="settings-section-label">ACCESS</div>
+
+      <!-- R35 — TEXT SIZE: the audit's #1 accessibility debt ("stat rows
+           below 10px — the data is good; the ink is dust"). -->
+      <div class="setting-row setting-row-col">
+        <div class="setting-text">
+          <div class="setting-label">Text size</div>
+          <div class="setting-desc">Scales the small stat rows and labels in every cartridge. Large lifts the 11px floor to 13px.</div>
+        </div>
+        <div class="seg-options" role="group" aria-label="Text size">
+          <button type="button" class="tsize-seg-btn" data-textsize-value="s" aria-pressed="false">S</button>
+          <button type="button" class="tsize-seg-btn" data-textsize-value="m" aria-pressed="true">M</button>
+          <button type="button" class="tsize-seg-btn" data-textsize-value="l" aria-pressed="false">L</button>
+        </div>
+      </div>
+
+      <!-- R35 — COLORBLIND SYMBOLS: shapes ride the color-only signals
+           (Simon pads, dropfour discs, chainlink dots, bubble shooter). -->
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Colorblind symbols</div>
+          <div class="setting-desc">Adds a shape to every color-only signal — pads, dots, discs and bubbles get ▲ ● ■ ◆ so matches read without hue.</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="colorblind">
+      </label>
+
+      <!-- R35 — FLASH REDUCTION: single-frame blooms aren't motion, so
+           Reduce motion never covered them. This is the photosensitivity
+           tier: glow capped, momentary flashes dampened. -->
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Flash reduction</div>
+          <div class="setting-desc">Caps the phosphor bloom and dampens sudden flashes — for photosensitivity. Reduce motion (below) covers movement; this covers brightness.</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="flashSafe">
+      </label>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Reduce motion</div>
+          <div class="setting-desc">Turn off scanlines, flicker, and other non-essential animation</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="reduceMotion">
+      </label>
+
+      <div class="settings-divider"></div>
+
+      <!-- SESSION: when and how the console runs -->
+      <div class="settings-section-label">SESSION</div>
+
+      <!-- Round 21 order fix: Fullscreen leads the section — it's the
+           one-tap immersion switch and the most wanted control in the
+           list (user ask). -->
+      <div class="setting-row setting-row-col">
+        <div class="setting-text">
+          <div class="setting-label">Fullscreen</div>
+          <div class="setting-desc">Edge-to-edge play — hide the browser chrome</div>
+        </div>
+        <button id="fullscreen-btn" class="btn accent small-btn" type="button">Enter</button>
+      </div>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Navigation arrows</div>
+          <div class="setting-desc">On-screen ▲▼ buttons to jump between cartridges — handy when scroll is locked</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="navArrows">
+      </label>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Left-handed arrows</div>
+          <div class="setting-desc">Flip the jump buttons to the left edge — for left thumbs</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="leftHanded">
+      </label>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Lock scroll</div>
+          <div class="setting-desc">Freeze the strip so swipes inside a game can't flip the card</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="lockScroll">
+      </label>
+
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Keep screen awake</div>
+          <div class="setting-desc">While Strip is open, ask the browser not to dim or sleep during play</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="wakeLock" id="wakelock-toggle">
+      </label>
+      <div class="setting-note" id="wakelock-note" hidden>
+        Wake Lock isn't available in this browser, so the screen can still dim. Everything else keeps working.
+      </div>
+
+      <!-- Daily nudge (Round 14): opt-in, local-only, while the app is open -->
+      <label class="setting-row">
+        <div class="setting-text">
+          <div class="setting-label">Daily nudge</div>
+          <div class="setting-desc">While Strip is open, ping you when tomorrow's pick lands. Honest scope: nothing is scheduled once the app is closed.</div>
+        </div>
+        <input type="checkbox" class="setting-toggle" data-key="dailyNudge">
+      </label>
+      <!-- Round 15: shown when the stored preference is on but the browser
+           no longer grants notification permission (revoked OR reset to
+           ask) — the toggle alone would keep claiming everything is fine -->
+      <div class="setting-note" id="nudge-note" hidden>
+        Notifications were revoked or reset in the browser's site settings — the nudge is paused until they're allowed again. Your preference is kept.
+      </div>
 
       <div class="settings-divider"></div>
 
@@ -299,6 +356,9 @@ try{
            way, so nothing here hides the ladder itself. -->
       <button id="replay-ladder-btn" class="btn" type="button" style="width:100%; margin-top:10px;">Replay the tiers hint</button>
       <div class="setting-desc" style="text-align:center; margin-top:6px;">Brings back the one-time "TAP · TIERS" bubble that points at the depth ladder.</div>
+
+      <button id="install-setting-btn" class="btn" type="button" style="width:100%; margin-top:10px;">Install to play offline</button>
+      <div id="install-note" class="setting-desc" style="text-align:center; margin-top:6px; display:none;">If your browser doesn't show a prompt, use the browser menu (⋮) → "Install app" or "Add to Home screen".</div>
 
       <div class="settings-divider"></div>
 

@@ -33,6 +33,48 @@ Strip.register({
 
     let running = false, score = 0, timeLeft = 60, spawnTimer = null, countdownTimer = null, activeEls = [];
 
+    // R35 density wave juice: a pop used to delete the balloon silently — no
+    // burst, no float, no feel. Small shard burst + score float at the pop
+    // site; bombs get a pulsing fuse glow BEFORE the tap (the audit's
+    // "visual difference before tap, not after").
+    const REDUCE = () => document.documentElement.classList.contains("reduce-motion");
+    function popBurst(source, text, color){
+      const rect = source.getBoundingClientRect();
+      const frect = field.getBoundingClientRect();
+      const cx = rect.left - frect.left + rect.width/2;
+      const cy = rect.top - frect.top + rect.height/2;
+      const ft = document.createElement("div");
+      ft.textContent = text;
+      ft.style.cssText = `position:absolute; left:${cx}px; top:${cy}px; transform:translate(-50%,-50%); font-family:var(--font-display); font-size:12px; color:${color}; pointer-events:none; z-index:3; transition:transform .5s ease-out, opacity .5s ease-out;`;
+      field.appendChild(ft);
+      requestAnimationFrame(() => { ft.style.transform = "translate(-50%,-160%)"; ft.style.opacity = "0"; });
+      setTimeout(() => ft.remove(), 540);
+      if(REDUCE()) return; // shards are motion; the float alone carries the news
+      for(let i=0;i<6;i++){
+        const s = document.createElement("div");
+        const a = (Math.PI*2*i)/6 + Math.random()*.5;
+        const d = 18 + Math.random()*16;
+        s.style.cssText = `position:absolute; left:${cx}px; top:${cy}px; width:5px; height:5px; border-radius:50%; background:${color}; pointer-events:none; z-index:3; transition:transform .38s ease-out, opacity .38s;`;
+        field.appendChild(s);
+        requestAnimationFrame(() => { s.style.transform = `translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px)`; s.style.opacity = "0"; });
+        setTimeout(() => s.remove(), 430);
+      }
+    }
+    let combo = 0, comboTimer = null;
+    function bumpCombo(){
+      combo++;
+      clearTimeout(comboTimer);
+      comboTimer = setTimeout(() => { combo = 0; }, 1200);
+      if(combo >= 3){
+        const chip = document.createElement("div");
+        chip.textContent = "COMBO ×" + combo;
+        chip.style.cssText = "position:absolute; left:50%; top:8%; transform:translateX(-50%); font-family:var(--font-display); font-size:11px; color:var(--amber); text-shadow:0 0 12px rgba(var(--glow-rgb),.8); pointer-events:none; z-index:3; transition:opacity .4s;";
+        field.appendChild(chip);
+        setTimeout(() => { chip.style.opacity = "0"; }, 650);
+        setTimeout(() => chip.remove(), 1100);
+      }
+    }
+
     function spawnItem(){
       if(!running) return;
       const isBomb = Math.random() < 0.18;
@@ -45,6 +87,7 @@ Strip.register({
       `;
       if(isBomb){
         el.textContent = "💣";
+        el.classList.add("bp-bomb"); // pulsing fuse glow reads before the tap
       } else {
         // CSS balloons, not emoji: hue-rotate() silently does nothing on color
         // emoji glyphs, so every balloon used to be the same red. Real painted
@@ -88,9 +131,12 @@ Strip.register({
         if(isBomb){
           score = Math.max(0, score - 3);
           Feedback.buzz("error");
+          popBurst(el, "−3", "var(--danger)");
         } else {
           score += 1;
           Feedback.tone("pop"); Feedback.haptic("light");
+          popBurst(el, "+1", "var(--amber)");
+          bumpCombo();
         }
         q("#bp-score").textContent = score;
         cleanup();
@@ -123,14 +169,28 @@ Strip.register({
       activeEls = [];
       startBtn.textContent = "Play again";
       startBtn.disabled = false;
+      const prevBest = best;
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#bp-best").textContent = best;
       });
+      // R35 ceremony adoption: the 60s run ended in a stat-row flicker —
+      // the standard panel carries it out with the honest delta + verb.
+      RunCeremony.show(container, {
+        tone: "clear",
+        label: "TIME UP",
+        score: score,
+        unit: "popped",
+        delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+        deltaTone: score > prevBest ? "good" : "",
+        verb: "PLAY AGAIN",
+        onVerb: start,
+      });
     }
 
     function start(){
+      RunCeremony.hide(container); // a restart never fights the flourish
       score = 0; timeLeft = 60; running = true;
       q("#bp-score").textContent = 0;
       q("#bp-time").textContent = 60;
@@ -150,6 +210,7 @@ api.gameover("over", score);
 
     return () => {
       clearTimeout(spawnTimer);
+      clearTimeout(comboTimer);
       clearInterval(countdownTimer);
     };
   }

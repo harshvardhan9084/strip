@@ -73,7 +73,10 @@ Strip.register({
     });
 
     const wrap = document.createElement("div");
-    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;";
+    // R35 density wave: the tank was a 300×150 box floating in ~45% of empty
+    // card (the audit's "loneliest card in the deck"). The wrap now stretches
+    // the full body and the tank owns the playfield slot.
+    wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; height:100%; align-self:stretch; justify-content:center;";
 
     const statRow = document.createElement("div");
     statRow.style.cssText = "display:flex; gap:14px; font-family:var(--font-display); font-size:9px; color:var(--ink-dim);";
@@ -81,7 +84,7 @@ Strip.register({
 
     const tank = document.createElement("div");
     tank.style.cssText = `
-      position:relative; width:min(78vw,280px); height:min(45vh,220px);
+      position:relative; flex:1; width:100%; max-width:330px; min-height:230px;
       background:linear-gradient(to bottom, var(--screen-water-1, #16303a), var(--screen-water-2, #0c1a20));
       border-radius:14px; border:2px solid var(--screen-water-edge, #234); overflow:hidden; cursor:pointer;
     `;
@@ -155,7 +158,7 @@ Strip.register({
         el.title = sp.name;
         el.style.cssText = `
           position:absolute; left:${f.x}%; top:${f.y}%;
-          width:${18*f.size}px; height:${10*f.size}px;
+          width:${36*f.size}px; height:${20*f.size}px;
           background:hsl(${f.hue},70%,60%);
           border-radius:50% 50% 50% 10%;
           transform:scaleX(${f.dir});
@@ -216,7 +219,10 @@ Strip.register({
       renderFish();
       renderStats();
       feedHint.textContent = state.food > 0
-        ? (armedFish ? `${(SP[armedFish.species]||SP.guppy).name} — tap again to release` : "Tap the tank to feed · tap a fish twice to release it")
+        // R35 single-hint rule: the idle line restated the shell hint verbatim
+        // — when there's nothing to say, the status line stays quiet. It only
+        // speaks on the states the shell hint can't know (armed fish, no food).
+        ? (armedFish ? `${(SP[armedFish.species]||SP.guppy).name} — tap again to release` : "")
         : "Out of food — buy a pack below or wait for more";
     }
     renderTank();
@@ -236,7 +242,7 @@ Strip.register({
       if(state.food < 10){
         state.food++;
         renderStats();
-        if(state.food > 0 && !armedFish) feedHint.textContent = "Tap the tank to feed · tap a fish twice to release it";
+        if(state.food > 0 && !armedFish) feedHint.textContent = "";
       }
     }, 20000);
 

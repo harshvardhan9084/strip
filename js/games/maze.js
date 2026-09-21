@@ -111,6 +111,7 @@ Strip.register({
     }
 
     function newGame(){
+      RunCeremony.hide(container); // a restart never fights the flourish
       walls = generateMaze();
       player = [0,0];
       goal = [SIZE-1, SIZE-1];
@@ -157,6 +158,7 @@ Strip.register({
         won = true;
         Feedback.buzz("win");
         api.gameover("win", moves);
+        const prevBest = best;
         if(moves < best){
           best = moves;
           bests[SIZES[sizeIdx].key] = moves;
@@ -168,6 +170,18 @@ Strip.register({
           }
         }
         updateStat();
+        // R35 ceremony adoption: REACHED was a stat-row swap while the deck
+        // paid XP — the star now gets the standard panel with the delta.
+        RunCeremony.show(container, {
+          tone: "clear",
+          label: "REACHED",
+          score: String(moves),
+          unit: "moves",
+          delta: moves < prevBest ? "NEW BEST" : "BEST " + prevBest,
+          deltaTone: moves < prevBest ? "good" : "",
+          verb: "NEW MAZE",
+          onVerb: newGame,
+        });
       }
       render();
       updateStat();

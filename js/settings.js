@@ -49,6 +49,14 @@ window.Settings = (function(){
     // Round 25 — SCREEN GLOW: "full" | "soft" | "off". The bloom multiplier
     // (--glow-mul) re-grades every glow at once; off = flat terminal.
     glow: "full",
+    // Round 35 — ACCESS (the audit's settings wave):
+    textSize: "m",        // "s" | "m" | "l" — re-grades the stat-row dust
+    colorblind: false,    // shapes ride color-only signals (pads/dots/discs)
+    flashSafe: false,     // caps glow bloom + momentary flashes (photosensitivity)
+    // Round 35 — SCREEN: auto night chassis. When on, the color scheme
+    // follows the local clock (19:00–07:00 → dark chassis); a manual scheme
+    // pick turns it off so the two writers never fight.
+    autoNight: false,
   };
 
   const THEME_META_COLORS = {
@@ -168,11 +176,75 @@ window.Settings = (function(){
     // Round 25 — screen glow dial: one attribute swap re-grades every glow
     // through --glow-mul (1 / .35 / 0). Unknown values degrade to full.
     document.documentElement.dataset.glow = ["full", "soft", "off"].includes(current.glow) ? current.glow : "full";
+    // Round 35 — ACCESS dials. Colorblind symbols + flash reduction ride one
+    // class each (pure CSS re-grades, live on toggle); text size sets the
+    // attribute for CSS-owned sizes AND runs the inline-style pass below.
+    document.documentElement.classList.toggle("cb-symbols", !!current.colorblind);
+    document.documentElement.classList.toggle("flash-safe", !!current.flashSafe);
+    applyTextScale();
     applyManifestTheme(theme, mode);
     try{ localStorage.setItem(THEME_LS_KEY, theme); }catch(e){}
     try{ localStorage.setItem(MODE_LS_KEY, mode); }catch(e){}
     applyWakeLock();
+    applyAutoNight();
   }
+
+  // Round 35 — TEXT SIZE. Two halves, because the deck's type lives in two
+  // places: CSS-owned sizes (.cart-hint, setting descriptions…) re-grade
+  // through html[data-text-size] attribute selectors; game-owned sizes are
+  // INLINE styles, which CSS cannot override — so those get a DOM pass.
+  // The pass is IDEMPOTENT: the first touch records the base value in
+  // data-fs0, every later pass re-derives from that base, so toggling
+  // S→L→S round-trips exactly. Only the 8–12px "dust zone" moves (the
+  // audit's #1 accessibility debt); body text at 13px+ is untouched.
+  function applyTextScale(scope){
+    const t = ["s", "m", "l"].includes(current.textSize) ? current.textSize : "m";
+    document.documentElement.dataset.textSize = t;
+    const root = scope || document;
+    const nodes = root.querySelectorAll('.cart-body [style*="font-size"], .cart-body[style*="font-size"]');
+    if(t === "m"){
+      // the default look is the shipped look — but elements a previous L/S
+      // pass bumped must be RESTORED to their pinned base, not left stranded
+      nodes.forEach(el => {
+        if(el.dataset.fs0 !== undefined) el.style.fontSize = el.dataset.fs0 + "px";
+      });
+      return;
+    }
+    const delta = t === "l" ? 2 : -1;
+    nodes.forEach(el => {
+      if(el.dataset.fs0 === undefined){
+        const v = parseFloat(el.style.fontSize);
+        if(!Number.isFinite(v)) return;
+        el.dataset.fs0 = String(v);
+      }
+      const base = parseFloat(el.dataset.fs0);
+      if(base < 8 || base > 12) return; // the dust zone only
+      el.style.fontSize = Math.min(14, Math.max(8, base + delta)) + "px";
+    });
+  }
+
+  // Round 35 — AUTO NIGHT CHASSIS. When enabled, the color scheme follows
+  // the local hour (19:00–07:00 → dark). The interval only ever writes when
+  // the bucket CHANGES, so applyToDocument re-entrancy is bounded: set() →
+  // applyToDocument → applyAutoNight finds the mode already applied and
+  // stops. A manual scheme pick (settings-ui) clears autoNight — two
+  // writers on one key is how settings sheets learn to lie.
+  let nightTimer = null;
+  function nightModeFor(d){ const h = d.getHours(); return (h >= 19 || h < 7) ? "dark" : "light"; }
+  function applyAutoNight(){
+    if(nightTimer){ clearInterval(nightTimer); nightTimer = null; }
+    if(!current.autoNight) return;
+    const wanted = nightModeFor(new Date());
+    if(THEME_MODES.includes(wanted) && current.colorMode !== wanted) set({ colorMode: wanted });
+    nightTimer = setInterval(() => {
+      if(!current.autoNight){ if(nightTimer){ clearInterval(nightTimer); nightTimer = null; } return; }
+      const w = nightModeFor(new Date());
+      if(current.colorMode !== w) set({ colorMode: w });
+    }, 10 * 60 * 1000);
+  }
+  document.addEventListener("visibilitychange", () => {
+    if(!document.hidden && current.autoNight) applyAutoNight(); // re-check on return
+  });
 
   // Round 24 — Wake Lock ("keep awake"). A screen that dims mid-run kills
   // the flow the whole deck is built on; the API is exactly one request()
@@ -276,5 +348,5 @@ window.Settings = (function(){
 
   hydrate();
 
-  return { get, set, onChange, whenReady, wakeLockSupported, _internals: { migrateV4, DEFAULTS } };
+  return { get, set, onChange, whenReady, wakeLockSupported, applyTextScale, _internals: { migrateV4, DEFAULTS } };
 })();

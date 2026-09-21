@@ -128,23 +128,42 @@ Strip.register({
       clearInterval(countdownTimer);
       clearInterval(topupTimer);
       holes.forEach(h => h.textContent = "");
+      startBtn.className = "btn accent";
       startBtn.textContent = "Play again";
       startBtn.disabled = false;
+      const prevBest = best;
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#wm-best").textContent = best;
       });
+      // R35 ceremony adoption: the 30s round used to end in a stat-row
+      // flicker — the standard panel carries the run out with the honest
+      // delta and one verb back in.
+      RunCeremony.show(container, {
+        tone: "clear",
+        label: "TIME UP",
+        score: score,
+        unit: "moles",
+        delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+        deltaTone: score > prevBest ? "good" : "",
+        verb: "PLAY AGAIN",
+        onVerb: start,
+      });
     }
 
     function start(){
+      RunCeremony.hide(container); // a restart never fights the flourish
       score = 0; timeLeft = 30; wave = 1; running = true;
       active.forEach(t => clearTimeout(t));
       active.clear();
       q("#wm-score").textContent = 0;
       q("#wm-time").textContent = 30;
+      // R35 verb hierarchy: "Playing…" was a disabled accent control —
+      // mid-round the slot is a status chip, not a fake button.
+      startBtn.className = "status-chip";
       startBtn.disabled = true;
-      startBtn.textContent = "Playing…";
+      startBtn.textContent = "ROUND LIVE";
       topUp();
       topupTimer = setInterval(topUp, 260);
       countdownTimer = setInterval(tickCountdown, 1000);

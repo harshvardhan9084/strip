@@ -103,7 +103,9 @@ Strip.register({
     const log = document.createElement("div");
     log.id = "dp-log";
     log.style.cssText = "font-size:11px; color:var(--ink-dim); min-height:15px; text-align:center;";
-    log.textContent = "Five turns. Bank 50 before they're gone.";
+    // R35 single-hint rule: the log restated the shell hint's rules — it
+    // narrates STATE instead (turn structure, bank math, burn outcomes).
+    log.textContent = "Turn 1 of 5 — roll.";
     wrap.appendChild(log);
 
     // ---- controls ----
@@ -148,7 +150,7 @@ Strip.register({
       endBox.style.display = "none";
       btnRow.style.display = "flex";
       q("#dp-total").textContent = "0";
-      log.textContent = "Five turns. Bank 50 before they're gone.";
+      log.textContent = "Turn 1 of 5 — roll.";
       drawDots();
       drawDie(6, false);
       setPot();

@@ -83,6 +83,22 @@ Strip.register({
       draw();
     }
 
+    // R35 ACCESS: canvas can't take the CSS cb-symbols class, so the shape
+    // rides the draw call — each color also draws its glyph (▲ ● ■ ◆) in
+    // dark ink whenever the setting is on. Checked per frame: the toggle
+    // flips the board live, no remount.
+    const CB_ON = () => document.documentElement.classList.contains("cb-symbols");
+    const CB_GLYPHS = ["▲", "●", "■", "◆"];
+    function cbGlyph(idx, x, y, r){
+      if(!CB_ON()) return;
+      ctx.fillStyle = "rgba(10,10,14,.6)";
+      ctx.font = `${Math.max(8, Math.round(r * 1.15))}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(CB_GLYPHS[idx % CB_GLYPHS.length], x, y + 0.5);
+      ctx.textBaseline = "alphabetic"; // leave the ctx as we found it
+    }
+
     function draw(){
       ctx.clearRect(0,0,cw,ch);
       grid.forEach((row, r) => row.forEach((colorIdx, c) => {
@@ -90,11 +106,13 @@ Strip.register({
         const { x, y } = cellPos(r, c);
         ctx.fillStyle = COLORS[colorIdx];
         ctx.beginPath(); ctx.arc(x, y, R-1.5, 0, Math.PI*2); ctx.fill();
+        cbGlyph(colorIdx, x, y, R-1.5);
       }));
 
       if(flying){
         ctx.fillStyle = COLORS[flying.colorIdx];
         ctx.beginPath(); ctx.arc(flying.x, flying.y, R-1.5, 0, Math.PI*2); ctx.fill();
+        cbGlyph(flying.colorIdx, flying.x, flying.y, R-1.5);
       }
 
       const sx = cw/2, sy = ch - 20;
@@ -106,11 +124,13 @@ Strip.register({
       ctx.stroke();
       ctx.fillStyle = COLORS[shooter.colorIdx];
       ctx.beginPath(); ctx.arc(sx, sy, R-1.5, 0, Math.PI*2); ctx.fill();
+      cbGlyph(shooter.colorIdx, sx, sy, R-1.5);
       // Round 19: the NEXT bubble — a standard affordance that was missing
       // (planning shots one ahead is half the genre's skill)
       ctx.fillStyle = COLORS[nextColorIdx];
       ctx.globalAlpha = 0.55;
       ctx.beginPath(); ctx.arc(sx + R*2.4, sy, (R-1.5)*0.62, 0, Math.PI*2); ctx.fill();
+      cbGlyph(nextColorIdx, sx + R*2.4, sy, (R-1.5)*0.62);
       ctx.globalAlpha = 1;
 
       if(over){

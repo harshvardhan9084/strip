@@ -76,6 +76,7 @@ Strip.register({
     }
 
     function newGame(){
+      RunCeremony.hide(container); // a restart never fights the flourish
       tiles = Array.from({length: SIZE*SIZE-1}, (_,i) => i+1).concat(0);
       board.style.cssText = `display:grid; grid-template-columns:repeat(${SIZE},1fr); gap:6px; width:min(70vw,${SIZE * 62}px); height:min(70vw,${SIZE * 62}px);`;
       // shuffle via random valid moves from solved state -> always solvable
@@ -130,6 +131,7 @@ Strip.register({
         won = true;
         Feedback.buzz("win");
         api.gameover("win", moves);
+        const prevBest = best;
         if(moves < best){
           best = moves;
           bests[SIZES[sizeIdx].key] = moves;
@@ -140,6 +142,18 @@ Strip.register({
             api.save({ size: sizeIdx, bests }).catch(()=>{});
           }
         }
+        // R35 ceremony adoption: the solved board used to just go disabled —
+        // the standard panel announces it with the honest delta + verb.
+        RunCeremony.show(container, {
+          tone: "clear",
+          label: "SOLVED",
+          score: String(moves),
+          unit: "moves",
+          delta: moves < prevBest ? "NEW BEST" : "BEST " + prevBest,
+          deltaTone: moves < prevBest ? "good" : "",
+          verb: "SHUFFLE",
+          onVerb: newGame,
+        });
       }
       render();
       updateStat();

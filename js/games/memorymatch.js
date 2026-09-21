@@ -85,6 +85,7 @@ Strip.register({
     }
 
     function newGame(){
+      RunCeremony.hide(container); // a restart never fights the flourish
       const deck = shuffle(POOL.slice(0, S.pairs).flatMap(e => [e, e]));
       cards = deck.map(e => ({ emoji: e, flipped:false, matched:false }));
       flipped = []; matched = 0; moves = 0; busy = false;
@@ -142,6 +143,7 @@ Strip.register({
           if(matched === S.pairs){
             Feedback.buzz("win");
             api.gameover("win", moves);
+            const prevBest = best;
             if(moves < best){
               best = moves;
               bests[S.key] = moves;
@@ -153,6 +155,18 @@ Strip.register({
               }
             }
             updateStat();
+            // R35 ceremony adoption: SOLVED was a stat-row swap — the last
+            // pair now lands on the standard panel with the honest delta.
+            RunCeremony.show(container, {
+              tone: "clear",
+              label: "SOLVED",
+              score: String(moves),
+              unit: "moves",
+              delta: moves < prevBest ? "NEW BEST" : "BEST " + prevBest,
+              deltaTone: moves < prevBest ? "good" : "",
+              verb: "NEW GAME",
+              onVerb: newGame,
+            });
           }
         } else {
           Feedback.tone("fail");

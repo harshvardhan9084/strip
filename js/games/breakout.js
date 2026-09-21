@@ -24,7 +24,9 @@ Strip.register({
     const canvas = document.createElement("canvas");
     // R33 daylight screens: glass follows the chassis (light-only token);
     // dark keeps the raw hex via the var() fallback.
-    canvas.style.cssText = "width:min(70vw,240px); height:auto; aspect-ratio:240/320; border-radius:10px; background:var(--screen, #101018); touch-action:none; display:block;";
+    // R35 density wave: the field grew to fill the card (min(78vw,290px) —
+    // same 240×320 coordinate space, bigger pixels; physics untouched).
+    canvas.style.cssText = "width:min(78vw,290px); height:auto; aspect-ratio:240/320; border-radius:10px; background:var(--screen, #101018); touch-action:none; display:block;";
     wrap.appendChild(canvas);
     const ctx = canvas.getContext("2d");
 
@@ -59,6 +61,21 @@ Strip.register({
     startBtn.textContent = "Start";
     startBtn.addEventListener("click", launch);
     wrap.appendChild(startBtn);
+
+    // R35 verb hierarchy: "Playing…" was a disabled accent button doing
+    // scoreboard duty (audit: a status masquerading as a control). Mid-run
+    // the slot becomes a plain status chip — the accent verb only exists
+    // when it can actually fire.
+    function setVerbRunning(){
+      startBtn.disabled = true;
+      startBtn.className = "status-chip";
+      startBtn.textContent = "BALL " + Math.max(1, lives);
+    }
+    function setVerbIdle(text){
+      startBtn.disabled = false;
+      startBtn.className = "btn accent";
+      startBtn.textContent = text;
+    }
 
     container.appendChild(wrap);
 
@@ -97,8 +114,7 @@ Strip.register({
       // fresh match only when the last one is over — otherwise resume this run
       if(lives <= 0) startGame();
       running = true;
-      startBtn.disabled = true;
-      startBtn.textContent = "Playing…";
+      setVerbRunning();
       resetBall();
       lastTs = 0;
       rafId = requestAnimationFrame(tick);
@@ -173,6 +189,7 @@ Strip.register({
         } else {
           Feedback.buzz("lose");
           resetBall();
+          startBtn.textContent = "BALL " + lives; // the chip tracks the serve
         }
       }
     }
@@ -181,8 +198,7 @@ Strip.register({
       running = false;
       cancelAnimationFrame(rafId);
       Feedback.buzz("lose");
-      startBtn.disabled = false;
-      startBtn.textContent = "Wall won — retry";
+      setVerbIdle("Wall won — retry");
       const prevBest = best;
 api.gameover("over", score);
       api.setHighscore(score).then(v => { best = v; statUpdate(); });

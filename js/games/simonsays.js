@@ -37,9 +37,13 @@ Strip.register({
 
     container.appendChild(wrap);
 
-    const pads = COLORS.map(c => {
+    const pads = COLORS.map((c, i) => {
       const pad = document.createElement("button");
-      pad.style.cssText = `border:none; border-radius:12px; background:${c.hex}; cursor:pointer; transition:background .1s ease;`;
+      // R35 ACCESS: pads are color-only signals — data-cb carries the shape
+      // the colorblind-symbols setting shows (pure CSS, live flip).
+      pad.className = "simon-pad";
+      pad.dataset.cb = ["▲", "●", "■", "◆"][i];
+      pad.style.cssText = `position:relative; border:none; border-radius:12px; background:${c.hex}; cursor:pointer; transition:background .1s ease;`;
       grid.appendChild(pad);
       return pad;
     });
@@ -100,6 +104,7 @@ Strip.register({
       const finalRound = round - 1;
       startBtn.textContent = "Try again";
       startBtn.disabled = false;
+      const prevBest = best;
       if(finalRound > 0){
         api.gameover("over", finalRound);
         api.setHighscore(finalRound).then(v => {
@@ -107,9 +112,24 @@ Strip.register({
           q("#sm-best").textContent = best;
         });
       }
+      // R35 ceremony adoption: the fail state was a bare button relabel —
+      // now the broken sequence lands on the standard panel. Dying on the
+      // very first run still speaks, with an empty hero rather than a
+      // fake score (the store contract: nothing reported at 0).
+      RunCeremony.show(container, {
+        tone: "over",
+        label: "SEQUENCE BROKEN",
+        score: finalRound > 0 ? finalRound : null,
+        unit: finalRound > 0 ? "rounds" : null,
+        delta: finalRound > 0 ? (finalRound > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : "")) : "",
+        deltaTone: finalRound > 0 && finalRound > prevBest ? "good" : "",
+        verb: "TRY AGAIN",
+        onVerb: start,
+      });
     }
 
     function start(){
+      RunCeremony.hide(container); // a restart never fights the flourish
       sequence = []; round = 0; playerPos = 0;
       q("#sm-round").textContent = 0;
       startBtn.disabled = true;

@@ -34,11 +34,9 @@ Strip.register({
     };
     window.addEventListener("strip:mode-changed", onModeChanged);
 
-    const hint = document.createElement("div");
-    hint.style.cssText = "font-size:11px; color:var(--ink-dim);";
-    hint.textContent = "Tap the canvas to start";
-    wrap.appendChild(hint);
-
+    // R35 single-hint rule: the in-card "Tap the canvas to start" duplicated
+    // the shell hint — removed. The death moment's retry invitation is the
+    // ceremony panel's verb now.
     container.appendChild(wrap);
 
     const ctx = canvas.getContext("2d");
@@ -131,19 +129,31 @@ Strip.register({
       if(!running) return; // a single frame can collide several pipes plus the floor — only end once
       running = false;
       Feedback.buzz("fail");
-      hint.textContent = "Tap to try again";
+      const prevBest = best;
 api.gameover("over", score);
       api.setHighscore(score).then(v => {
         best = v;
         q("#fd-best").textContent = best;
       });
+      // R35 ceremony adoption: death used to be an 11px line at the field's
+      // bottom edge — the standard panel carries the run out, centered.
+      RunCeremony.show(container, {
+        tone: "over",
+        label: "DOWN",
+        score: score,
+        unit: "bars",
+        delta: score > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""),
+        deltaTone: score > prevBest ? "good" : "",
+        verb: "FLY AGAIN",
+        onVerb: flapOrStart,
+      });
     }
 
     function flapOrStart(){
       if(!running){
+        RunCeremony.hide(container); // tapping the glass skips the flourish
         reset();
         running = true;
-        hint.textContent = "";
       }
       Feedback.tone("tap");
       vel = FLAP;

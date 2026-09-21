@@ -38,7 +38,10 @@ Strip.register({
     clearBtn.className = "btn";
     clearBtn.textContent = "Clear";
     const skipBtn = document.createElement("button");
-    skipBtn.className = "btn purple";
+    // R35 verb hierarchy: Skip wore the purple accent while the game's real
+    // verb (tapping letters into the amber slot) had no button at all —
+    // demoted to a plain secondary control.
+    skipBtn.className = "btn";
     skipBtn.textContent = "Skip";
     controls.appendChild(clearBtn);
     controls.appendChild(skipBtn);
@@ -128,7 +131,22 @@ Strip.register({
         setTimeout(newWord, 500);
       } else {
         Feedback.tone("fail"); Feedback.haptic("medium");
+        const dead = runStreak;
         runStreak = 0;
+        // R35 ceremony adoption: a real streak (3+) dying used to be a
+        // 400ms tile reset with nothing said — the panel gives the run its
+        // honest goodbye. Short streaks keep the quiet reset (a 1-word
+        // stumble isn't a run worth interrupting).
+        if(dead >= 3){
+          RunCeremony.show(container, {
+            tone: "over",
+            label: "STREAK BROKEN",
+            score: dead,
+            unit: "streak",
+            delta: best ? "BEST " + best : "",
+            verb: "NEXT WORD",
+          });
+        }
         setTimeout(() => { chosen = []; renderLetters(); renderAnswer(); }, 400);
       }
     }

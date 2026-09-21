@@ -180,6 +180,9 @@
       }
       entry.cleanup = typeof cleanup === "function" ? cleanup : null;
       entry.mounted = true;
+      // R35 ACCESS: a card mounted after a text-size choice still gets the
+      // scale pass (the boot pass can't have seen this DOM). No-op at "m".
+      try{ window.Settings && Settings.applyTextScale && Settings.applyTextScale(body); }catch(e){}
     }).catch(err => {
       entry.mounting = false;
       console.error("Failed to mount", entry.mod.id, err);

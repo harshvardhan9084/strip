@@ -59,6 +59,9 @@ Strip.register({
         const [x,y] = cellCenter(r,c);
         const dot = document.createElement("div");
         dot.className = "dot";
+        // R35 ACCESS: four colors, four shapes — data-cb feeds the CSS
+        // overlay while the colorblind-symbols setting is on.
+        dot.dataset.cb = ["▲", "●", "■", "◆"][colorIdx];
         const inChain = chain.some(([cr,cc]) => cr===r && cc===c);
         dot.style.cssText = `
           position:absolute; left:${x - CELL*0.32}px; top:${y - CELL*0.32}px;

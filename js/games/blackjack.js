@@ -35,8 +35,21 @@ Strip.register({
     const table = document.createElement("div");
     // Round 25: the felt is a SHELL surface (not a CRT screen), so it follows
     // the chassis via --felt — dark ink on it stays legible on the paper rig.
-    table.style.cssText = "width:min(78vw,280px); min-height:150px; border-radius:12px; background:var(--felt, rgba(16,16,24,.8)); padding:10px; display:flex; flex-direction:column; gap:8px;";
+    table.style.cssText = "position:relative; width:min(78vw,280px); min-height:150px; border-radius:12px; background:var(--felt, rgba(16,16,24,.8)); padding:10px; display:flex; flex-direction:column; gap:8px;";
     wrap.appendChild(table);
+
+    // R35 density wave: an idle table was a pure black rectangle — the audit's
+    // "the game never visually happened in 10 shots". A face-down shoe now
+    // sits on the felt's corner at all times; the deal spreads from it.
+    const shoe = document.createElement("div");
+    shoe.setAttribute("aria-hidden", "true");
+    shoe.style.cssText = "position:absolute; top:10px; right:12px; width:24px; height:34px; pointer-events:none;";
+    for(let i=0;i<3;i++){
+      const c = document.createElement("div");
+      c.style.cssText = `position:absolute; inset:0; transform:translate(${i*2.5}px,${-i*2.5}px); background:var(--panel-2); border:1px solid var(--line); border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,.4);`;
+      shoe.appendChild(c);
+    }
+    table.appendChild(shoe);
 
     const dealerRow = document.createElement("div");
     dealerRow.style.cssText = "display:flex; gap:5px; min-height:44px; align-items:center;";
@@ -178,6 +191,13 @@ Strip.register({
       standBtn.disabled = phase !== "play";
       doubleBtn.disabled = phase !== "play" || player.length !== 2 || bank < bet * 2;
       [dealBtn, hitBtn, standBtn, doubleBtn].forEach(b => { b.style.opacity = b.disabled ? ".45" : "1"; });
+      // R35 verb hierarchy: the betting phase shows exactly ONE verb (Deal);
+      // the play phase swaps the row to Hit/Stand/Double. Four permanent
+      // buttons with three at 45% opacity was how Deal "hid among equals"
+      // (audit: the one verb that matters wasn't visually first).
+      const betting = phase === "bet";
+      dealBtn.style.display = betting ? "" : "none";
+      [hitBtn, standBtn, doubleBtn].forEach(b => { b.style.display = betting ? "none" : ""; });
       const pv = player.length ? handValue(player) : 0;
       msgEl.textContent = msg || (phase === "play" ? `you: ${pv}` : phase === "bet" ? (bet > 0 ? `betting ${bet} — press Deal` : "place a chip") : "");
     }

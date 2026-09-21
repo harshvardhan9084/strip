@@ -11,6 +11,8 @@
   const modeBtns = Array.from(document.querySelectorAll(".mode-seg-btn"));
   // Round 25 — screen glow dial (full/soft/off → one --glow-mul attribute)
   const glowBtns = Array.from(document.querySelectorAll(".glow-seg-btn"));
+  // Round 35 — text size dial (S/M/L → html[data-text-size] + the inline pass)
+  const tsizeBtns = Array.from(document.querySelectorAll(".tsize-seg-btn"));
   // Round 24 — wake lock support: the control is only real where the API ships
   const wakeLockToggle = document.getElementById("wakelock-toggle");
   const wakeLockNote = document.getElementById("wakelock-note");
@@ -172,8 +174,29 @@
   }
   modeBtns.forEach(b => {
     b.addEventListener("click", () => {
-      if(Settings.get().colorMode === b.dataset.modeValue) return;
-      Settings.set({ colorMode: b.dataset.modeValue });
+      if(Settings.get().colorMode === b.dataset.modeValue && !Settings.get().autoNight) return;
+      // R35: a manual scheme pick is a human writer — auto night stands down
+      // so the clock never overrides it ten minutes later.
+      Settings.set({ colorMode: b.dataset.modeValue, autoNight: false });
+      Feedback.uiTone("toggle");
+      Feedback.haptic("light");
+    });
+  });
+
+  // ---------- Round 35 — text size dial ----------
+  // Same contract as the glow dial: one key, instant re-grade. CSS-owned
+  // sizes follow html[data-text-size]; the game-owned inline sizes move
+  // through Settings.applyTextScale (idempotent, base-pinned per element).
+  function syncTSizeBtns(settings){
+    const cur = settings.textSize || "m";
+    tsizeBtns.forEach(b => {
+      b.setAttribute("aria-pressed", b.dataset.textsizeValue === cur ? "true" : "false");
+    });
+  }
+  tsizeBtns.forEach(b => {
+    b.addEventListener("click", () => {
+      if(Settings.get().textSize === b.dataset.textsizeValue) return;
+      Settings.set({ textSize: b.dataset.textsizeValue });
       Feedback.uiTone("toggle");
       Feedback.haptic("light");
     });
@@ -395,6 +418,6 @@
   });
 
   // reflect settings changes made anywhere (e.g. the lock button) back into the panel toggles
-  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
-  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); syncWakeLockSupport(); });
+  Settings.onChange((s) => { syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncTSizeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); });
+  Settings.whenReady().then(() => { const s = Settings.get(); syncToggles(s); syncThemeBtns(s); syncModeBtns(s); syncGlowBtns(s); syncTSizeBtns(s); syncNudgeHealth(); syncVolume(s); syncStrength(s); syncWakeLockSupport(); });
 })();

@@ -134,7 +134,6 @@ Strip.register({
       <div style="height:8px; background:var(--bg); border-radius:4px; overflow:hidden;">
         <div id="ah-vault-bar" style="height:100%; width:0%; background:linear-gradient(90deg, var(--amber), var(--purple)); transition:width .3s ease;"></div>
       </div>
-      <div style="font-size:9px; color:var(--ink-dim); margin-top:6px;">Tap to collect into Food</div>
     `;
 
     const hillBtn = document.createElement("button");

@@ -53,9 +53,12 @@ Strip.register({
     }catch(e){}
 
     function updateGoalLine(){
-      const base = "goal — grow a blob to 8";
-      const rec = " · drag a blob off the board to recycle it";
-      const ever = maxStageEver > 1 ? ` · best ever ${maxStageEver+1}` : "";
+      // R35 single-hint rule: the goal line was a 3-clause paragraph that
+      // wrapped into story text at 11px (the audit's unreadable goal).
+      // Compressed to one glanceable line; the shell hint owns the how-to.
+      const base = "GOAL blob 8";
+      const rec = " · off-board recycles";
+      const ever = maxStageEver > 1 ? ` · best ${maxStageEver+1}` : "";
       noteEl.textContent = base + rec + ever;
     }
 

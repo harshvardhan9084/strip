@@ -94,6 +94,7 @@ Strip.register({
     }
 
     function newPhrase(){
+      RunCeremony.hide(container); // a restart never fights the flourish
       phrase = PHRASES[Math.floor(Math.random()*PHRASES.length)];
       startTime = null;
       done = false;
@@ -127,6 +128,7 @@ Strip.register({
         const wpm = Math.round((words / seconds) * 60);
         const acc = accuracy();
         q("#ty-score").textContent = wpm;
+        const prevBest = best;
         if(acc >= 80){
           Feedback.buzz("success");
           api.gameover("win", wpm);
@@ -140,6 +142,21 @@ Strip.register({
           q("#ty-acc").innerHTML = `<span style="color:var(--danger)">${acc}%</span>`;
           phraseBox.title = "Accuracy below 80% — this run can't set a best";
         }
+        // R35 ceremony adoption: a finished phrase was a stat-row update —
+        // the panel carries the WPM out, and a sub-80% run says WHY it
+        // scored nothing instead of going quiet.
+        RunCeremony.show(container, {
+          tone: acc >= 80 ? "win" : "over",
+          label: acc >= 80 ? "TYPED" : "UNDER 80%",
+          score: String(wpm),
+          unit: "wpm",
+          delta: acc >= 80
+            ? (wpm > prevBest ? "NEW BEST" : (prevBest ? "BEST " + prevBest : ""))
+            : acc + "% accurate — no best",
+          deltaTone: acc >= 80 && wpm > prevBest ? "good" : "",
+          verb: "NEW PHRASE",
+          onVerb: newPhrase,
+        });
       }
     });
 
