@@ -20,7 +20,7 @@ Strip.register({
     ];
     const INV = 100000;
     const saved0 = await api.load().catch(() => null);
-    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 0;
+    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, Math.floor(saved0.size))) : 0;
     const bests = saved0 && saved0.bests ? saved0.bests : {};
     const stored = await api.getHighscore();
     let bestClassic = stored ? INV - stored : Infinity;
@@ -74,6 +74,7 @@ Strip.register({
     container.appendChild(wrap);
 
     let cards, flipped, matched, moves, busy;
+    let flipTimer = null; // the 700ms mismatch flip-back — armed while a size switch or New game can rebuild the deck under it
 
     function shuffle(arr){
       const a = arr.slice();
@@ -85,6 +86,7 @@ Strip.register({
     }
 
     function newGame(){
+      if(flipTimer){ clearTimeout(flipTimer); flipTimer = null; } // a stale flip-back must never index the NEW deck (size switch → cards[a] undefined → throw)
       RunCeremony.hide(container); // a restart never fights the flourish
       const deck = shuffle(POOL.slice(0, S.pairs).flatMap(e => [e, e]));
       cards = deck.map(e => ({ emoji: e, flipped:false, matched:false }));
@@ -172,7 +174,8 @@ Strip.register({
           }
         } else {
           Feedback.tone("fail");
-          setTimeout(() => {
+          flipTimer = setTimeout(() => {
+            flipTimer = null;
             cards[a].flipped = false; cards[b].flipped = false;
             flipped = []; busy = false;
             renderBoard();
@@ -184,5 +187,7 @@ Strip.register({
 
     paintSizes();
     newGame();
+
+    return () => { if(flipTimer) clearTimeout(flipTimer); };
   }
 });

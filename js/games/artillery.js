@@ -28,6 +28,14 @@ Strip.register({
   async mount(container, api){
     const saved = await api.load();
     const state = Object.assign({ wins: 0, losses: 0, difficulty: "medium", streak: 0 }, saved || {});
+    // sanitize the loaded blob (rule 10): a corrupt/legacy difficulty falls
+    // through the skill lookup as undefined → NaN angle/power → a shot whose
+    // every bounds comparison is false, so the projectile loop spins forever
+    // and FIRE stays dead for the whole duel.
+    if(["easy","medium","hard"].indexOf(state.difficulty) < 0) state.difficulty = "medium";
+    if(!Number.isFinite(state.wins)) state.wins = 0;
+    if(!Number.isFinite(state.losses)) state.losses = 0;
+    if(!Number.isFinite(state.streak)) state.streak = 0;
     let best = await api.getHighscore(); // best = longest duel win streak
 
     // Round 19 (AUDIT.md — Artillery P1): one hit = instant end gave the duel
@@ -297,6 +305,7 @@ Strip.register({
       const angle = parseFloat(angleCtrl.input.value);
       const power = parseFloat(powerCtrl.input.value);
       const result = await fire("player", angle, power);
+      if(disposed) return; // unmount resolved the shot — never touch the dead card
       if(result.didHit){
         aiHP--;
         updateStat();
@@ -356,6 +365,7 @@ Strip.register({
       power = Math.max(10, Math.min(100, power));
 
       const result = await fire("ai", angle, power);
+      if(disposed) return;
       aiMemory = { lastAngle: angle, lastPower: power, lastLandX: result.landX };
 
       if(result.didHit){
@@ -399,8 +409,8 @@ Strip.register({
     function updateStat(){
       const hearts = (n) => "♥".repeat(n) + "♡".repeat(Math.max(0, 3 - n));
       api.setStats([
-        { label: "YOU", value: hearts(playerHP || 3), color: "var(--amber)" },
-        { label: "AI", value: hearts(aiHP || 3), color: "var(--purple)" },
+        { label: "YOU", value: hearts(playerHP ?? 3), color: "var(--amber)" },
+        { label: "AI", value: hearts(aiHP ?? 3), color: "var(--purple)" },
         { label: "W-L", value: state.wins + "-" + state.losses, color: "var(--ink)" },
         { label: "STREAK", value: String(state.streak || 0), color: "var(--ink)" },
       ]);

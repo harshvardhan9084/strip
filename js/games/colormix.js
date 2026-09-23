@@ -18,7 +18,11 @@ Strip.register({
     // update the stale copy instead of the visible one
     const q = (sel) => container.querySelector(sel);
     const state = (await api.load()) || { matched: 0 };
+    // sanitize what loaded (house rule 10): a junk matched used to render as
+    // "undefined" and then NaN once incremented
+    state.matched = Number.isFinite(state.matched) ? state.matched : 0;
     let tweakCount = 0; // resets each new target — the per-match skill metric
+    let solved = false; // one win per target — slider input keeps firing after a match
     let best = await api.getHighscore();
 
     const wrap = document.createElement("div");
@@ -83,7 +87,9 @@ Strip.register({
     function newTarget(){
       target = randColor();
       rgb = [128,128,128];
+      sliderEls.forEach(s => s.value = 128); // thumbs follow the reset mix — they used to keep the old target's positions while the swatch snapped to grey
       tweakCount = 0; // fresh target, fresh tweak budget
+      solved = false; // fresh target, fresh win
       targetSwatch.style.background = `rgb(${target.join(",")})`;
       updateMix();
       matchNote.textContent = "";
@@ -93,6 +99,7 @@ Strip.register({
       mixSwatch.style.background = `rgb(${rgb.join(",")})`;
     }
 
+    const sliderEls = [];
     ["R","G","B"].forEach((label, i) => {
       const row = document.createElement("div");
       row.style.cssText = "display:flex; align-items:center; gap:8px;";
@@ -112,6 +119,7 @@ Strip.register({
       row.appendChild(tag);
       row.appendChild(slider);
       sliders.appendChild(row);
+      sliderEls.push(slider);
     });
 
     function dist(){
@@ -119,8 +127,10 @@ Strip.register({
     }
 
     function checkMatch(){
+      if(solved) return; // the win already paid — a drag inside the threshold fires input per pixel
       const d = dist();
       if(d < 22){
+        solved = true;
         matchNote.textContent = "Matched!";
         matchNote.style.color = "var(--amber)";
         Feedback.buzz("success");

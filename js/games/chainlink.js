@@ -57,6 +57,10 @@ Strip.register({
     const CELL = 240 / SIZE;
 
     function newGame(){
+      // the board IS the run: its score banks exactly once, here at the only
+      // reset boundary — the old per-chain gameover paid the shell's run
+      // ladder on every pop (XP/mission farming, depth spam)
+      if(score > 0){ try{ api.gameover("over", score); }catch(e){} }
       grid = Array.from({length:SIZE}, () => Array(SIZE).fill(0).map(() => Math.floor(Math.random()*COLORS.length)));
       score = 0;
       chain = [];
@@ -117,7 +121,8 @@ Strip.register({
     }
 
     function isAdjacent(a,b){
-      return Math.abs(a[0]-b[0]) <= 1 && Math.abs(a[1]-b[1]) <= 1 && !(a[0]===b[0]&&a[1]===b[1]);
+      // orthogonal steps only — GAMES.md pins "diagonals don't connect"
+      return Math.abs(a[0]-b[0]) + Math.abs(a[1]-b[1]) === 1;
     }
 
     function onStart(e){
@@ -129,6 +134,7 @@ Strip.register({
       render();
     }
     function onMove(e){
+      if(window.StripShell && !StripShell.isActive(container)) return;
       if(!dragging) return;
       if(e.cancelable) e.preventDefault();
       const t = e.touches ? e.touches[0] : e;
@@ -154,6 +160,7 @@ Strip.register({
       }
     }
     function onEnd(){
+      if(window.StripShell && !StripShell.isActive(container)) return;
       if(!dragging) return;
       dragging = false;
       if(chain.length >= 3){
@@ -167,7 +174,6 @@ Strip.register({
         const title = n >= 12 ? "EPIC" : n >= 8 ? "GREAT" : n >= 5 ? "GOOD" : null;
         if(title) showChainTitle(title, n);
         if(n >= 8) Feedback.buzz("win");
-        api.gameover("over", score);
         if(score > best){
           best = score;
           api.setHighscore(best);
@@ -222,6 +228,7 @@ Strip.register({
     newGame();
 
     return () => {
+      clearTimeout(chainTitleTimer);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onEnd);
       window.removeEventListener("touchend", onEnd);

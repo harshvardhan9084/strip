@@ -186,7 +186,7 @@ Strip.register({
       spawnPoint = { r: 0, c: 0 };
       basePoint = { r: ROWS-1, c: COLS-1 };
       gold = 60; lives = 12; wave = 0;
-      enemies = []; towers = []; projectiles = [];
+      enemies = []; towers = []; projectiles = []; floats = [];
       waveActive = false; gameOver = false;
       selectTower(null);
       path = bfsPath(grid);
@@ -274,7 +274,7 @@ Strip.register({
         upBtn.textContent = `Upgrade ${cost}g`;
       }
       sellBtn.textContent = `Sell +${sellValue(t)}g`;
-      panelInfo.innerHTML = `<b style="color:${s.color}">${name} ${lv}</b> · dmg ${s.dmg.toFixed(0)} · rng ${s.range.toFixed(1)}<br>` +
+      panelInfo.innerHTML = `<b style="color:${TOWER_TYPES[t.type].cssVar}">${name} ${lv}</b> · dmg ${s.dmg.toFixed(0)} · rng ${s.range.toFixed(1)}<br>` +
         (t.level >= MAX_LEVEL
           ? `<span style="color:var(--ink-dim)">fully upgraded</span>`
           : `<span style="color:var(--ink-dim)">next: dmg ×1.4 · rng +6% · rate +5%</span>`);
@@ -507,6 +507,7 @@ Strip.register({
       lastTick = now;
       if(!gameOver) update(dt);
       render();
+      renderFloats(dt);
       rafId = requestAnimationFrame(gameLoop);
     }
     let rafId = requestAnimationFrame(gameLoop);

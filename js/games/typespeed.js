@@ -59,6 +59,7 @@ Strip.register({
     input.autocapitalize = "off";
     input.autocomplete = "off";
     input.spellcheck = false;
+    input.autocorrect = "off"; // iOS word-replacement mutates the input mid-run — false mistakes + multi-char insertions the keystroke judge can't score
     // honesty guard: a pasted phrase lands in one input event and scores an
     // absurd WPM (observed 420000 in testing) that then sits on the BEST line
     // forever. Typing is the entire point of the cartridge — block paste and
@@ -142,7 +143,7 @@ Strip.register({
         input.disabled = true;
         const seconds = (Date.now() - startTime) / 1000;
         const words = phrase.split(" ").length;
-        const wpm = Math.round((words / seconds) * 60);
+        const wpm = seconds > 0 ? Math.round((words / seconds) * 60) : 0; // a same-event completion (autofill) must not divide by zero → Infinity best
         const acc = accuracy();
         statVals["ty-score"] = wpm; renderStats();
         const prevBest = best;

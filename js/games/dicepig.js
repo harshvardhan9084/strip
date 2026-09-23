@@ -48,11 +48,11 @@ Strip.register({
     // header's span ids live on as value keys so update sites stay one-liners.
     const statVals = {
       "dp-total": "0",
-      "dp-best": "' + best + '",
+      "dp-best": String(best),
     };
     const STAT_KEYS = [
       ["dp-total", "BANKED", "var(--amber)", null],
-      [null, "GOAL", "var(--ink)", "' + GOAL + '"],
+      [null, "GOAL", "var(--ink)", String(GOAL)],
       ["dp-best", "BEST", "var(--purple)", null],
     ];
     function renderStats(){
@@ -191,13 +191,15 @@ Strip.register({
 
     // dice roll animation: a short pip shuffle so the roll FEELS rolled
     let rolling = false;
+    let rollIv = null;
     function rollAnim(final, done){
       rolling = true;
       let n = 0;
-      const iv = setInterval(() => {
+      rollIv = setInterval(() => {
         drawDie(1 + Math.floor(Math.random() * 6), false);
         if(++n >= 6){
-          clearInterval(iv);
+          clearInterval(rollIv);
+          rollIv = null;
           drawDie(final, final === 1);
           rolling = false;
           done();
@@ -230,6 +232,15 @@ Strip.register({
       // ONE gameover at the natural end — the shell pays the run ladder,
       // missions and depth from this single honest call.
       try{ api.gameover(win ? "win" : "over", total); }catch(e){}
+      // the banked total IS the max-wins score — record it (guarded on a real
+      // beat: setHighscore stores what it is given, so only a genuine best)
+      if(total > best){
+        api.setHighscore(total).then(v => {
+          best = v;
+          statVals["dp-best"] = String(best);
+          renderStats();
+        });
+      }
     }
 
     rollBtn.addEventListener("click", () => {
@@ -310,6 +321,7 @@ Strip.register({
 
     // cleanup — the mount contract: stop every listener when scrolled away
     return () => {
+      if(rollIv) clearInterval(rollIv); // a mid-shuffle unmount must not leave the pips ticking
       window.removeEventListener("keydown", onKey);
     };
   }

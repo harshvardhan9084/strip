@@ -73,6 +73,8 @@ Strip.register({
     });
 
     let sequence = [], playerPos = 0, accepting = false, round = 0;
+    let dead = false; // unmount kills the playback chain — without it the
+                      // WATCH→flash loop plays tones forever in a dead card
 
     const PAD_FREQS = [329.6, 415.3, 523.3, 622.3]; // distinct pitch per pad
 
@@ -90,12 +92,16 @@ Strip.register({
     }
 
     async function playSequence(){
+      if(dead) return;
       accepting = false;
       turnChip.textContent = "WATCH\u2026";
       await new Promise(r => setTimeout(r, 500));
+      if(dead) return;
       for(const i of sequence){
+        if(dead) return;
         await flash(i, Math.max(220, 400 - round*10));
       }
+      if(dead) return;
       accepting = true;
       playerPos = 0;
       // the banner is the turn handoff: the number is the sequence LENGTH
@@ -104,6 +110,7 @@ Strip.register({
     }
 
     function nextRound(){
+      if(dead) return;
       round++;
       sequence.push(Math.floor(Math.random()*4));
       statVals["sm-round"] = round; renderStats();
@@ -111,7 +118,7 @@ Strip.register({
     }
 
     function padTap(i){
-      if(!accepting) return;
+      if(!accepting || dead) return;
       Feedback.haptic("light");
       flash(i, 150);
       if(sequence[playerPos] !== i){
@@ -169,5 +176,7 @@ Strip.register({
 
     pads.forEach((pad, i) => pad.addEventListener("click", () => padTap(i)));
     startBtn.addEventListener("click", start);
+
+    return () => { dead = true; }; // stops any playback chain mid-flight
   }
 });

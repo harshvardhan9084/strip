@@ -64,6 +64,24 @@ Strip.register({
       milestones: Object.assign({}, saved.milestones),
       history: Object.assign({}, DEFAULT.history, saved.history),
     }) : DEFAULT;
+    // rule 10 — sanitize the loaded blob: one non-finite number would
+    // NaN-poison the market (Math.max(1, NaN) is NaN) and autosave would
+    // make the poison permanent
+    const num = (v, fb) => (Number.isFinite(v) ? v : fb);
+    state.gold = num(state.gold, 100);
+    state.cap = Math.max(40, num(state.cap, 40));
+    state.traders = Math.min(TRADER_MAX, Math.max(0, Math.floor(num(state.traders, 0))));
+    state.guild = Math.min(GUILD_TIERS.length, Math.max(0, Math.floor(num(state.guild, 0))));
+    state.lastSeen = num(state.lastSeen, Date.now());
+    if(state.event && (!Number.isFinite(state.event.until) || !Number.isFinite(state.event.mult))) state.event = null;
+    if(state.caravan && (!Number.isFinite(state.caravan.until) || !Number.isFinite(state.caravan.stake))) state.caravan = null;
+    GOODS.forEach(g => {
+      state.stock[g.key] = Math.max(0, num(state.stock[g.key], 0));
+      state.wobble[g.key] = Math.min(1.15, Math.max(0.85, num(state.wobble[g.key], 1)));
+      state.phase[g.key] = num(state.phase[g.key], Math.random() * Math.PI * 2);
+      if(!Array.isArray(state.history[g.key])) state.history[g.key] = [];
+      else state.history[g.key] = state.history[g.key].filter(Number.isFinite).slice(-30);
+    });
     let best = await api.getHighscore(); // best = peak net worth ever
     let tradeSize = 1; // 1 | 10 | "max"
 

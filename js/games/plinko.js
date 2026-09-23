@@ -9,7 +9,12 @@ Strip.register({
     // cartridge coexist briefly in the strip, and getElementById could
     // update the stale copy instead of the visible one
     const q = (sel) => container.querySelector(sel);
-    const state = (await api.load()) || { drops: 0, totalScore: 0 };
+    // rule 10 — re-clone the loaded state: a corrupted record can come back as
+    // a non-object, and non-finite drops/totalScore would poison the stat row
+    const loaded = await api.load();
+    const state = (loaded && typeof loaded === "object") ? loaded : { drops: 0, totalScore: 0 };
+    if(!Number.isFinite(state.drops)) state.drops = 0;
+    if(!Number.isFinite(state.totalScore)) state.totalScore = 0;
     let best = await api.getHighscore();
 
     const wrap = document.createElement("div");
@@ -69,6 +74,7 @@ Strip.register({
     let cw, ch;
     function fit(){
       const rect = canvas.getBoundingClientRect();
+      if(!rect.width) return; // unmeasured canvas — refuse, or pegs/slots build on NaN geometry
       canvas.width = rect.width * devicePixelRatio;
       canvas.height = rect.height * devicePixelRatio;
       ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
@@ -97,6 +103,7 @@ Strip.register({
     requestAnimationFrame(fit);
 
     function drop(){
+      if(!cw) return; // fit() never measured the board — a ball now would be a NaN zombie
       api.tend(); // Round 24: every drop is a tend (missions feed on it)
       balls.push({
         x: cw/2 + (Math.random()-0.5)*10,
@@ -150,25 +157,32 @@ Strip.register({
       lastFrame = now;
       balls.forEach(b => {
         if(b.settled) return;
-        b.vy += 0.25 * dtF;
-        b.x += b.vx * dtF;
-        b.y += b.vy * dtF;
-        b.vx *= Math.pow(0.995, dtF);
+        // sub-step fast balls so a jank spike (dtF clamps at 3) can never
+        // tunnel one clean through a peg: every sub-step moves < 6px, well
+        // inside the 9px peg collision radius, and the peg check runs per
+        // sub-step. Slow balls keep the exact single-step physics (sub = 1).
+        const sub = Math.max(1, Math.ceil((Math.abs(b.vx) + Math.abs(b.vy)) * dtF / 6));
+        for(let s = 0; s < sub; s++){
+          b.vy += 0.25 * dtF / sub;
+          b.x += b.vx * dtF / sub;
+          b.y += b.vy * dtF / sub;
+          b.vx *= Math.pow(0.995, dtF / sub);
 
-        pegs.forEach(p => {
-          const dx = b.x-p.x, dy = b.y-p.y;
-          const dist = Math.hypot(dx,dy);
-          if(dist < BALL_R + PEG_R){
-            const nx = dx/dist, ny = dy/dist;
-            b.x = p.x + nx*(BALL_R+PEG_R);
-            b.y = p.y + ny*(BALL_R+PEG_R);
-            b.vx = nx * 1.5 + (Math.random()-0.5)*0.8;
-            b.vy = Math.max(0.5, ny * 1.5);
-          }
-        });
+          pegs.forEach(p => {
+            const dx = b.x-p.x, dy = b.y-p.y;
+            const dist = Math.hypot(dx,dy);
+            if(dist < BALL_R + PEG_R){
+              const nx = dx/dist, ny = dy/dist;
+              b.x = p.x + nx*(BALL_R+PEG_R);
+              b.y = p.y + ny*(BALL_R+PEG_R);
+              b.vx = nx * 1.5 + (Math.random()-0.5)*0.8;
+              b.vy = Math.max(0.5, ny * 1.5);
+            }
+          });
 
-        if(b.x < BALL_R){ b.x = BALL_R; b.vx *= -0.5; }
-        if(b.x > cw-BALL_R){ b.x = cw-BALL_R; b.vx *= -0.5; }
+          if(b.x < BALL_R){ b.x = BALL_R; b.vx *= -0.5; }
+          if(b.x > cw-BALL_R){ b.x = cw-BALL_R; b.vx *= -0.5; }
+        }
 
         if(b.y > ch - 40 && !b.settled){
           b.settled = true;

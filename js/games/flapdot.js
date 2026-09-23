@@ -57,6 +57,7 @@ Strip.register({
     const ctx = canvas.getContext("2d");
     function fitCanvas(){
       const rect = canvas.getBoundingClientRect();
+      if(!rect.width) return; // never measured — keep the old backing store rather than a 0×0 canvas
       canvas.width = rect.width * devicePixelRatio;
       canvas.height = rect.height * devicePixelRatio;
       ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
@@ -73,7 +74,9 @@ Strip.register({
     function reset(){
       dotY = 100; vel = 0; pipes = []; score = 0; running = false;
       statVals["fd-score"] = 0; renderStats();
-      spawnPipe();
+      // no spawnPipe() here: at mount-time reset the canvas is not fitted yet,
+      // so the pipe would compute its gap against the 300×150 default — the
+      // loop's empty-pipes rule spawns the first bar with real geometry
     }
 
     function spawnPipe(){
@@ -99,7 +102,7 @@ Strip.register({
 
         pipes.forEach(p => p.x -= currentSpeed() * dtF);
         if(pipes.length && pipes[0].x < -PIPE_W) pipes.shift();
-        if(pipes.length && pipes[pipes.length-1].x < w - 140) spawnPipe();
+        if(!pipes.length || pipes[pipes.length-1].x < w - 140) spawnPipe();
 
         pipes.forEach(p => {
           if(!p.passed && p.x + PIPE_W < 40){

@@ -102,7 +102,13 @@ Strip.register({
       const d = new Date(Date.now() - 86400000);
       return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
     }
-    let daily = stored && stored.daily ? stored.daily : { last: "", streak: 0 };
+    // fresh factory + sanitize — a legacy save can carry anything (rule 10);
+    // an unsanitized daily.streak once string-concated on the win path
+    let daily = { last: "", streak: 0 };
+    if(stored && stored.daily){
+      if(typeof stored.daily.last === "string") daily.last = stored.daily.last;
+      if(Number.isFinite(stored.daily.streak)) daily.streak = stored.daily.streak;
+    }
     let mode = "daily";   // "daily" | "free"
     let dailyDone = daily.last === todayStr();
     function dailyAnswer(){
@@ -222,8 +228,11 @@ Strip.register({
       }
     }
 
+    const tos = []; // every UI-revert timeout lands here so unmount kills them all
+    const later = (fn, ms) => { tos.push(setTimeout(fn, ms)); };
+
     function flashRow(){
-      rowEls[row].forEach(t => { t.style.borderColor = "var(--danger)"; setTimeout(() => { t.style.borderColor = "var(--line)"; }, 250); });
+      rowEls[row].forEach(t => { t.style.borderColor = "var(--danger)"; later(() => { t.style.borderColor = "var(--line)"; }, 250); });
     }
 
     function submit(){
@@ -231,7 +240,7 @@ Strip.register({
       if(!isLegalGuess(guess)){
         flashRow();
         statUpdate(`<span style="color:var(--danger)">not in word list</span>`);
-        setTimeout(() => statUpdate(), 1200);
+        later(() => statUpdate(), 1200);
         return;
       }
       // two-pass coloring: greens first, then yellows from remaining letter pool —
@@ -248,7 +257,9 @@ Strip.register({
       }
       for(let i = 0; i < LEN; i++){
         const t = rowEls[row][i];
-        t.style.background = result[i] === 2 ? "#4E9A5B" : result[i] === 1 ? "#B08A2E" : "#33333D";
+        // R33: the absent-gray is a SURFACE (unlike the green/yellow pieces) —
+        // it must follow the chassis. var() fallback keeps dark mode's raw hex.
+        t.style.background = result[i] === 2 ? "#4E9A5B" : result[i] === 1 ? "#B08A2E" : "var(--screen-line, #33333D)";
         t.style.borderColor = "transparent";
       }
       // keyboard reflects the BEST known state per letter
@@ -258,7 +269,7 @@ Strip.register({
         const cur = letterState[k] ?? -1;
         if(rank[result[i]] > cur){
           letterState[k] = result[i];
-          keyEls[k].style.background = result[i] === 2 ? "#4E9A5B" : result[i] === 1 ? "#B08A2E" : "#33333D";
+          keyEls[k].style.background = result[i] === 2 ? "#4E9A5B" : result[i] === 1 ? "#B08A2E" : "var(--screen-line, #33333D)";
         }
       }
       Feedback.haptic("light");
@@ -301,14 +312,18 @@ Strip.register({
     function onKey(e){
       // input arbitration: only the CENTERED card takes keys
       if(window.StripShell && !StripShell.isActive(container)) return;
-      if(e.key === "Enter") handleKey("enter");
-      else if(e.key === "Backspace") handleKey("back");
-      else if(/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toLowerCase());
+      // rule 6: consumed keys never reach the strip (Enter/Backspace scroll or navigate)
+      if(e.key === "Enter"){ e.preventDefault(); handleKey("enter"); }
+      else if(e.key === "Backspace"){ e.preventDefault(); handleKey("back"); }
+      else if(/^[a-zA-Z]$/.test(e.key)){ e.preventDefault(); handleKey(e.key.toLowerCase()); }
     }
     window.addEventListener("keydown", onKey);
 
     newGame(false, "daily");
 
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      tos.forEach(clearTimeout); // a late statUpdate would re-populate a reaped stat slot
+    };
   }
 });

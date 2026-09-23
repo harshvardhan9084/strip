@@ -50,6 +50,19 @@ Strip.register({
     };
     const saved = await api.load();
     const state = Object.assign({}, DEFAULT, saved || {});
+    // rule 10 — sanitize everything loaded: a corrupted save must fall back to
+    // fresh numbers, never NaN its way into the vault/offline math below
+    // (a NaN lastSeen would poison elapsedSec -> vault -> food -> the whole UI)
+    const fin = (v, f) => (Number.isFinite(v) ? v : f);
+    state.food = Math.max(0, fin(state.food, 0));
+    state.lifetimeFood = Math.max(0, fin(state.lifetimeFood, 0));
+    state.vault = Math.max(0, fin(state.vault, 0));
+    state.foragers = Math.max(0, Math.floor(fin(state.foragers, 0)));
+    state.farmers = Math.max(0, Math.floor(fin(state.farmers, 0)));
+    state.soldiers = Math.max(0, Math.floor(fin(state.soldiers, 0)));
+    state.vaultTier = Math.max(0, Math.floor(fin(state.vaultTier, 0)));
+    state.fertility = 1 + state.farmers * 0.03; // always derived from farmers
+    state.lastSeen = fin(state.lastSeen, Date.now());
     let best = await api.getHighscore();
 
     const COST_GROWTH = 1.14;

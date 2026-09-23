@@ -142,6 +142,9 @@ Strip.register({
     // toggle flips the card into a favorites dealer (tap-through your stars).
     // The seen counter stays honest: favorites browsing never inflates it.
     if(!Array.isArray(state.favs)) state.favs = [];
+    // sanitize: a save from an older build (or a corrupt blob) can carry
+    // indices outside the current FACTS pool — those render as "undefined"
+    state.favs = state.favs.filter(i => Number.isInteger(i) && i >= 0 && i < FACTS.length);
     let favMode = false;
 
     const wrap = document.createElement("div");

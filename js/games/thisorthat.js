@@ -44,6 +44,7 @@ Strip.register({
     // a left/right lean line always visible, and a full profile flash every
     // 10 decisions with your recent picks.
     if(!Array.isArray(state.history)) state.history = [];
+    if(!Number.isFinite(state.total)) state.total = 0;
     if(!Number.isFinite(state.leftCount)) state.leftCount = 0;
     if(!Number.isFinite(state.rightCount)) state.rightCount = 0;
     const sinceProfile = { n: (state.history.length || 0) % 10 };
@@ -114,7 +115,13 @@ Strip.register({
       setTimeout(() => flash.remove(), 2400);
     }
 
+    // one advance in flight at a time: the 220ms window is feedback, not a
+    // second question — a tap or fold inside it used to queue a SECOND bag
+    // advance, silently consuming a pair nobody ever saw
+    let advanceTimer = null;
+
     function pick(side){
+      if(advanceTimer) return;
       Feedback.tone("select"); Feedback.haptic("light");
       (side === "left" ? leftBtn : rightBtn).style.background = "var(--amber-dim)";
       state.total++;
@@ -127,7 +134,8 @@ Strip.register({
       sinceProfile.n++;
       const doFlash = sinceProfile.n >= 10;
       if(doFlash) sinceProfile.n = 0;
-      setTimeout(() => {
+      advanceTimer = setTimeout(() => {
+        advanceTimer = null;
         idx = bag.next();
         state.bag = bag.serialize();
         api.save(state);
@@ -137,6 +145,7 @@ Strip.register({
     }
 
     foldBtn.addEventListener("click", () => {
+      if(advanceTimer) return; // same lock — a fold must not double-advance the bag
       // the fold: an honest non-answer — new pair, no pick recorded
       Feedback.tone("swap"); Feedback.haptic("light");
       idx = bag.next();
@@ -149,5 +158,7 @@ Strip.register({
     rightBtn.addEventListener("click", () => pick("right"));
 
     render();
+
+    return () => { clearTimeout(advanceTimer); }; // no advance fires into a dead card
   }
 });

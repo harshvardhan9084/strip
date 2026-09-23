@@ -19,7 +19,15 @@ Strip.register({
     const INV = 100;
     const saved0 = await api.load().catch(() => null);
     let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 1;
-    const bests = saved0 && saved0.bests ? saved0.bests : {};
+    // rule 10: fresh factory clone + finite check — a legacy save's bests
+    // object must never leak garbage into `used < best` or the stat row
+    const bests = {};
+    if(saved0 && saved0.bests && typeof saved0.bests === "object"){
+      for(const k of Object.keys(saved0.bests)){
+        const v = Number(saved0.bests[k]);
+        if(Number.isFinite(v) && v > 0) bests[k] = v;
+      }
+    }
     const stored = await api.getHighscore();
     let bestClassic = stored ? INV - stored : Infinity;
     let S = SIZES[sizeIdx];
@@ -222,6 +230,8 @@ Strip.register({
       if(row >= S.rows){
         failed = true;
         Feedback.buzz("lose");
+        api.gameover("over", 0); // the run ended (rows exhausted) — one honest call
+        submitBtn.disabled = true; // the Check verb is dead now, don't show it alive
         row = S.rows - 1;
         render();
         // paint the secret AFTER render() — render() repaints the active row

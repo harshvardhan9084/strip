@@ -126,6 +126,7 @@ Strip.register({
 
     function launch(){
       if(running) return;
+      RunCeremony.hide(container); // a restart never fights the flourish
       // fresh match only when the last one is over — otherwise resume this run
       if(lives <= 0) startGame();
       running = true;

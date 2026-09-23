@@ -14,7 +14,7 @@ Strip.register({
     // difficulty is a choice, and an Undo exists for the "one column to the
     // left" regret every Connect Four player knows.
     let best = await api.getHighscore();
-    let difficulty = saved && saved.difficulty ? saved.difficulty : "normal";
+    let difficulty = saved && (saved.difficulty === "easy" || saved.difficulty === "normal" || saved.difficulty === "hard") ? saved.difficulty : "normal";
 
     let grid, over, busy;
     let history = []; // pre-move snapshots for Undo
@@ -279,6 +279,7 @@ Strip.register({
         api.save({ streak, difficulty });
       } else {
         Feedback.tone("thud");
+        api.gameover("over", 0); // a stalemate is the natural end — one honest call (xox does the same)
       }
       render(line);
       // R36 — the round-end sentence became the standard run ceremony

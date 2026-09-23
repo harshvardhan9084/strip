@@ -45,13 +45,16 @@ Strip.register({
 
     const targetRing = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     targetRing.setAttribute("cx","90"); targetRing.setAttribute("cy","90"); targetRing.setAttribute("r","70");
-    targetRing.setAttribute("fill","none"); targetRing.setAttribute("stroke","var(--amber)");
+    // strokes ride inline style, not presentation attributes — var() is not
+    // reliably parsed inside SVG attributes (chainlink resolves colors too);
+    // inline style keeps the token so light mode re-grades the accents
+    targetRing.setAttribute("fill","none"); targetRing.style.stroke = "var(--amber)";
     targetRing.setAttribute("stroke-width","3"); targetRing.setAttribute("opacity","0.5");
     svg.appendChild(targetRing);
 
     const shrinkRing = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     shrinkRing.setAttribute("cx","90"); shrinkRing.setAttribute("cy","90"); shrinkRing.setAttribute("r","78");
-    shrinkRing.setAttribute("fill","none"); shrinkRing.setAttribute("stroke","var(--purple)");
+    shrinkRing.setAttribute("fill","none"); shrinkRing.style.stroke = "var(--purple)";
     shrinkRing.setAttribute("stroke-width","4");
     svg.appendChild(shrinkRing);
 
@@ -74,6 +77,7 @@ Strip.register({
     const START_R = 78;
     const MAX_R = 160;
     let streak = 0, running = false, r = START_R, rafId = null, speed = 0.9;
+    let lastTs = null; // dt anchor — the descent is frame-rate normalized, 120Hz must not play double-speed
     // Round 22 (user ask): click-to-begin gate — the card used to open with
     // the ring ALREADY falling, so the first seconds were a forced miss and
     // the streak started at −1 confidence. Now the card opens on an idle,
@@ -112,9 +116,14 @@ Strip.register({
       running = true;
     }
 
-    function loop(){
+    function loop(ts){
+      if(lastTs == null) lastTs = ts;
+      // dt in frame-units, clamped like flapdot — the tap window is px-based,
+      // so its wall-clock width would halve on 120Hz screens without this
+      const dtF = Math.min(3, Math.max(0, (ts - lastTs) / 16.67));
+      lastTs = ts;
       if(running){
-        r -= speed;
+        r -= speed * dtF;
         shrinkRing.setAttribute("r", Math.max(0, r));
         if(r < TARGET_R - 30){
           // missed the window entirely

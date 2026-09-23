@@ -22,7 +22,7 @@ Strip.register({
     // the other two sizes keep honest bests inside the save.
     const INV = 9999;
     const saved0 = await api.load();
-    let diffIdx = saved0 && Number.isFinite(saved0.diff) ? Math.min(2, Math.max(0, saved0.diff)) : 0;
+    let diffIdx = saved0 && Number.isFinite(saved0.diff) ? Math.min(2, Math.max(0, Math.floor(saved0.diff))) : 0;
     let D = DIFFS[diffIdx];
     let W = D.W, H = D.H, MINES = D.MINES;
     const stored = await api.getHighscore();
@@ -125,8 +125,12 @@ Strip.register({
         c.addEventListener("pointerup", () => clearTimeout(longPress));
         c.addEventListener("pointerleave", () => clearTimeout(longPress));
         c.addEventListener("pointercancel", () => clearTimeout(longPress));
-        // desktop right-click flags
-        c.addEventListener("contextmenu", (e) => { e.preventDefault(); clearTimeout(longPress); suppressDig = true; toggleFlag(r, col); });
+        // desktop right-click flags — but only when the long-press timer is
+        // still pending. Android fires contextmenu ~500ms into a long-press,
+        // AFTER the 320ms timer already flagged: a second toggle here would
+        // flip the flag straight back off (long-press flagging never stuck).
+        // A quick right-click still clears the pending timer and flags once.
+        c.addEventListener("contextmenu", (e) => { e.preventDefault(); if(longPress){ clearTimeout(longPress); suppressDig = true; toggleFlag(r, col); } });
         c.addEventListener("click", () => {
           if(suppressDig){ suppressDig = false; return; }
           // Round 21 bugfix: this read `revealed[r * W + c]` — but `c` here is
@@ -261,6 +265,7 @@ Strip.register({
         clearInterval(timerId);
         Feedback.buzz("lose");
         streak = 0;
+        api.gameover("over", 0); // the run's honest end — one call, never again this board
         persist();
         render();
         return;
@@ -305,7 +310,7 @@ Strip.register({
       neighbors(i, j => { if(!revealed[j] && !flagged[j]) targets.push(j); });
       if(!targets.length) return;
       for(const j of targets){
-        if(mines[j]){ over = true; won = false; hitIdx = j; clearInterval(timerId); Feedback.buzz("lose"); streak = 0; persist(); render(); return; }
+        if(mines[j]){ over = true; won = false; hitIdx = j; clearInterval(timerId); Feedback.buzz("lose"); streak = 0; api.gameover("over", 0); persist(); render(); return; }
         const stack = [j];
         while(stack.length){
           const k = stack.pop();
@@ -391,12 +396,16 @@ Strip.register({
     // only for the CURRENT difficulty size
     api.load().then(saved => {
       if(restored || !saved || !saved.placed || saved.over || !Array.isArray(saved.mines) || saved.mines.length !== W * H) return;
+      // every restored array must be a same-length array — a truncated or
+      // foreign save would leave revealed/flagged undefined and render() throws
+      if(!Array.isArray(saved.revealed) || saved.revealed.length !== W * H) return;
+      if(!Array.isArray(saved.flagged) || saved.flagged.length !== W * H) return;
       restored = true;
       mines = saved.mines;
       revealed = saved.revealed;
       flagged = saved.flagged;
-      elapsed = saved.elapsed || 0;
-      flags = saved.flags || 0;
+      elapsed = Number.isFinite(saved.elapsed) ? saved.elapsed : 0;
+      flags = Number.isFinite(saved.flags) ? saved.flags : 0;
       placed = true; over = false; won = false;
       startTimer(); // the clock resumes with the board
       render();

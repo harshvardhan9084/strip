@@ -143,6 +143,7 @@ Strip.register({
     }
 
     function newGame(){
+      clearTimeout(jamTimer); jamTimer = null; jamShown = false; // a manual new game cancels a pending jam reshuffle
       grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
       score = 0;
       winShown = false;
@@ -378,14 +379,14 @@ Strip.register({
           }
           if(newStage >= 3){
             Feedback.buzz(newStage >= WIN_STAGE ? "win" : "success");
-            noteEl.textContent = `▲ NEW MAX — a ${newStage + 1} blob!` + (newStage === WIN_STAGE + 1 ? " ★ MEGA BLOB" : "");
+            noteEl.textContent = `▲ NEW MAX — a ${newStage + 1} blob!` + (newStage === WIN_STAGE ? " ★ MEGA BLOB" : "");
             clearTimeout(noteEl._t);
             noteEl._t = setTimeout(() => { if(noteEl.isConnected) updateGoalLine(); }, 4000);
           }
         }
         // the goal: grow any blob to MEGA (stage 8 shown). Announce once per
         // board — the board stays playable and bigger is still possible
-        if(newStage === WIN_STAGE + 1 && !winShown){
+        if(newStage === WIN_STAGE && !winShown){
           winShown = true;
           persistState();
         }
@@ -407,6 +408,7 @@ Strip.register({
 
     // ---- Round 21: jam ceremony ----
     let jamShown = false;
+    let jamTimer = null;
     function showJam(){
       if(jamShown) return;
       jamShown = true;
@@ -419,7 +421,7 @@ Strip.register({
         '<div style="font-size:10px; color:var(--ink);">score ' + score + ' banked · best ' + best + '</div>';
       board.appendChild(banner);
       try{ Feedback.buzz("win"); }catch(e){}
-      setTimeout(() => { jamShown = false; newGame(); }, 1400);
+      jamTimer = setTimeout(() => { jamTimer = null; jamShown = false; newGame(); }, 1400);
     }
 
     function anyMergePossible(){
@@ -447,6 +449,7 @@ Strip.register({
 
     return () => {
       clearInterval(comboTick);
+      clearTimeout(jamTimer);
       persistState();
       // no window listeners exist anymore — pointer capture keeps every drag
       // on its own element, and removing the element from the DOM ends its

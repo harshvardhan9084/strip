@@ -62,6 +62,27 @@ Strip.register({
     // legacy migration: fish from before species existed get one assigned now
     state.fish.forEach(f => { if(!f.species){ const nf = mkFish(); f.species = nf.species; if(f.hue === undefined) f.hue = nf.hue; if(f.paid === undefined) f.paid = false; } });
     if(!Number.isFinite(state.coins)) state.coins = 0;
+    state.coins = Math.max(0, Math.floor(state.coins));
+    if(!Number.isFinite(state.lastSeen)) state.lastSeen = Date.now(); // NaN here poisons every fish below
+    if(!Number.isFinite(state.food)) state.food = 5;
+    state.food = Math.min(10, Math.max(0, Math.floor(state.food)));
+    // sanitize loaded fish (rule 10): rebuild each through the mkFish factory —
+    // one non-finite size/x/y from a corrupt save renders NaNpx fish forever
+    state.fish = state.fish
+      .filter(f => f && typeof f === "object")
+      .slice(0, MAX_FISH)
+      .map(f => {
+        const nf = mkFish(typeof f.species === "string" && SP[f.species] ? f.species : undefined);
+        if(Number.isFinite(f.size)) nf.size = Math.min(1.6, Math.max(0.4, f.size));
+        if(Number.isFinite(f.hue))  nf.hue  = ((f.hue % 360) + 360) % 360;
+        if(Number.isFinite(f.x))    nf.x    = Math.min(90, Math.max(2, f.x));
+        if(Number.isFinite(f.y))    nf.y    = Math.min(82, Math.max(8, f.y));
+        nf.dir = f.dir < 0 ? -1 : 1;
+        if(Number.isFinite(f.age)) nf.age = f.age;
+        nf.paid = f.paid === true;
+        return nf;
+      });
+    if(!state.fish.length) state.fish = [mkFish()];
 
     // offline growth: fish age a bit, capped; offline-grown fish pay on return
     const elapsedSec = Math.min(3600*6, Math.max(0, (Date.now() - state.lastSeen)/1000));
@@ -168,7 +189,7 @@ Strip.register({
           transform:scaleX(${f.dir});
           transition:left 3s linear, top 3s linear;
           z-index:2; cursor:pointer;
-          ${armedFish === f ? "outline:2px solid #FFB347; outline-offset:2px;" : ""}
+          ${armedFish === f ? "outline:2px solid var(--warn, #FFB347); outline-offset:2px;" : ""}
         `;
         el.addEventListener("click", (e) => {
           e.stopPropagation(); // a fish tap is NOT a feed

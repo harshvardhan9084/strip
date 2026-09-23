@@ -56,6 +56,16 @@ Strip.register({
       dim: "#8B8A94",
     };
 
+    // R33 daylight screens: the dot and the live score are this game's PRIMARY
+    // INK drawn on the glass — ride the screen-ink token like breakout does
+    // (dark/OLED leave the token undefined → the raw phosphor hex stays).
+    const _sv = getComputedStyle(document.documentElement);
+    let INK = _sv.getPropertyValue("--screen-ink").trim() || COLORS.dot;
+    const onModeChanged = () => {
+      INK = _sv.getPropertyValue("--screen-ink").trim() || COLORS.dot;
+    };
+    window.addEventListener("strip:mode-changed", onModeChanged);
+
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
 
@@ -218,7 +228,7 @@ Strip.register({
 
     // keyboard parity (desktop): space/enter plays — the card is a button
     function onKey(e){
-      if(!StripShell.isActive(cv)) return;
+      if(window.StripShell && !StripShell.isActive(cv)) return;
       if(e.key === " " || e.key === "Enter"){
         e.preventDefault();
         onTap(e);
@@ -297,7 +307,7 @@ Strip.register({
       const breathe = mode === "idle" ? 1 + Math.sin(now / 400) * 0.12 : 1;
       ctx.beginPath();
       ctx.arc(CX + Math.cos(angle) * R, CY + Math.sin(angle) * R, DOT_R * breathe, 0, Math.PI * 2);
-      ctx.fillStyle = mode === "over" ? COLORS.danger : COLORS.dot;
+      ctx.fillStyle = mode === "over" ? COLORS.danger : INK;
       ctx.fill();
 
       // center text
@@ -314,7 +324,7 @@ Strip.register({
         ctx.fillStyle = COLORS.dim;
         ctx.font = "10px sans-serif";
       } else {
-        ctx.fillStyle = mode === "over" ? COLORS.danger : COLORS.dot;
+        ctx.fillStyle = mode === "over" ? COLORS.danger : INK;
         ctx.font = '22px "Press Start 2P", monospace';
         ctx.fillText(String(score), CX, CY - 8);
         if(mode === "over"){
@@ -344,9 +354,30 @@ Strip.register({
 
     function q(sel){ return container.querySelector(sel); }
 
+    // DPR-aware backing store (breakout's pattern) — the fixed 240px canvas
+    // upscaled to 78vw on a phone rendered visibly soft on hidpi screens
+    function fit(){
+      const rect = cv.getBoundingClientRect();
+      if(!rect.width) return;
+      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
+      cv.width = Math.round(rect.width * dpr);
+      cv.height = Math.round(rect.width * dpr);
+      ctx.setTransform(cv.width / SIZE, 0, 0, cv.height / SIZE, 0, 0);
+    }
+    requestAnimationFrame(fit);
+    let resizeTimer = null;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(fit, 150);
+    };
+    window.addEventListener("resize", onResize);
+
     return () => {
       cancelAnimationFrame(rafId);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("strip:mode-changed", onModeChanged);
+      clearTimeout(resizeTimer);
       if(score > best) api.setHighscore(best);
     };
   }

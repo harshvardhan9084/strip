@@ -6,12 +6,18 @@ Strip.register({
   hint: "Push crates onto the dots · U to undo",
   async mount(container, api){
     const state = await api.load();
-    let levelIdx = state && Number.isFinite(state.level) ? state.level : 0;
-    let bests = state && Array.isArray(state.bests) ? state.bests : [];
+    // sanitize everything loaded (house rule 10): an out-of-range levelIdx used
+    // to wedge the mount (LEVELS[i] undefined threw inside parse()/render())
+    // and a junk daily/bests entry poisoned the streak + star math
+    let levelIdx = state && Number.isFinite(state.level) ? Math.max(0, Math.floor(state.level)) : 0;
+    let bests = state && Array.isArray(state.bests) ? state.bests.map(v => Number.isFinite(v) ? v : null) : [];
     // unlocked = highest level index reachable in the select grid (legacy saves
     // only stored the current level — adopt it as the unlock floor)
-    let unlocked = state && Number.isFinite(state.unlocked) ? Math.max(state.unlocked, levelIdx) : levelIdx;
-    let daily = state && state.daily ? state.daily : { last: "", streak: 0 };
+    let unlocked = state && Number.isFinite(state.unlocked) ? Math.max(0, Math.floor(state.unlocked)) : levelIdx;
+    unlocked = Math.max(unlocked, levelIdx);
+    let daily = state && state.daily && typeof state.daily === "object"
+      ? { last: typeof state.daily.last === "string" ? state.daily.last : "", streak: Number.isFinite(state.daily.streak) ? state.daily.streak : 0 }
+      : { last: "", streak: 0 };
 
     // Round 19 (AUDIT.md DEEP DIVE 3 — "only 5 levels" / the very short end):
     // the shelf grew from 5 boards to 20 with a real difficulty curve, a
@@ -204,6 +210,10 @@ Strip.register({
       ]
     ];
     const PARS = [2,3,5,10,12, 6,9,19,21,20, 21,23,26,26,26, 26,26,27,34,32];
+    // clamp the persisted indices into the shelf — "finite" alone isn't enough,
+    // the shelf length is the real ceiling
+    levelIdx = Math.min(levelIdx, LEVELS.length - 1);
+    unlocked = Math.min(unlocked, LEVELS.length);
 
     // DAILY CRATE: the day string seeds a stable pick from the full shelf.
     // Completing it (any level, once per day) grows a streak — the audit's
@@ -221,6 +231,7 @@ Strip.register({
     let dailyActive = false; // currently playing the daily pick?
 
     let walls, crates, goals, player, moves, history, done;
+    let pendT = []; // pending post-clear timeouts (auto-advance / all-clear) — killed on unmount
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:10px;";
@@ -520,15 +531,15 @@ Strip.register({
       if(levelIdx < LEVELS.length - 1){
         msgEl.innerHTML = `SHIPPED — next level…`;
         msgEl.hidden = false;
-        setTimeout(() => {
+        pendT.push(setTimeout(() => {
           if(!done) return; // card may have been reset meanwhile
           levelIdx++;
           saveState();
           loadLevel(levelIdx);
-        }, 900);
+        }, 900));
       } else {
         // the shelf is complete — ceremony instead of silence (S8)
-        setTimeout(() => { if(done && !dailyActive) showAllClear(); }, 700);
+        pendT.push(setTimeout(() => { if(done && !dailyActive) showAllClear(); }, 700));
       }
     }
 
@@ -558,6 +569,7 @@ Strip.register({
     return () => {
       window.removeEventListener("keydown", onKey);
       if(settingsUnsub36) settingsUnsub36();
+      pendT.forEach(clearTimeout);
     };
   }
 });

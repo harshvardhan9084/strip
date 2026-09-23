@@ -47,6 +47,7 @@ Strip.register({
     let angle = 0;        // degrees
     let velocity = 0;      // deg per frame
     let lastAngle = 0, lastTime = 0, dragging = false;
+    let lastTouchAt = 0; // simulated mouse events trail a touch release — ignore them
     let rafId = null;
 
     function angleFromEvent(e){
@@ -78,6 +79,10 @@ Strip.register({
       lastAngle = a; lastTime = now;
     }
     function onUp(){
+      // a release that never started on the face (a deck-scroll touchend, a
+      // second pointer, the simulated mouseup after a tap) is NOT a run end —
+      // it used to bank the free-spin peak and fire gameover from any gesture
+      if(!dragging) return;
       dragging = false;
       face.style.cursor = "grab";
       if(Math.abs(velocity) > 2) Feedback.haptic("light");
@@ -91,12 +96,17 @@ Strip.register({
       peakRpm = 0;
     }
 
-    face.addEventListener("mousedown", onDown);
+    face.addEventListener("mousedown", (e) => { if(Date.now() - lastTouchAt < 500) return; onDown(e); });
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
     face.addEventListener("touchstart", onDown, {passive:true});
     window.addEventListener("touchmove", onMove, {passive:true});
-    window.addEventListener("touchend", onUp);
+    window.addEventListener("touchend", onTouchEnd);
+
+    function onTouchEnd(){
+      lastTouchAt = Date.now();
+      onUp();
+    }
 
     let lastFrame = performance.now();
     function tick(now){
@@ -129,7 +139,7 @@ Strip.register({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
       window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("touchend", onUp);
+      window.removeEventListener("touchend", onTouchEnd);
     };
   }
 });

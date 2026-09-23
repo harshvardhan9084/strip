@@ -5,7 +5,11 @@ Strip.register({
   tag: "∞",
   hint: "Pick a side, see the split",
   async mount(container, api){
-    const state = (await api.load()) || { votes: {}, bag: null }; // { [qIdx]: "a"|"b" }
+    // rule 10 — re-clone the loaded state: a corrupted record can come back
+    // as a non-object, and a save without `votes` used to throw in render()
+    const loaded = await api.load();
+    const state = (loaded && typeof loaded === "object") ? loaded : { votes: {}, bag: null }; // { [qIdx]: "a"|"b" }
+    if(!state.votes || typeof state.votes !== "object" || Array.isArray(state.votes)) state.votes = {};
     const QUESTIONS = [
       ["Have teleportation", "Have telepathy"],
       ["Always be 10 min late", "Always be 20 min early"],
@@ -154,7 +158,7 @@ Strip.register({
     function showResult(btn, pct, isYours){
       const bar = document.createElement("div");
       bar.style.cssText = `
-        position:absolute; inset:0; width:${pct}%; background:${isYours ? "rgba(255,179,71,.18)" : "rgba(255,255,255,.05)"};
+        position:absolute; inset:0; width:${pct}%; background:${isYours ? "rgba(var(--glow-rgb),.18)" : "rgba(255,255,255,.05)"};
         z-index:0; transition:width .4s ease;
       `;
       const text = document.createElement("div");

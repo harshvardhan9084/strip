@@ -145,6 +145,7 @@ Strip.register({
             position:absolute; inset:0; background:var(--screen-veil, rgba(0,0,0,.55)); border-radius:8px;
             display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px;
             color:var(--warn, #FFB347); font-family:var(--font-display); font-size:20px; text-align:center;
+            pointer-events:auto;
           `;
           o.textContent = "★ 2048 ★";
           const sub = document.createElement("div");
@@ -237,12 +238,14 @@ Strip.register({
           }
           Feedback.tone("ok");
         }
-        render();
+        // the loss check runs BEFORE render() so the "No moves left" veil
+        // paints on the losing move itself, not only after the next input
         if(!hasMoves()){
           Feedback.buzz("lose");
           gameOverShown = true;
           api.gameover("over", score);
         }
+        render();
       } else {
         render();
       }

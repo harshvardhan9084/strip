@@ -209,6 +209,7 @@ api.gameover("over", score);
     function start(){
       RunCeremony.hide(container); // a restart never fights the flourish
       score = 0; timeLeft = 60; running = true;
+      combo = 0; clearTimeout(comboTimer); // a new round never inherits the last one's combo
       statVals["bp-score"] = 0; renderStats();
       statVals["bp-time"] = 60; renderStats();
       startBtn.disabled = false;

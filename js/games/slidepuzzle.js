@@ -17,7 +17,7 @@ Strip.register({
     ];
     const INV = 100000;
     const saved0 = await api.load().catch(() => null);
-    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 1;
+    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, Math.floor(saved0.size))) : 1; // floor: a fractional save would index SIZES[1.5] → undefined → mount throws
     const bests = saved0 && saved0.bests ? saved0.bests : {};
     const stored = await api.getHighscore();
     let bestClassic = stored ? INV - stored : Infinity;

@@ -324,7 +324,7 @@ Strip.register({
           // compost: the loss is honest, the rebate is a token
           state.plants[idx] = null;
           state.coins += 3;
-          addFloat(idx, "+3", "#EDEAE3");
+          addFloat(idx, "+3", "var(--ink)");
           Feedback.tone("thud"); Feedback.haptic("medium");
           flashNote("Composted (+3 coins)");
           queueReplant(idx);

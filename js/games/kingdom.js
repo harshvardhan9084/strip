@@ -31,8 +31,22 @@ Strip.register({
     const state = saved ? Object.assign(mkState(), saved) : mkState();
     // assign must never alias anything nested in `saved` either
     state.assign = Object.assign({ farm: 1, mine: 0 }, state.assign);
-    if(!Number.isFinite(state.peakPop)) state.peakPop = state.population;
     state.collapsed = !!state.collapsed;
+    // rule 10 — sanitize the loaded numbers: a corrupted save must fall back
+    // to fresh values, never NaN its way through the cost/era/collapse math
+    // (NaN gold made every build button clickable, NaN population broke the
+    // housing cap and never collapsed)
+    const fin = (v, f) => (Number.isFinite(v) ? v : f);
+    state.day = Math.max(1, Math.floor(fin(state.day, 1)));
+    state.gold = Math.max(0, fin(state.gold, 20));
+    state.food = Math.max(0, fin(state.food, 30));
+    state.population = Math.max(0, Math.floor(fin(state.population, 4)));
+    state.farms = Math.max(0, Math.floor(fin(state.farms, 1)));
+    state.mines = Math.max(0, Math.floor(fin(state.mines, 0)));
+    state.houses = Math.max(1, Math.floor(fin(state.houses, 1)));
+    state.assign.farm = Math.max(0, Math.floor(fin(state.assign.farm, 1)));
+    state.assign.mine = Math.max(0, Math.floor(fin(state.assign.mine, 0)));
+    state.peakPop = Math.max(state.population, Math.floor(fin(state.peakPop, state.population)));
     // MIGRATION CLAMP: old saves predate the cap fixes — a legacy save can
     // carry population 6 with 1 house (POP 6/4) and 2 farmers on 1 farm.
     // The old code left those on screen until famine and even paid double
@@ -260,11 +274,16 @@ Strip.register({
         // (R20) hoisted the clamp so the registry's inverted-score tripwire
         // stops false-positiving on the subtraction inside the call
         const daysSurvived = Math.max(0, state.day - 1);
+        best = Math.max(best, daysSurvived); // the tombstone renders before setHighscore resolves
         api.gameover("over", daysSurvived);
         api.setHighscore(daysSurvived).then(v => { best = v; });
         showRecap();
-      } else if(state.day > best){
-        best = state.day;
+      } else if(state.day - 1 > best){
+        // day - 1 = full days actually survived (matches the collapse path's
+        // daysSurvived and the tombstone's "it lasted N days") — the old
+        // state.day stored one MORE than the kingdom ever lasted, and the
+        // max() in setHighscore made the inflated value sticky forever
+        best = state.day - 1;
         api.setHighscore(best);
         Feedback.tone("success"); Feedback.haptic("medium");
       } else if(!state.collapsed){

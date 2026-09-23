@@ -9,7 +9,8 @@ Strip.register({
     // cartridge coexist briefly in the strip, and getElementById could
     // update the stale copy instead of the visible one
     const q = (sel) => container.querySelector(sel);
-    const savedState = (await api.load()) || { bag: null };
+    const _loaded = await api.load();
+    const savedState = (_loaded && typeof _loaded === "object") ? _loaded : { bag: null };
     const Q = [
       { q:"What planet has the most moons?", a:["Jupiter","Saturn","Mars","Neptune"], correct:1 },
       { q:"How many bones in the human body?", a:["186","206","226","246"], correct:1 },
@@ -170,7 +171,7 @@ Strip.register({
       answered = true;
       const correct = i === current.correct;
       [...answers.children].forEach((b, idx) => {
-        if(idx === current.correct) b.style.borderColor = "#6FCF97";
+        if(idx === current.correct) b.style.borderColor = "var(--good, #6FCF97)";
         if(idx === i && !correct) b.style.borderColor = "var(--danger)";
       });
       if(correct){
@@ -190,7 +191,7 @@ Strip.register({
 
     function showResults(){
       meterFill.style.width = "100%";
-      meterFill.style.background = runScore >= 7 ? "#6FCF97" : "var(--amber)";
+      meterFill.style.background = runScore >= 7 ? "var(--good, #6FCF97)" : "var(--amber)";
       const flavor = runScore === 10 ? "PERFECT RUN — flawless ten."
         : runScore >= 8 ? "Sharp. The run of a scholar."
         : runScore >= 5 ? "Solid majority — bank it and go again."
@@ -201,10 +202,12 @@ Strip.register({
         savedState.runBest = runScore;
         savedRunBest = runScore; // session-honest: a later run compares against THIS
         api.save(savedState);
-        api.gameover("over", runScore);
         api.setHighscore(runScore); // max-wins store: only a genuine beat lands
         Feedback.buzz("win");
       }
+      // ONE gameover per run at the natural end (rule 7) — it used to live
+      // inside the new-best branch, so most runs never paid the shell.
+      api.gameover("over", runScore);
       qText.textContent = `RUN COMPLETE — ${runScore}/${RUN_LEN}`;
       answers.innerHTML = "";
       const flavorEl = document.createElement("div");

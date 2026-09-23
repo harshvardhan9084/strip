@@ -65,6 +65,7 @@ Strip.register({
     let cw, ch;
     function fit(){
       const rect = canvas.getBoundingClientRect();
+      if(!rect.width) return; // unmeasured (hidden/off-layout) — never zero the backing store
       const dpr = Math.min(2.5, devicePixelRatio || 1); // capped, parity with the other DPR canvases
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
@@ -397,6 +398,11 @@ Strip.register({
       const x = clientX - rect.left, y = clientY - rect.top;
       const sx = cw/2, sy = ch-20;
       shooter.angle = Math.atan2(y-sy, x-sx);
+      // a pointer BELOW the shooter reads as a positive angle — clamp it to
+      // the vertical on the side the finger is actually on (the old min()
+      // sent every bottom-left touch to up-RIGHT, snapping the aim across
+      // the whole board)
+      if(shooter.angle > 0) shooter.angle = x < sx ? -Math.PI + 0.15 : -0.15;
       shooter.angle = Math.max(-Math.PI+0.15, Math.min(-0.15, shooter.angle));
     }
 
@@ -438,7 +444,12 @@ Strip.register({
         flying.py = flying.y;
         flying.x += flying.vx * dtF;
         flying.y += flying.vy * dtF;
-        if(flying.x < R || flying.x > cw-R) flying.vx *= -1;
+        // mirror the position at the wall surface — the SAME x=2R−x form the
+        // R37 trajectory preview uses, so the preview never lies about a
+        // bounce (velocity-only reflection let the bubble penetrate and
+        // diverge from the dotted path near the walls)
+        if(flying.x < R){ flying.x = 2*R - flying.x; flying.vx *= -1; }
+        else if(flying.x > cw-R){ flying.x = 2*(cw-R) - flying.x; flying.vx *= -1; }
         // CEILING: without this, a shot aimed up a vertical gap wider than the
         // hit radius never collides — it flies to y=-infinity, `flying` is never
         // cleared, and every future shot is silently ignored (softlock).

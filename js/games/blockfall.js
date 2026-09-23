@@ -257,8 +257,11 @@ Strip.register({
 
     function softDrop(){
       if(!running || over) return;
-      score += 1; // credit BEFORE gravity — if this drop ends the game, the
-      gravity();  // saved highscore must match what the stat row shows
+      // +1 pays a real cell of descent (a blocked press earns nothing), and it
+      // credits BEFORE gravity — if this drop ends the game, the saved
+      // highscore must match what the stat row shows
+      if(!collides(piece.m, piece.r + 1, piece.c)) score += 1;
+      gravity();
       statUpdate();
     }
 

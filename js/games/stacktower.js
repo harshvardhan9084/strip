@@ -48,11 +48,17 @@ Strip.register({
     const ctx = canvas.getContext("2d");
     function fit(){
       const rect = canvas.getBoundingClientRect();
+      if(!rect.width) return; // refuse to size against an unmeasured canvas (the artillery race)
       canvas.width = rect.width * devicePixelRatio;
       canvas.height = rect.height * devicePixelRatio;
       ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
     }
-    requestAnimationFrame(fit);
+    requestAnimationFrame(() => {
+      fit();
+      // re-center the idle base block once the canvas has a real width — reset()
+      // ran against the 300px default backing store and drew it off-center
+      if(!running && blocks.length === 1 && score === 0) reset();
+    });
 
     const COLORS = ["#FFB347","#8B7FE8","#E8637F","#6FCF97","#56B4E9"];
     let blocks, current, running, rafId, score, camY;
@@ -60,6 +66,7 @@ Strip.register({
 
     // PERFECT banner — one shared node, replaced per call
     let stBannerTimer = null;
+    let spawnTimer = null;
     function showSt(text){
       let t = canvas.parentElement.querySelector(".st-banner");
       if(!t){
@@ -82,6 +89,7 @@ Strip.register({
       running = false;
       score = 0;
       camY = 0;
+      perfectStreak = 0; // a new run starts the perfect streak fresh
       statVals["st-score"] = 0; renderStats();
     }
 
@@ -148,7 +156,7 @@ Strip.register({
       if(blocks.length * BLOCK_H > (canvas.height/devicePixelRatio) * 0.6){
         camY += BLOCK_H;
       }
-      setTimeout(spawnBlock, 120);
+      spawnTimer = setTimeout(spawnBlock, 120);
     }
 
     function gameOver(){
@@ -242,6 +250,8 @@ api.gameover("over", score);
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", onResize);
       clearTimeout(resizeTimer);
+      clearTimeout(spawnTimer); // a pending spawn must not land after unmount
+      clearTimeout(stBannerTimer);
     };
   }
 });

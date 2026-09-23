@@ -188,6 +188,7 @@ Strip.register({
     window.addEventListener("keydown", onKey);
 
     startBtn.addEventListener("click", () => {
+      clearInterval(tickId); // a double-tap on "Play again" must not arm a second interval (2× speed)
       newGame();
       currentTick = 160;
       tickId = setInterval(step, currentTick);

@@ -20,6 +20,11 @@ Strip.register({
   async mount(container, api){
     const saved = await api.load();
     const state = Object.assign({ wins: 0, losses: 0, draws: 0, difficulty: "hard" }, saved || {});
+    // sanitize the blob — a legacy save can carry anything (template rule 10)
+    state.wins = Number.isFinite(state.wins) ? state.wins : 0;
+    state.losses = Number.isFinite(state.losses) ? state.losses : 0;
+    state.draws = Number.isFinite(state.draws) ? state.draws : 0;
+    if(state.difficulty !== "easy" && state.difficulty !== "medium" && state.difficulty !== "hard") state.difficulty = "hard";
 
     const wrap = document.createElement("div");
     wrap.style.cssText = "display:flex; flex-direction:column; align-items:center; gap:14px; width:100%;";

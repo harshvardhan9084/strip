@@ -19,7 +19,12 @@ Strip.register({
     const INV = 100000;
     const saved0 = await api.load().catch(() => null);
     let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(2, Math.max(0, saved0.size)) : 1;
-    const bests = saved0 && saved0.bests ? saved0.bests : {};
+    // rule 10 — fresh container, finite numbers only: a corrupt bests entry
+    // must not reach `moves < best` or the BEST stat
+    const bests = {};
+    if(saved0 && saved0.bests){
+      SIZES.forEach(s => { if(Number.isFinite(saved0.bests[s.key])) bests[s.key] = saved0.bests[s.key]; });
+    }
     let stored = await api.getHighscore();
     let bestClassic = stored ? INV - stored : Infinity;
     let SIZE = SIZES[sizeIdx].n;
@@ -155,8 +160,10 @@ Strip.register({
           if(rr>=0 && rr<SIZE && cc>=0 && cc<SIZE) grid[rr][cc] ^= 1;
         });
       }
-      checkSolved();
-      if(solved) return newGame(); // re-scramble on the rare chance it landed solved
+      // re-scramble on the rare chance the toggles cancelled out — checked
+      // INLINE so checkSolved's win path (gameover/ceremony) can never fire
+      // for a board the player never played
+      if(grid.every(row => row.every(v => v === 0))) return newGame();
       render();
     }
 

@@ -17,8 +17,9 @@ Strip.register({
     ];
     const INV = 100000;
     const saved0 = await api.load().catch(() => null);
-    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(SIZES.length - 1, Math.max(0, saved0.size)) : 0;
-    const bests = saved0 && saved0.bests ? saved0.bests : {};
+    let sizeIdx = saved0 && Number.isFinite(saved0.size) ? Math.min(SIZES.length - 1, Math.max(0, Math.floor(saved0.size))) : 0;
+    const bests = saved0 && saved0.bests && typeof saved0.bests === "object" ? saved0.bests : {};
+    for(const k of Object.keys(bests)) if(!Number.isFinite(bests[k])) delete bests[k];
     const stored = await api.getHighscore();
     let bestClassic = stored ? INV - stored : Infinity;
     let S = SIZES[sizeIdx];
@@ -94,7 +95,10 @@ Strip.register({
       const g = [];
       for(let r=0;r<N;r++){
         const row = [];
-        for(let c=0;c<N;c++) row.push((S.bh * (r % S.bh) + Math.floor(r / S.bh) + c) % N + 1);
+        // shift each row by BW (the box WIDTH) inside its band — rows in a box
+        // must differ by bw so no digit repeats within a box (S.bh here made
+        // every 6×6 box hold a duplicate; only 4×4 hid it because bh===bw)
+        for(let c=0;c<N;c++) row.push((S.bw * (r % S.bh) + Math.floor(r / S.bh) + c) % N + 1);
         g.push(row);
       }
       const perm = shuffle(Array.from({length:N}, (_,i) => i+1));

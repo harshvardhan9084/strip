@@ -68,6 +68,7 @@ Strip.register({
     let runStreak = 0; // consecutive solves; a skip or a wrong word breaks it
     // Round 19 (S7 fix): BEST was lifetime SOLVED mirrored back (always equal
     // — meaningless). Now it's a real streak record.
+    let resetTimer = null; // the 400/500ms word-transition timeout — cleared by newWord so it can never fire into the next word
 
     function shuffle(arr){
       const a = arr.slice();
@@ -79,6 +80,7 @@ Strip.register({
     }
 
     function newWord(){
+      if(resetTimer){ clearTimeout(resetTimer); resetTimer = null; } // a skip/re-solve inside the old window never double-advances or wipes the new word
       word = WORDS[Math.floor(Math.random()*WORDS.length)];
       let letters = word.split("");
       do { scrambled = shuffle(letters); } while(scrambled.join("") === word);
@@ -138,16 +140,20 @@ Strip.register({
         solvedCount++;
         runStreak++;
         statVals["us-score"] = solvedCount; renderStats();
-        api.gameover("over", runStreak);
         api.setHighscore(runStreak).then(v => {
           best = v;
           statVals["us-best"] = best; renderStats();
         });
-        setTimeout(newWord, 500);
+        // NO api.gameover here — a solve is not a run end. The run is the
+        // STREAK; the shell's own contract ("over = ... streak broken") fires
+        // exactly once, in the wrong-answer branch below. Per-solve gameovers
+        // paid XP every word (the R0 #9 double-pay class).
+        resetTimer = setTimeout(newWord, 500);
       } else {
         Feedback.tone("fail"); Feedback.haptic("medium");
         const dead = runStreak;
         runStreak = 0;
+        if(dead > 0) api.gameover("over", dead); // THE one call per run — the streak just died
         // R35 ceremony adoption: a real streak (3+) dying used to be a
         // 400ms tile reset with nothing said — the panel gives the run its
         // honest goodbye. Short streaks keep the quiet reset (a 1-word
@@ -162,11 +168,14 @@ Strip.register({
             verb: "NEXT WORD",
           });
         }
-        setTimeout(() => { chosen = []; renderLetters(); renderAnswer(); }, 400);
+        resetTimer = setTimeout(() => { resetTimer = null; chosen = []; renderLetters(); renderAnswer(); }, 400);
       }
     }
 
-    clearBtn.addEventListener("click", () => { chosen = []; renderLetters(); renderAnswer(); });
+    clearBtn.addEventListener("click", () => {
+      if(resetTimer) return; // a word is transitioning (just solved / wrong reset) — Clear must not re-open the solved word or get wiped mid-retry
+      chosen = []; renderLetters(); renderAnswer();
+    });
     skipBtn.addEventListener("click", () => { runStreak = 0; newWord(); });
 
     newWord();
